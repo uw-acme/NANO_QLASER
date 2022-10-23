@@ -1,3 +1,3 @@
-# NAME-of-REPO
+# NANO_QLASER
 
-Blah.. blah.. blah
+FPGA controller for trapped ion quantum device experiments.
