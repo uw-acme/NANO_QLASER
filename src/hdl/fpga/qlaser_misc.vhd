@@ -3,8 +3,7 @@
 ----------------------------------------------------------------------------
 -- UW Neurochip :
 -- Description  : Miscellaneous signals interface.  
---                Includes accelerometer SPI interface for debugging with 
---                the CPU
+--                Includes version number register, trigger register and 'blink' block.
 ----------------------------------------------------------------------------
 library ieee;
 use     ieee.std_logic_1164.all;
