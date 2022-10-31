@@ -1,1 +1,1 @@
-VHDL files for formatted IO/O messages.
+VHDL files for formatted I/O messages.
