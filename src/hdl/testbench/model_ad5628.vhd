@@ -1,5 +1,5 @@
 ---------------------------------------------------------------
--- File         : model_adc5628.vhd
+-- File         : model_ad5628.vhd
 -- Description  : 8 channel CMOS 12bit DAC. 
 --                16-bit 3-wire serial interface 
 ---------------------------------------------------------------
@@ -11,7 +11,7 @@ use     std.textio.all;
 use     work.std_iopak.all;
 
 
-entity adc5628 is
+entity ad5628 is
 port (
     sclk_n       : in  std_logic;   -- Shift reg clock (falling edge. Output update on Nth edge)
     sync_n       : in  std_logic;   -- Frame sync. (Active low to shift)
@@ -30,9 +30,9 @@ port (
 end entity;
 
 ---------------------------------------------------------------
--- Model of adc5628
+-- Model of ad5628
 ---------------------------------------------------------------
-architecture rtl of adc5628 is
+architecture rtl of ad5628 is
 
 signal reg_shift    : std_logic_vector(31 downto 0)     := (others=>'0');    -- Shift reg
 signal cnt_shift    : integer                           := 0;
@@ -41,7 +41,7 @@ signal vreg         : integer                           := 0;
 signal tf_sync      : time                              :=  0 ns;
 signal tf_sclk      : time                              :=  0 ns;
 
-constant t_sync_fall_to_sclk_fall : time := 13 ns;
+constant t_sync_fall_to_sclk_fall : time := 13 ns;      -- TODO : Fix values
 constant t_sclk_fall_to_sync_rise : time := 20 ns;
 constant t_sclk_fall_to_sync_fall : time :=  0 ns;
 
@@ -66,7 +66,7 @@ begin
 
                 if (cnt_shift = 31) then
 
-                    -- **** DECODE THIS CORRECTLY
+                    -- **** TODO : DECODE THIS CORRECTLY
                     v_pd    := to_integer(unsigned(reg_shift(12 downto 11)));
 
                     if (v_pd = 0) then
@@ -85,7 +85,7 @@ begin
 
     end process;
     
-    -- *** TODO decode upper bits of shift reg for commands and dac select
+    -- *** TODO : decode upper bits of shift reg for commands and dac select
     -- Set output voltage
     vout0   <= (vref * real(vreg))/4096.0;
 
@@ -113,7 +113,7 @@ begin
     process (sclk_n)
     begin
         if ((now/=0 ns) and (now-tf_sync) < t_sync_fall_to_sclk_fall) then 
-           report ("DAC7513  : t_sync_fall_to_sclk_fall violation") 
+           report ("AD5628  : t_sync_fall_to_sclk_fall violation") 
            severity warning;
         end if;
     end process;
@@ -124,7 +124,7 @@ begin
         -- Rising edge of sync
 --        if rising_edge(sync_n) then
 --            if ((now/=0 ns) and (now-tf_sclk) < t_sclk_fall_to_sync_rise) then 
---               report ("ADC5628  : t_sclk_fall_to_sync_rise violation") 
+--               report ("AD5628  : t_sclk_fall_to_sync_rise violation") 
 --               severity error;
 --            end if;
 --        end if;
@@ -132,7 +132,7 @@ begin
         -- Falling edge of sync
         if falling_edge(sync_n) then
             if ((now/=0 ns) and (now-tf_sclk) < t_sclk_fall_to_sync_fall) then 
-               report ("ADC5628  : t_sclk_fall_to_sync_fall violation") 
+               report ("AD5628  : t_sclk_fall_to_sync_fall violation") 
                severity error;
             end if;
         end if;
