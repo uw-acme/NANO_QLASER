@@ -22,7 +22,7 @@ use     ieee.numeric_std.all;
 entity clkreset is
 port(
     -- Reset and clock from pads
-    p_reset_n    : in  std_logic;   -- From RESET input pad
+    p_reset      : in  std_logic;   -- From RESET input pad
     p_clk        : in  std_logic;   -- From CLOCK input pad
 
     -- Reset and clock outputs to all internal logic
@@ -47,7 +47,7 @@ signal reset_pll        : std_logic;
 component clkpll 
 port (
     refclk     :  in  std_logic := '0'; -- refclk.clk
-    rst        :  in  std_logic := '0'; -- reset.reset
+    reset      :  in  std_logic := '0'; -- reset.reset
     outclk_0   :  out std_logic;        -- outclk0.clk
     locked     :  out std_logic         -- locked.export
 );
@@ -57,7 +57,7 @@ begin
 
     clk         <= clk_i;
     lock        <= pll_locked_d1;
-    reset_pll   <= not(p_reset_n);
+    reset_pll   <= p_reset;
      
     ---------------------------------------------------------------------------------
     -- Clock generator. 100 MHz clock from XX MHz board clock input
@@ -65,7 +65,7 @@ begin
     u_clkpll : clkpll 
     port map(
         refclk      => p_clk       , -- in  std_logic := '0'; -- refclk.clk
-        rst         => reset_pll   , -- in  std_logic := '0'; -- reset.reset
+        reset       => reset_pll   , -- in  std_logic := '0'; -- reset.reset
         outclk_0    => clk_i       , -- out std_logic;        -- outclk0.clk
         locked      => pll_locked    -- out std_logic         -- locked.export
     );
@@ -74,9 +74,9 @@ begin
     -------------------------------------------------------------------------------
     -- Keep main logic reset until PLL locked for 255 clock cycles
     -------------------------------------------------------------------------------
-    pr_reset : process (p_reset_n, pll_locked, clk_i)
+    pr_reset : process (p_reset, pll_locked, clk_i)
     begin
-        if (p_reset_n = '0' or pll_locked = '0') then
+        if (p_reset = '1' or pll_locked = '0') then
             reset           <= '1';                    
             pll_locked_d1   <= '0';
             cnt_reset       <= X"00";

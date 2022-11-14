@@ -11,10 +11,10 @@ use     work.qlaser_pkg.all;
 entity qlaser_top is
 port (
     p_clk                   : in    std_logic;          -- Clock 
-    p_reset_n               : in    std_logic;          -- Reset. Check polarity is correct 
+    p_reset                 : in    std_logic;          -- Reset. Check polarity is correct 
 
-    p_trigger               : in    std_logic;          -- Trigger (rising edge) to start pulse output
-    p_busy                  : out   std_logic;          -- Set to '1' while pulse outputs are occurring
+    --p_trigger               : in    std_logic;          -- Trigger (rising edge) to start pulse output
+    --p_busy                  : out   std_logic;          -- Set to '1' while pulse outputs are occurring
 
     -- Serial interface for register read/write
     p_serial_rxd            : in    std_logic;          -- UART Receive data
@@ -25,35 +25,35 @@ port (
     p_dc0_sclk              : out   std_logic;          -- Clock (50 MHz?)
     p_dc0_mosi              : out   std_logic;          -- Master out, Slave in. (Data to DAC)
     p_dc0_cs_n              : out   std_logic;          -- Active low chip select (sync_n)
-
-    -- Interface SPI bus to 8-channel PMOD for DC channels 8-15
-    p_dc1_sclk              : out   std_logic;  
-    p_dc1_mosi              : out   std_logic;  
-    p_dc1_cs_n              : out   std_logic;  
-
-    -- Interface SPI bus to 8-channel PMOD for DC channels 16-23
-    p_dc2_sclk              : out   std_logic;  
-    p_dc2_mosi              : out   std_logic;  
-    p_dc2_cs_n              : out   std_logic;  
-
-    -- Interface SPI bus to 8-channel PMOD for DC channels 24-31
-    p_dc3_sclk              : out   std_logic; 
-    p_dc3_mosi              : out   std_logic;  
-    p_dc3_cs_n              : out   std_logic;  
-
-    -- 32 pulse outputs
-    p_dacs_pulse            : out   std_logic_vector(31 downto 0);
-
-    -- User buttons
-    p_btn0                  : in    std_logic; 
-    p_btn1                  : in    std_logic; 
+    --
+    ---- Interface SPI bus to 8-channel PMOD for DC channels 8-15
+    --p_dc1_sclk              : out   std_logic;  
+    --p_dc1_mosi              : out   std_logic;  
+    --p_dc1_cs_n              : out   std_logic;  
+    --
+    ---- Interface SPI bus to 8-channel PMOD for DC channels 16-23
+    --p_dc2_sclk              : out   std_logic;  
+    --p_dc2_mosi              : out   std_logic;  
+    --p_dc2_cs_n              : out   std_logic;  
+    --
+    ---- Interface SPI bus to 8-channel PMOD for DC channels 24-31
+    --p_dc3_sclk              : out   std_logic; 
+    --p_dc3_mosi              : out   std_logic;  
+    --p_dc3_cs_n              : out   std_logic;  
+    --
+    ---- 32 pulse outputs
+    --p_dacs_pulse            : out   std_logic_vector(31 downto 0);
+    --
+    ---- User buttons
+    --p_btn0                  : in    std_logic; 
+    --p_btn1                  : in    std_logic; 
 
     -- Indicator LEDs
     p_leds0_rgb             : out   std_logic_vector( 2 downto 0);      -- 
-    p_leds1_rgb             : out   std_logic_vector( 2 downto 0);      -- 
+    p_leds1_rgb             : out   std_logic_vector( 2 downto 0)      -- 
 
     -- Debug port (if present)
-    p_debug_out             : out   std_logic_vector( 7 downto 0)       -- 
+    --p_debug_out             : out   std_logic_vector( 7 downto 0)       -- 
 );
 end entity;
 
@@ -105,9 +105,12 @@ constant C_LED_BLUE         : integer := 0;
 constant C_LED_GREEN        : integer := 1;
 constant C_LED_RED          : integer := 2;
 
+signal led0_reg             : std_logic_vector(2 downto 0);
+signal led1_reg             : std_logic_vector(2 downto 0);
+
 begin
 
-    p_busy  <= dacs_dc_busy(0) or dacs_dc_busy(1) or dacs_dc_busy(2) or dacs_dc_busy(3) or dacs_pulse_busy;
+    --p_busy  <= dacs_dc_busy(0) or dacs_dc_busy(1) or dacs_dc_busy(2) or dacs_dc_busy(3) or dacs_pulse_busy;
 
     --------------------------------------------------------------------
     -- Power on reset circuit. Wait until clock is stable before 
@@ -116,7 +119,7 @@ begin
     u_clkreset : entity work.clkreset
     port map(
         -- Reset and clock from pads
-        p_reset_n    => p_reset_n   , -- in  std_logic;
+        p_reset      => p_reset   , -- in  std_logic;
         p_clk        => p_clk       , -- in  std_logic;
 
         -- Reset and clock outputs to all internal logic
@@ -159,11 +162,11 @@ begin
     port map(
         clk                 => clk                          , -- in  std_logic; 
         reset               => reset                        , -- in  std_logic;
-
+    
         busy                => dacs_dc_busy                 , -- out std_logic_vector( 3 downto 0);    -- Set to '1' while pulse outputs are occurring
-
+    
         -- CPU interface
-        cpu_addr            => cpu_addr(11 downto 0)        , -- in  std_logic_vector(11 downto 0);    -- Address input
+        cpu_addr            => cpu_addr(15 downto 0)        , -- in  std_logic_vector(11 downto 0);    -- Address input
         cpu_wdata           => cpu_din                      , -- in  std_logic_vector(31 downto 0);    -- Data input
         cpu_wr              => cpu_wr                       , -- in  std_logic;                        -- Write enable 
         cpu_sel             => cpu_sels(SEL_DAC_DC)         , -- in  std_logic;                        -- Block select
@@ -173,51 +176,51 @@ begin
         -- Interface SPI bus to 8-channel PMOD for DC channels 0-7
         dc0_sclk            => p_dc0_sclk                   , -- out   std_logic;          -- Clock (50 MHz?)
         dc0_mosi            => p_dc0_mosi                   , -- out   std_logic;          -- Master out, Slave in. (Data to DAC)
-        dc0_cs_n            => p_dc0_cs_n                   , -- out   std_logic;          -- Active low chip select (sync_n)
-
-        -- Interface SPI bus to 8-channel PMOD for DC channels 8-15
-        dc1_sclk            => p_dc1_sclk                   , -- out   std_logic;  
-        dc1_mosi            => p_dc1_mosi                   , -- out   std_logic;  
-        dc1_cs_n            => p_dc1_cs_n                   , -- out   std_logic;  
-
-        -- Interface SPI bus to 8-channel PMOD for DC channels 16-23
-        dc2_sclk            => p_dc2_sclk                   , -- out   std_logic;  
-        dc2_mosi            => p_dc2_mosi                   , -- out   std_logic;  
-        dc2_cs_n            => p_dc2_cs_n                   , -- out   std_logic;  
-
-        -- Interface SPI bus to 8-channel PMOD for DC channels 24-31
-        dc3_sclk            => p_dc3_sclk                   , -- out   std_logic; 
-        dc3_mosi            => p_dc3_mosi                   , -- out   std_logic;  
-        dc3_cs_n            => p_dc3_cs_n                     -- out   std_logic;  
+        dc0_cs_n            => p_dc0_cs_n                    -- out   std_logic;          -- Active low chip select (sync_n)
+        --
+        ---- Interface SPI bus to 8-channel PMOD for DC channels 8-15
+        --dc1_sclk            => p_dc1_sclk                   , -- out   std_logic;  
+        --dc1_mosi            => p_dc1_mosi                   , -- out   std_logic;  
+        --dc1_cs_n            => p_dc1_cs_n                   , -- out   std_logic;  
+        --
+        ---- Interface SPI bus to 8-channel PMOD for DC channels 16-23
+        --dc2_sclk            => p_dc2_sclk                   , -- out   std_logic;  
+        --dc2_mosi            => p_dc2_mosi                   , -- out   std_logic;  
+        --dc2_cs_n            => p_dc2_cs_n                   , -- out   std_logic;  
+        --
+        ---- Interface SPI bus to 8-channel PMOD for DC channels 24-31
+        --dc3_sclk            => p_dc3_sclk                   , -- out   std_logic; 
+        --dc3_mosi            => p_dc3_mosi                   , -- out   std_logic;  
+        --dc3_cs_n            => p_dc3_cs_n                     -- out   std_logic;  
     );
-
-
-    ---------------------------------------------------------------------------------
-    -- Pulse DAC interface
     --
-    ---------------------------------------------------------------------------------
-    u_dacs_pulse : entity work.qlaser_dacs_pulse
-    port map(
-        clk                 => clk                              , -- in  std_logic; 
-        reset               => reset                            , -- in  std_logic;
-
-        trigger             => trigger                          , -- in  std_logic;                        -- Trigger (rising edge) to start pulse output
-        busy                => dacs_pulse_busy                  , -- out std_logic;                        -- Set to '1' while pulse outputs are occurring
-
-        -- CPU interface
-        cpu_addr            => cpu_addr(11 downto 0)            , -- in  std_logic_vector(11 downto 0);    -- Address input
-        cpu_wdata           => cpu_din                          , -- in  std_logic_vector(31 downto 0);    -- Data input
-        cpu_wr              => cpu_wr                           , -- in  std_logic;                        -- Write enable 
-        cpu_sel             => cpu_sels(SEL_DAC_PULSE)          , -- in  std_logic;                        -- Block select
-        cpu_rdata           => arr_cpu_dout(SEL_DAC_PULSE)      , -- out std_logic_vector(31 downto 0);    -- Data output
-        cpu_rdata_dv        => arr_cpu_dout_dv(SEL_DAC_PULSE)   , -- out std_logic;                        -- Acknowledge output
-                       
-        -- Pulse train outputs
-        dacs_pulse          => p_dacs_pulse                       -- out std_logic_vector(31 downto 0);    -- Data output
-    );
-
-    -- Combine p_trigger (from pad) with misc block trigger to create internal trigger
-    trigger     <= p_trigger or misc_trigger;
+    --
+    -----------------------------------------------------------------------------------
+    ---- Pulse DAC interface
+    ----
+    -----------------------------------------------------------------------------------
+    --u_dacs_pulse : entity work.qlaser_dacs_pulse
+    --port map(
+    --    clk                 => clk                              , -- in  std_logic; 
+    --    reset               => reset                            , -- in  std_logic;
+    --
+    --    trigger             => trigger                          , -- in  std_logic;                        -- Trigger (rising edge) to start pulse output
+    --    busy                => dacs_pulse_busy                  , -- out std_logic;                        -- Set to '1' while pulse outputs are occurring
+    --
+    --    -- CPU interface
+    --    cpu_addr            => cpu_addr(11 downto 0)            , -- in  std_logic_vector(11 downto 0);    -- Address input
+    --    cpu_wdata           => cpu_din                          , -- in  std_logic_vector(31 downto 0);    -- Data input
+    --    cpu_wr              => cpu_wr                           , -- in  std_logic;                        -- Write enable 
+    --    cpu_sel             => cpu_sels(SEL_DAC_PULSE)          , -- in  std_logic;                        -- Block select
+    --    cpu_rdata           => arr_cpu_dout(SEL_DAC_PULSE)      , -- out std_logic_vector(31 downto 0);    -- Data output
+    --    cpu_rdata_dv        => arr_cpu_dout_dv(SEL_DAC_PULSE)   , -- out std_logic;                        -- Acknowledge output
+    --                   
+    --    -- Pulse train outputs
+    --    dacs_pulse          => p_dacs_pulse                       -- out std_logic_vector(31 downto 0);    -- Data output
+    --);
+    --
+    ---- Combine p_trigger (from pad) with misc block trigger to create internal trigger
+    --trigger     <= p_trigger or misc_trigger;
 
     ---------------------------------------------------------------------------------
     -- Misc interfaces. LEDs, Debug
@@ -254,25 +257,54 @@ begin
     -- Control RGB LEDs either from the 'misc_if' block or from FPGA logic
     -- LEDs are active high
     ---------------------------------------------------------------------------------
-    pr_leds : process (clk)
+    --pr_leds : process (clk)
+    --begin
+    --    if rising_edge(clk) then
+    --
+    --
+    --        p_leds0_rgb(C_LED_BLUE)     <= misc_flash;
+    --
+    --
+    --        -- LEDs can be controlled by the CPU or from pulse stretcher.
+    --        for N in 1 to 3 loop
+    --            if (misc_leds_en(N) = '1') then
+    --                p_leds1_rgb(N) <= not(misc_leds(N));
+    --            else
+    --                p_leds1_rgb(N) <= not(pulse_stretched(N));
+    --            end if;
+    --        end loop;
+    --
+    --     end if;
+    --end process;
+    
+    p_leds0_rgb <= led0_reg;
+    p_leds1_rgb <= led1_reg;
+    
+    pr_leds: process(clk, reset)
     begin
-        if rising_edge(clk) then
-
-   
-            p_leds0_rgb(C_LED_BLUE)     <= misc_flash;
-
-
-            -- LEDs can be controlled by the CPU or from pulse stretcher.
-            for N in 1 to 3 loop
-                if (misc_leds_en(N) = '1') then
-                    p_leds1_rgb(N) <= not(misc_leds(N));
-                else
-                    p_leds1_rgb(N) <= not(pulse_stretched(N));
-                end if;
-            end loop;
-
-         end if;
+        if reset = '1' then
+            led0_reg <= "000";
+            led1_reg <= "000";
+        elsif rising_edge(clk) then
+            case cpu_addr is
+                when X"0001" =>
+                    if cpu_wr = '1' then
+                        led0_reg <= cpu_din(2 downto 0);
+                    end if;
+                    
+                when X"0002" =>
+                    if cpu_wr = '1' then
+                        led1_reg <= cpu_din(2 downto 0);
+                    end if;
+                when others => 
+                    null;
+                
+            end case;
+            
+        end if;
     end process;
+    
+    
 
     -- Input to pulse stretcher in the misc block which will make signals visible on the LEDs
     pulse(0)    <= '0';
@@ -291,32 +323,32 @@ begin
     ---------------------------------------------------------------------------------
     -- Debug output mux.
     ---------------------------------------------------------------------------------
-    pr_dbg_mux : process (clk)
-    begin
-        if rising_edge(clk) then
-
-            case to_integer(unsigned(misc_dbg_ctrl)) is
-
-                -- "1111" is the default setting for misc_dbg_ctrl
-                -- Normally selects all zero debug output.
-                when 15  => -- Default
-                        p_debug_out    <= (others=>'0');
-
-
-                when 14 => 
-                        p_debug_out(0)              <= '0';
-                        p_debug_out(1)              <= '0';
-                        p_debug_out(2)              <= pll_lock;
-                        p_debug_out(3)              <= tick_msec;
-                        p_debug_out(4)              <= tick_sec;
-                        p_debug_out(7 downto  5)    <= (others=>'0');
-
-
-                when others => 
-                        p_debug_out                 <= (others=>'0');
-            end case;
-        end if;
-    end process;
+    --pr_dbg_mux : process (clk)
+    --begin
+    --    if rising_edge(clk) then
+    --
+    --        case to_integer(unsigned(misc_dbg_ctrl)) is
+    --
+    --            -- "1111" is the default setting for misc_dbg_ctrl
+    --            -- Normally selects all zero debug output.
+    --            when 15  => -- Default
+    --                    p_debug_out    <= (others=>'0');
+    --
+    --
+    --            when 14 => 
+    --                    p_debug_out(0)              <= '0';
+    --                    p_debug_out(1)              <= '0';
+    --                    p_debug_out(2)              <= pll_lock;
+    --                    p_debug_out(3)              <= tick_msec;
+    --                    p_debug_out(4)              <= tick_sec;
+    --                    p_debug_out(7 downto  5)    <= (others=>'0');
+    --
+    --
+    --            when others => 
+    --                    p_debug_out                 <= (others=>'0');
+    --        end case;
+    --    end if;
+    --end process;
 
 
 end rtl;
