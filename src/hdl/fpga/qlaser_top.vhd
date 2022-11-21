@@ -25,6 +25,10 @@ port (
     p_dc0_sclk              : out   std_logic;          -- Clock (50 MHz?)
     p_dc0_mosi              : out   std_logic;          -- Master out, Slave in. (Data to DAC)
     p_dc0_cs_n              : out   std_logic;          -- Active low chip select (sync_n)
+    
+    p_dc0_sclk_debug        : out   std_logic;          -- Clock (50 MHz?)
+    p_dc0_mosi_debug        : out   std_logic;          -- Master out, Slave in. (Data to DAC)
+    p_dc0_cs_n_debug        : out   std_logic;          -- Active low chip select (sync_n)
     --
     ---- Interface SPI bus to 8-channel PMOD for DC channels 8-15
     --p_dc1_sclk              : out   std_logic;  
@@ -108,6 +112,10 @@ constant C_LED_RED          : integer := 2;
 signal led0_reg             : std_logic_vector(2 downto 0);
 signal led1_reg             : std_logic_vector(2 downto 0);
 
+signal dc0_sclk             : std_logic;
+signal dc0_mosi             : std_logic;
+signal dc0_cs_n             : std_logic;
+
 begin
 
     --p_busy  <= dacs_dc_busy(0) or dacs_dc_busy(1) or dacs_dc_busy(2) or dacs_dc_busy(3) or dacs_pulse_busy;
@@ -174,9 +182,9 @@ begin
         cpu_rdata_dv        => arr_cpu_dout_dv(SEL_DAC_DC)  , -- out std_logic;                        -- Acknowledge output
                        
         -- Interface SPI bus to 8-channel PMOD for DC channels 0-7
-        dc0_sclk            => p_dc0_sclk                   , -- out   std_logic;          -- Clock (50 MHz?)
-        dc0_mosi            => p_dc0_mosi                   , -- out   std_logic;          -- Master out, Slave in. (Data to DAC)
-        dc0_cs_n            => p_dc0_cs_n                    -- out   std_logic;          -- Active low chip select (sync_n)
+        dc0_sclk            => dc0_sclk                   , -- out   std_logic;          -- Clock (50 MHz?)
+        dc0_mosi            => dc0_mosi                   , -- out   std_logic;          -- Master out, Slave in. (Data to DAC)
+        dc0_cs_n            => dc0_cs_n                    -- out   std_logic;          -- Active low chip select (sync_n)
         --
         ---- Interface SPI bus to 8-channel PMOD for DC channels 8-15
         --dc1_sclk            => p_dc1_sclk                   , -- out   std_logic;  
@@ -193,8 +201,14 @@ begin
         --dc3_mosi            => p_dc3_mosi                   , -- out   std_logic;  
         --dc3_cs_n            => p_dc3_cs_n                     -- out   std_logic;  
     );
-    --
-    --
+    
+    p_dc0_sclk <= dc0_sclk;
+    p_dc0_mosi <= dc0_mosi;
+    p_dc0_cs_n <= dc0_cs_n;
+    
+    p_dc0_sclk_debug <= dc0_sclk;
+    p_dc0_mosi_debug <= dc0_mosi;
+    p_dc0_cs_n_debug <= dc0_cs_n;
     -----------------------------------------------------------------------------------
     ---- Pulse DAC interface
     ----

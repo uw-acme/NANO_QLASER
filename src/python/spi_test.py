@@ -19,4 +19,7 @@ ser.port = 'COM3'
 ser.open()
 data = 0
 
-write(ser, 0, 0xAAAAAAAA)
+write(ser, 0, 0x12345678)
+write(ser, 0, 0x12345678)
+write(ser, 0, 0x04000000)
+write(ser, 0, 0x030FFF00)
