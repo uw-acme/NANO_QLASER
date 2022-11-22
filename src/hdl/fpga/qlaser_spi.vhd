@@ -160,28 +160,6 @@ begin
                             sreg_dout(C_SPI_MSG_LENGTH-1 downto 0)  <= sreg_dout(C_SPI_MSG_LENGTH-2 downto 0) & '0';
                             
                         end if;
-
-                    ---------------------------------------------------
-                    -- Clock is high. At end of clock period count, set
-                    -- clock low and sample the incoming data
-                    ---------------------------------------------------
-                    --when S_SPI_CLKHIGH =>
-                    --
-                    --    if (sm_advance = '1') then
-                    --
-                    --        if (cnt_bit = C_SPI_MSG_LENGTH-1) then -- End of message
-                    --            state_spi   <= S_SPI_DONE;
-                    --        else
-                    --            state_spi   <= S_SPI_CLKLOW;
-                    --            cnt_bit     <= cnt_bit + 1;
-                    --        end if;
-                    --
-                    --        spi_sclk     <= '0';
-                    --
-                    --        -- Shift data out on falling edge of the clock. Bit 0 sent first
-                    --        sreg_dout(C_SPI_MSG_LENGTH-1 downto 0)  <= sreg_dout(C_SPI_MSG_LENGTH-2 downto 0) & '0';
-                    --
-                    --    end if;
      
                     when S_SPI_DONE => 
 
