@@ -36,13 +36,16 @@ architecture rtl of ad5628 is
 
 signal reg_shift    : std_logic_vector(31 downto 0)     := (others=>'0');    -- Shift reg
 signal cnt_shift    : integer                           := 0;
-signal vreg         : integer                           := 0;
+signal vdata        : integer                           := 0;
+signal vaddr        : integer                           := 0;
+signal vcmd         : integer                           := 0;
+signal internal_ref : integer                           := 0;
 
 signal tf_sync      : time                              :=  0 ns;
 signal tf_sclk      : time                              :=  0 ns;
 
-constant t_sync_fall_to_sclk_fall : time := 13 ns;      -- TODO : Fix values
-constant t_sclk_fall_to_sync_rise : time := 20 ns;
+constant t_sync_fall_to_sclk_fall : time := 30 ns;      -- TODO : Fix values
+constant t_sclk_fall_to_sync_rise : time := 0 ns;
 constant t_sclk_fall_to_sync_fall : time :=  0 ns;
 
 begin       
@@ -53,7 +56,7 @@ begin
     -- Shift data in when sync_n is low.
     ----------------------------------------------------------------
     pr_sclk_cnt : process (sclk_n, sync_n)
-    variable v_pd : integer := 0;   -- Power down status
+
     begin
         if falling_edge(sync_n) then
             cnt_shift   <= 0;
@@ -67,13 +70,9 @@ begin
                 if (cnt_shift = 31) then
 
                     -- **** TODO : DECODE THIS CORRECTLY
-                    v_pd    := to_integer(unsigned(reg_shift(12 downto 11)));
-
-                    if (v_pd = 0) then
-                        vreg <= to_integer(unsigned(reg_shift(10 downto 0) & din));
-                    else
-                        vreg <= 0;
-                    end if;
+                    vcmd  <= to_integer(unsigned(reg_shift(26 downto 23)));
+                    vaddr <= to_integer(unsigned(reg_shift(22 downto 19)));
+                    vdata <= to_integer(unsigned(reg_shift(18 downto 7)));
                 end if;
                 cnt_shift   <= cnt_shift + 1;
             end if;
@@ -87,7 +86,47 @@ begin
     
     -- *** TODO : decode upper bits of shift reg for commands and dac select
     -- Set output voltage
-    vout0   <= (vref * real(vreg))/4096.0;
+    if (vcmd = 8 and vdata = 1) then
+        internal_ref := 1;
+    end if;
+    
+    if (internal_ref = 1 and vcmd = 3) then
+        case vaddr is 
+            when 0 =>
+                vout0   <= (vref * real(vdata))/4096.0;
+                
+            when 1 =>
+                vout1   <= (vref * real(vdata))/4096.0;
+            
+            when 2 =>
+                vout2   <= (vref * real(vdata))/4096.0;
+            
+            when 3 =>
+                vout3   <= (vref * real(vdata))/4096.0;
+                
+            when 4 =>
+                vout4   <= (vref * real(vdata))/4096.0;
+                
+            when 5 =>
+                vout5   <= (vref * real(vdata))/4096.0;
+                
+            when 6 =>
+                vout6   <= (vref * real(vdata))/4096.0;              
+                
+            when 7 =>
+                vout7   <= (vref * real(vdata))/4096.0;
+            
+            when 15 =>
+                vout0   <= (vref * real(vdata))/4096.0;
+                vout1   <= (vref * real(vdata))/4096.0;
+                vout2   <= (vref * real(vdata))/4096.0;
+                vout3   <= (vref * real(vdata))/4096.0;
+                vout4   <= (vref * real(vdata))/4096.0;
+                vout5   <= (vref * real(vdata))/4096.0;
+                vout6   <= (vref * real(vdata))/4096.0;
+                vout7   <= (vref * real(vdata))/4096.0;
+                
+        end case;
 
 	
     ----------------------------------------------------------------
