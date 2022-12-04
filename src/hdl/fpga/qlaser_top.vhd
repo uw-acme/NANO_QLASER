@@ -37,9 +37,9 @@ port (
     p_dc2_cs_n              : out   std_logic;  
     
     -- Interface SPI bus to 8-channel PMOD for DC channels 24-31
-    p_dc3_sclk              : out   std_logic; 
-    p_dc3_mosi              : out   std_logic;  
-    p_dc3_cs_n              : out   std_logic;  
+    --p_dc3_sclk              : out   std_logic; 
+    --p_dc3_mosi              : out   std_logic;  
+    --p_dc3_cs_n              : out   std_logic;  
     --
     ---- 32 pulse outputs
     --p_dacs_pulse            : out   std_logic_vector(31 downto 0);
@@ -105,8 +105,8 @@ constant C_LED_BLUE         : integer := 0;
 constant C_LED_GREEN        : integer := 1;
 constant C_LED_RED          : integer := 2;
 
-signal led0_reg             : std_logic_vector(2 downto 0);
-signal led1_reg             : std_logic_vector(2 downto 0);
+signal reg_led0             : std_logic_vector(2 downto 0);
+signal reg_led1             : std_logic_vector(2 downto 0);
 
 signal dc0_sclk             : std_logic;
 signal dc0_mosi             : std_logic;
@@ -143,8 +143,8 @@ begin
         tick_msec           => tick_msec                , -- in  std_logic;    -- Used to reset serial interface if a message is corrupted
 
         -- UART interface to CPU
-        rxd          => cpuint_rxd               , -- in  std_logic;    -- UART Receive data
-        txd          => cpuint_txd               , -- out std_logic;    -- UART Transmit data 
+        rxd                 => cpuint_rxd               , -- in  std_logic;    -- UART Receive data
+        txd                 => cpuint_txd               , -- out std_logic;    -- UART Transmit data 
 
         -- CPU master interface to other blocks in the FPGA
         cpu_rd              => open                     , -- out std_logic;
@@ -170,8 +170,8 @@ begin
         busy                => dacs_dc_busy                 , -- out std_logic_vector( 3 downto 0);    -- Set to '1' while pulse outputs are occurring
     
         -- CPU interface
-        cpu_addr            => cpu_addr(15 downto 0)        , -- in  std_logic_vector(11 downto 0);    -- Address input
-        cpu_wdata           => cpu_din                      , -- in  std_logic_vector(31 downto 0);    -- Data input
+        cpu_addr            => cpu_addr(5 downto 0)         , -- in  std_logic_vector(5 downto 0);    -- Address input
+        cpu_wdata           => cpu_din(11 downto 0)         , -- in  std_logic_vector(31 downto 0);    -- Data input
         cpu_wr              => cpu_wr                       , -- in  std_logic;                        -- Write enable 
         cpu_sel             => cpu_sels(SEL_DAC_DC)         , -- in  std_logic;                        -- Block select
         cpu_rdata           => arr_cpu_dout(SEL_DAC_DC)     , -- out std_logic_vector(31 downto 0);    -- Data output
@@ -193,9 +193,10 @@ begin
         dc2_cs_n            => p_dc2_cs_n                   , -- out   std_logic;  
         
         -- Interface SPI bus to 8-channel PMOD for DC channels 24-31
-        dc3_sclk            => p_dc3_sclk                   , -- out   std_logic; 
-        dc3_mosi            => p_dc3_mosi                   , -- out   std_logic;  
-        dc3_cs_n            => p_dc3_cs_n                     -- out   std_logic;  
+        dc3_sclk            => open                   , -- out   std_logic; 
+        dc3_mosi            => open                   , -- out   std_logic;  
+        dc3_cs_n            => open                     -- out   std_logic;
+        
     );
     
 
@@ -203,28 +204,28 @@ begin
     ---- Pulse DAC interface
     ----
     -----------------------------------------------------------------------------------
-    --u_dacs_pulse : entity work.qlaser_dacs_pulse
-    --port map(
-    --    clk                 => clk                              , -- in  std_logic; 
-    --    reset               => reset                            , -- in  std_logic;
-    --
-    --    trigger             => trigger                          , -- in  std_logic;                        -- Trigger (rising edge) to start pulse output
-    --    busy                => dacs_pulse_busy                  , -- out std_logic;                        -- Set to '1' while pulse outputs are occurring
-    --
-    --    -- CPU interface
-    --    cpu_addr            => cpu_addr(11 downto 0)            , -- in  std_logic_vector(11 downto 0);    -- Address input
-    --    cpu_wdata           => cpu_din                          , -- in  std_logic_vector(31 downto 0);    -- Data input
-    --    cpu_wr              => cpu_wr                           , -- in  std_logic;                        -- Write enable 
-    --    cpu_sel             => cpu_sels(SEL_DAC_PULSE)          , -- in  std_logic;                        -- Block select
-    --    cpu_rdata           => arr_cpu_dout(SEL_DAC_PULSE)      , -- out std_logic_vector(31 downto 0);    -- Data output
-    --    cpu_rdata_dv        => arr_cpu_dout_dv(SEL_DAC_PULSE)   , -- out std_logic;                        -- Acknowledge output
-    --                   
-    --    -- Pulse train outputs
-    --    dacs_pulse          => p_dacs_pulse                       -- out std_logic_vector(31 downto 0);    -- Data output
-    --);
-    --
-    ---- Combine p_trigger (from pad) with misc block trigger to create internal trigger
-    --trigger     <= p_trigger or misc_trigger;
+    u_dacs_pulse : entity work.qlaser_dacs_pulse
+    port map(
+        clk                 => clk                              , -- in  std_logic; 
+        reset               => reset                            , -- in  std_logic;
+    
+        trigger             => trigger                          , -- in  std_logic;                        -- Trigger (rising edge) to start pulse output
+        busy                => dacs_pulse_busy                  , -- out std_logic;                        -- Set to '1' while pulse outputs are occurring
+    
+        -- CPU interface
+        cpu_addr            => cpu_addr(11 downto 0)            , -- in  std_logic_vector(11 downto 0);    -- Address input
+        cpu_wdata           => cpu_din                          , -- in  std_logic_vector(31 downto 0);    -- Data input
+        cpu_wr              => cpu_wr                           , -- in  std_logic;                        -- Write enable 
+        cpu_sel             => cpu_sels(SEL_DAC_PULSE)          , -- in  std_logic;                        -- Block select
+        cpu_rdata           => arr_cpu_dout(SEL_DAC_PULSE)      , -- out std_logic_vector(31 downto 0);    -- Data output
+        cpu_rdata_dv        => arr_cpu_dout_dv(SEL_DAC_PULSE)   , -- out std_logic;                        -- Acknowledge output
+                       
+        -- Pulse train outputs
+        dacs_pulse          => open                       -- out std_logic_vector(31 downto 0);    -- Data output, goes to p_dacs_pulse when implemented
+    );
+    
+    -- Combine p_trigger (from pad) with misc block trigger to create internal trigger
+    trigger     <= misc_trigger; -- or with p_trigger when implemented
 
     ---------------------------------------------------------------------------------
     -- Misc interfaces. LEDs, Debug
@@ -281,29 +282,24 @@ begin
     --     end if;
     --end process;
     
-    p_leds0_rgb <= led0_reg;
-    p_leds1_rgb <= led1_reg;
+    p_leds0_rgb <= reg_led0;
+    p_leds1_rgb <= reg_led1;
     
     pr_leds: process(clk, reset)
     begin
         if reset = '1' then
-            led0_reg <= "000";
-            led1_reg <= "000";
+            reg_led0 <= "000";
+            reg_led1 <= "000";
         elsif rising_edge(clk) then
-            case cpu_addr is
-                when X"0001" =>
-                    if cpu_wr = '1' then
-                        led0_reg <= cpu_din(2 downto 0);
-                    end if;
-                    
-                when X"0002" =>
-                    if cpu_wr = '1' then
-                        led1_reg <= cpu_din(2 downto 0);
-                    end if;
-                when others => 
-                    null;
+            if(cpu_wr = '1') then
+                case cpu_addr is
                 
-            end case;
+                    when X"0001" => reg_led0 <= cpu_din(2 downto 0);
+                    when X"0002" => reg_led1 <= cpu_din(2 downto 0);
+                    when others  => null;
+                    
+                end case;
+            end if;
             
         end if;
     end process;

@@ -18,8 +18,8 @@ port (
     busy                : out std_logic_vector( 3 downto 0);    -- Set to '1' while SPI interface is busy
 
     -- CPU interface
-    cpu_addr            : in  std_logic_vector(15 downto 0);    -- Address input
-    cpu_wdata           : in  std_logic_vector(31 downto 0);    -- Data input
+    cpu_addr            : in  std_logic_vector(5 downto 0);    -- Address input
+    cpu_wdata           : in  std_logic_vector(11 downto 0);    -- Data input
     cpu_wr              : in  std_logic;                        -- Write enable 
     cpu_sel             : in  std_logic;                        -- Block select
     cpu_rdata           : out std_logic_vector(31 downto 0);    -- Data output
@@ -43,7 +43,7 @@ port (
     -- Interface SPI bus to 8-channel PMOD for DC channels 24-31
     dc3_sclk            : out std_logic; 
     dc3_mosi            : out std_logic;  
-    dc3_cs_n            : out std_logic  
+    dc3_cs_n            : out std_logic
 );
 end entity;
 
@@ -163,30 +163,60 @@ begin
             spi2_tx_message_dv <= '0';
             spi3_tx_message_dv <= '0';
             
-            if cpu_wr = '1' and cpu_addr(15) = '0' then
+            if cpu_wr = '1' and cpu_sel = '1' then
                 
-                case cpu_addr(14 downto 10) is
+                case cpu_addr(5 downto 3) is
+                    -- THIS CASE ONLY FOR DEVELOPMENT, WILL BE REMOVED LATER
+                    when C_ADDR_INTERNAL_REF =>
+                        spi0_tx_message     <= "0000" & C_CMD_DAC_DC_INTERNAL_REF & "0000" & "000000000000" & "00000001";
+                        spi1_tx_message     <= "0000" & C_CMD_DAC_DC_INTERNAL_REF & "0000" & "000000000000" & "00000001";
+                        spi2_tx_message     <= "0000" & C_CMD_DAC_DC_INTERNAL_REF & "0000" & "000000000000" & "00000001";
+                        spi3_tx_message     <= "0000" & C_CMD_DAC_DC_INTERNAL_REF & "0000" & "000000000000" & "00000001";
+                        
+                        spi0_tx_message_dv  <= '1';
+                        spi1_tx_message_dv  <= '1';
+                        spi2_tx_message_dv  <= '1';
+                        spi3_tx_message_dv  <= '1';
+                        
+                    when C_ADDR_POWER_ON =>
+                        spi0_tx_message     <= "0000" & C_CMD_DAC_DC_POWER & "1111" & "000000000000" & "11111111";
+                        spi1_tx_message     <= "0000" & C_CMD_DAC_DC_POWER & "1111" & "000000000000" & "11111111";
+                        spi2_tx_message     <= "0000" & C_CMD_DAC_DC_POWER & "1111" & "000000000000" & "11111111";
+                        spi3_tx_message     <= "0000" & C_CMD_DAC_DC_POWER & "1111" & "000000000000" & "11111111";
+                        
+                        spi0_tx_message_dv  <= '1';
+                        spi1_tx_message_dv  <= '1';
+                        spi2_tx_message_dv  <= '1';
+                        spi3_tx_message_dv  <= '1';
+
                     when C_ADDR_SPI0 =>
-                        spi0_tx_message     <= cpu_wdata;
+                        spi0_tx_message     <= "0000" & C_CMD_DAC_DC_WR & "0" & cpu_addr(2 downto 0) & cpu_wdata(11 downto 0) & "00000000";
                         spi0_tx_message_dv  <= '1';
                     
                     when C_ADDR_SPI1 =>
-                        spi1_tx_message     <= cpu_wdata;
+                        spi1_tx_message     <= "0000" & C_CMD_DAC_DC_WR & "0" & cpu_addr(2 downto 0) & cpu_wdata(11 downto 0) & "00000000";
                         spi1_tx_message_dv  <= '1';
                         
                     when C_ADDR_SPI2 =>
-                        spi2_tx_message     <= cpu_wdata;
+                        spi2_tx_message     <= "0000" & C_CMD_DAC_DC_WR & "0" & cpu_addr(2 downto 0) & cpu_wdata(11 downto 0) & "00000000";
                         spi2_tx_message_dv  <= '1';
                     
                     when C_ADDR_SPI3 =>
-                        spi3_tx_message     <= cpu_wdata;
+                        spi3_tx_message     <= "0000" & C_CMD_DAC_DC_WR & "0" & cpu_addr(2 downto 0) & cpu_wdata(11 downto 0) & "00000000";
                         spi3_tx_message_dv  <= '1';
-                    
-                    when others =>
-                        spi0_tx_message     <= (others => '0');
-                        spi1_tx_message     <= (others => '0');
-                        spi2_tx_message     <= (others => '0');
-                        spi3_tx_message     <= (others => '0');
+                        
+                    when C_ADDR_SPI_ALL =>  
+                        spi0_tx_message     <= "0000" & C_CMD_DAC_DC_WR & "1111" & cpu_wdata(11 downto 0) & "00000000";
+                        spi1_tx_message     <= "0000" & C_CMD_DAC_DC_WR & "1111" & cpu_wdata(11 downto 0) & "00000000";
+                        spi2_tx_message     <= "0000" & C_CMD_DAC_DC_WR & "1111" & cpu_wdata(11 downto 0) & "00000000";
+                        spi3_tx_message     <= "0000" & C_CMD_DAC_DC_WR & "1111" & cpu_wdata(11 downto 0) & "00000000";
+                        
+                        spi0_tx_message_dv  <= '1';
+                        spi1_tx_message_dv  <= '1';
+                        spi2_tx_message_dv  <= '1';
+                        spi3_tx_message_dv  <= '1';    
+   
+                    when others => null;
                         
                 end case;
             
