@@ -3,7 +3,7 @@ import time
 import random
 import PySimpleGUI as gui
 
-
+# Writes a single message out on the UART interface with the given address and data.
 def write(ser, addr, data):
     print ('Write regaddr = 0x{:04x}' .format(addr))
     print ('Write data    = 0x{:08x}' .format(data))
@@ -12,6 +12,8 @@ def write(ser, addr, data):
     print(msg)
     ser.write(msg)
 
+# Calculates the binary representation as of the desired voltage given the reference voltage.
+# Output the number of bits for the output is determined by the resolution parameter.
 def get_value(val, ref, resolution):
     # Cap val at the reference voltage and non negative
     if val > ref:
@@ -23,15 +25,17 @@ def get_value(val, ref, resolution):
     step = ref / (2.0 ** resolution - 1)
     data = int(val / step)
     return data
-    
+
+# Given a SPI channel number, returns spi number for a pmod it's address in the FPGA.    
 def get_address(val):
     spi = val / 8
     addr = val % 8
     
     return int(spi), addr
 
+# Takes SPI channel number and desired voltage and makes the update on the Pmod.
 def update_channel(ch, val):
-    data = get_value(float(val), 2.5, 12)
+    data = get_value(float(val), 3.3, 12)
     print(data)
     # Convert channel number in SPI # and DAC address within SPI
     spi, addr = get_address(ch)
@@ -88,7 +92,7 @@ while True:
     if event == gui.WIN_CLOSED:
         break
     elif event == "Enter All":
-        data = get_value(float(values[16]), 2.5, 12)
+        data = get_value(float(values[16]), 3.3, 12)
         addr = 4 << 3
         write(ser, addr, data)
     elif event == "Enter":
