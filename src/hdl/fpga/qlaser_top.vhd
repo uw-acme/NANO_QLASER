@@ -34,7 +34,9 @@ port (
     -- Interface SPI bus to 8-channel PMOD for DC channels 16-23
     p_dc2_sclk              : out   std_logic;  
     p_dc2_mosi              : out   std_logic;  
-    p_dc2_cs_n              : out   std_logic;  
+    p_dc2_cs_n              : out   std_logic;
+
+    p_trigger               : in    std_logic;
     
     -- Interface SPI bus to 8-channel PMOD for DC channels 24-31
     --p_dc3_sclk              : out   std_logic; 
@@ -111,6 +113,8 @@ signal reg_led1             : std_logic_vector(2 downto 0);
 signal dc0_sclk             : std_logic;
 signal dc0_mosi             : std_logic;
 signal dc0_cs_n             : std_logic;
+
+signal ram0_data            : std_logic_vector(39 downto 0);
 
 begin
 
@@ -199,7 +203,7 @@ begin
         
     );
     
-
+   
     -----------------------------------------------------------------------------------
     ---- Pulse DAC interface
     ----
@@ -209,7 +213,7 @@ begin
         clk                 => clk                              , -- in  std_logic; 
         reset               => reset                            , -- in  std_logic;
     
-        trigger             => trigger                          , -- in  std_logic;                        -- Trigger (rising edge) to start pulse output
+        trigger             => p_trigger                        , -- in  std_logic;                        -- Trigger (rising edge) to start pulse output
         busy                => dacs_pulse_busy                  , -- out std_logic;                        -- Set to '1' while pulse outputs are occurring
     
         -- CPU interface
@@ -219,6 +223,7 @@ begin
         cpu_sel             => cpu_sels(SEL_DAC_PULSE)          , -- in  std_logic;                        -- Block select
         cpu_rdata           => arr_cpu_dout(SEL_DAC_PULSE)      , -- out std_logic_vector(31 downto 0);    -- Data output
         cpu_rdata_dv        => arr_cpu_dout_dv(SEL_DAC_PULSE)   , -- out std_logic;                        -- Acknowledge output
+        ram0_data           => ram0_data,
                        
         -- Pulse train outputs
         dacs_pulse          => open                       -- out std_logic_vector(31 downto 0);    -- Data output, goes to p_dacs_pulse when implemented
@@ -291,15 +296,9 @@ begin
             reg_led0 <= "000";
             reg_led1 <= "000";
         elsif rising_edge(clk) then
-            if(cpu_wr = '1') then
-                case cpu_addr is
-                
-                    when X"0001" => reg_led0 <= cpu_din(2 downto 0);
-                    when X"0002" => reg_led1 <= cpu_din(2 downto 0);
-                    when others  => null;
-                    
-                end case;
-            end if;
+            reg_led0 <= ram0_data(2 downto 0);
+            reg_led1 <= "011";
+            
             
         end if;
     end process;
