@@ -54,9 +54,6 @@ ser.baudrate = 115200
 ser.port = 'COM3'
 ser.open()
 
-# Turn on all DACs
-# Turn on the internal reference, to be deleted later.
-write(ser, 0x0028, 0x00000000)
 # Power on all DACs
 write(ser, 0x0030, 0x00000000)
 
