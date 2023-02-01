@@ -283,7 +283,7 @@ begin
     --end process;
     
     p_leds0_rgb <= reg_led0;
-    p_leds1_rgb <= reg_led1;
+    p_leds1_rgb(C_LED_BLUE) <= misc_flash;
     
     pr_leds: process(clk, reset)
     begin
