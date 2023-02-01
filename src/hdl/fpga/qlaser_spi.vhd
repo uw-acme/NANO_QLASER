@@ -17,7 +17,7 @@ port (
 
     -- Transmit data
     tx_message_dv       : in  std_logic;                        -- Start message transmit
-    tx_message          : in  std_logic_vector(15 downto 0);    -- Message data
+    tx_message          : in  std_logic_vector(31 downto 0);    -- Message data
 
     -- SPI interface 
     spi_sclk            : out std_logic;                        -- Serial clock input
@@ -30,7 +30,7 @@ end qlaser_spi;
 -------------------------------------------------------------------------------
 architecture rtl of qlaser_spi is
 
-constant C_SPI_MSG_LENGTH : integer := 16;
+constant C_SPI_MSG_LENGTH : integer := 32;
 
 -- Number of FPGA main clock cycles in one half cycle of the SPI clock.
 constant C_SPI_DIVISOR_CLK  : integer := 1; 
@@ -49,7 +49,7 @@ signal spi_sel_i            : std_logic;
 
 begin
 
-    spi_sel     <= spi_sel_i;
+    spi_sel     <= not spi_sel_i;
     busy        <= spi_sel_i;
     spi_mosi    <= sreg_dout(C_SPI_MSG_LENGTH-1);
 
@@ -124,9 +124,22 @@ begin
                     when S_SPI_START    =>
 
                         if (sm_advance = '1') then
-                            state_spi       <= S_SPI_CLKLOW ;
+                            state_spi       <= S_SPI_CLKHIGH ;
+                            spi_sclk        <= '1';
                         end if;
 
+                     ---------------------------------------------------
+                    -- Clock is high. At end of clock period count, set
+                    -- clock low and sample the incoming data
+                    ---------------------------------------------------
+                    when S_SPI_CLKHIGH =>
+
+                        if (sm_advance = '1') then
+                            state_spi   <= S_SPI_CLKLOW;
+                            spi_sclk     <= '0';
+
+                        end if;
+                        
                     ---------------------------------------------------
                     -- Clock is low. At end of clock period count, set
                     -- clock high  
@@ -134,39 +147,25 @@ begin
                     when S_SPI_CLKLOW => 
 
                         if (sm_advance = '1') then
-                            state_spi       <= S_SPI_CLKHIGH ;
-
-                            -- Shift data in on rising edge of the clock
-                            spi_sclk    <= '1'; 
-                        end if;
-     
-
-                    ---------------------------------------------------
-                    -- Clock is high. At end of clock period count, set
-                    -- clock low and sample the incoming data
-                    ---------------------------------------------------
-                    when S_SPI_CLKHIGH =>
-
-                        if (sm_advance = '1') then
 
                             if (cnt_bit = C_SPI_MSG_LENGTH-1) then -- End of message
                                 state_spi   <= S_SPI_DONE;
                             else
-                                state_spi   <= S_SPI_CLKLOW;
+                                state_spi   <= S_SPI_CLKHIGH;
                                 cnt_bit     <= cnt_bit + 1;
                             end if;
-
-                            spi_sclk     <= '0';
-
-                            -- Shift data out on falling edge of the clock. Bit 0 sent first
+                            
+                            spi_sclk    <= '1';
+                            -- Shift data out on rising edge of the clock. Bit 31 sent first
                             sreg_dout(C_SPI_MSG_LENGTH-1 downto 0)  <= sreg_dout(C_SPI_MSG_LENGTH-2 downto 0) & '0';
-
+                            
                         end if;
      
                     when S_SPI_DONE => 
 
                         if (sm_advance = '1') then
                             state_spi   <= S_SPI_IDLE;
+                            spi_sclk    <= '0';
                             spi_sel_i   <= '0';
                         end if;
 

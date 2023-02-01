@@ -8,6 +8,8 @@ library ieee;
 use     ieee.std_logic_1164.all;
 use     ieee.numeric_std.all;
 
+use work.qlaser_dac_dc_pkg.all;
+
 entity qlaser_dacs_dc is
 port (
     clk                 : in  std_logic; 
@@ -16,8 +18,8 @@ port (
     busy                : out std_logic_vector( 3 downto 0);    -- Set to '1' while SPI interface is busy
 
     -- CPU interface
-    cpu_addr            : in  std_logic_vector(11 downto 0);    -- Address input
-    cpu_wdata           : in  std_logic_vector(31 downto 0);    -- Data input
+    cpu_addr            : in  std_logic_vector(5 downto 0);    -- Address input
+    cpu_wdata           : in  std_logic_vector(11 downto 0);    -- Data input
     cpu_wr              : in  std_logic;                        -- Write enable 
     cpu_sel             : in  std_logic;                        -- Block select
     cpu_rdata           : out std_logic_vector(31 downto 0);    -- Data output
@@ -32,16 +34,16 @@ port (
     dc1_sclk            : out std_logic;  
     dc1_mosi            : out std_logic;  
     dc1_cs_n            : out std_logic;  
-
+    
     -- Interface SPI bus to 8-channel PMOD for DC channels 16-23
     dc2_sclk            : out std_logic;  
     dc2_mosi            : out std_logic;  
     dc2_cs_n            : out std_logic;  
-
+    
     -- Interface SPI bus to 8-channel PMOD for DC channels 24-31
     dc3_sclk            : out std_logic; 
     dc3_mosi            : out std_logic;  
-    dc3_cs_n            : out std_logic  
+    dc3_cs_n            : out std_logic
 );
 end entity;
 
@@ -49,64 +51,168 @@ end entity;
 -- Dummy architecture with CPU bus to allow bit-level control
 -- of outputs
 ---------------------------------------------------------------
-architecture dummy of qlaser_dacs_dc is
+architecture rtl of qlaser_dacs_dc is
 
-signal reg_debug    : std_logic_vector(31 downto 0); 
+ 
+signal spi0_tx_message              : std_logic_vector(31 downto 0);
+signal spi0_tx_message_dv           : std_logic;
+signal spi0_busy                    : std_logic;
+
+signal spi1_tx_message              : std_logic_vector(31 downto 0);
+signal spi1_tx_message_dv           : std_logic;
+signal spi1_busy                    : std_logic;
+
+signal spi2_tx_message              : std_logic_vector(31 downto 0);
+signal spi2_tx_message_dv           : std_logic;
+signal spi2_busy                    : std_logic;
+
+signal spi3_tx_message              : std_logic_vector(31 downto 0);
+signal spi3_tx_message_dv           : std_logic;
+signal spi3_busy                    : std_logic;
+
 
 begin
 
-    busy        <= (others=>'0');
+    busy(0)        <= spi0_busy; 
+    busy(1)        <= spi1_busy;
+    busy(2)        <= spi2_busy;
+    busy(3)        <= spi3_busy;
 
-    dc0_sclk    <= reg_debug(0);  
-    dc0_mosi    <= reg_debug(1);  
-    dc0_cs_n    <= reg_debug(2);  
-    dc1_sclk    <= reg_debug(3);  
-    dc1_mosi    <= reg_debug(4);  
-    dc1_cs_n    <= reg_debug(5);  
-    dc2_sclk    <= reg_debug(6);  
-    dc2_mosi    <= reg_debug(7);  
-    dc2_cs_n    <= reg_debug(8);  
-    dc3_sclk    <= reg_debug(9); 
-    dc3_mosi    <= reg_debug(10);  
-    dc3_cs_n    <= reg_debug(11); 
 
+    u_spi0: entity work.qlaser_spi
+    port map(  
+        clk                 => clk,  
+        reset               => reset, 
+    
+        busy                => spi0_busy,
+    
+        -- Transmit data
+        tx_message_dv       => spi0_tx_message_dv,                        -- Start message transmit
+        tx_message          => spi0_tx_message,    -- Message data
+    
+        -- SPI interface 
+        spi_sclk            => dc0_sclk,                        -- Serial clock input
+        spi_mosi            => dc0_mosi,                        -- Serial data. (Master Out, Slave In)
+        spi_sel             => dc0_cs_n                         -- Serial block select
+    );
+    
+    u_spi1: entity work.qlaser_spi
+    port map(
+        clk                 => clk,  
+        reset               => reset, 
+    
+        busy                => spi1_busy,
+    
+        -- Transmit data
+        tx_message_dv       => spi1_tx_message_dv,                        -- Start message transmit
+        tx_message          => spi1_tx_message,    -- Message data
+    
+        -- SPI interface 
+        spi_sclk            => dc1_sclk,                        -- Serial clock input
+        spi_mosi            => dc1_mosi,                        -- Serial data. (Master Out, Slave In)
+        spi_sel             => dc1_cs_n                         -- Serial block select
+    );
+    
+    u_spi2: entity work.qlaser_spi
+    port map(
+        clk                 => clk,  
+        reset               => reset, 
+    
+        busy                => spi2_busy,
+    
+        -- Transmit data
+        tx_message_dv       => spi2_tx_message_dv,                        -- Start message transmit
+        tx_message          => spi2_tx_message,    -- Message data
+    
+        -- SPI interface 
+        spi_sclk            => dc2_sclk,                        -- Serial clock input
+        spi_mosi            => dc2_mosi,                        -- Serial data. (Master Out, Slave In)
+        spi_sel             => dc2_cs_n                         -- Serial block select
+    );
+    
+    u_spi3: entity work.qlaser_spi
+    port map(
+        clk                 => clk,  
+        reset               => reset, 
+    
+        busy                => spi3_busy,
+    
+        -- Transmit data
+        tx_message_dv       => spi3_tx_message_dv,                        -- Start message transmit
+        tx_message          => spi3_tx_message,    -- Message data
+    
+        -- SPI interface 
+        spi_sclk            => dc3_sclk,                        -- Serial clock input
+        spi_mosi            => dc3_mosi,                        -- Serial data. (Master Out, Slave In)
+        spi_sel             => dc3_cs_n                         -- Serial block select
+    );
     -------------------------------------------------------
     -- CPU interface.
     -------------------------------------------------------
-    pr_cpu_rw : process (clk)
+    pr_cpu : process(clk, reset)
     begin
-    
-        if rising_edge(clk) then
-
-            cpu_rdata       <= (others=>'0');
-            cpu_rdata_dv    <= '0';
-    
-            if (reset='1') then
-                reg_debug           <= (others=>'0');
+        if reset = '1' then
+            spi0_tx_message <= (others => '0');
+            spi1_tx_message <= (others => '0');
+            spi2_tx_message <= (others => '0');
+            spi3_tx_message <= (others => '0');
+        elsif rising_edge(clk) then
+          
+            spi0_tx_message_dv <= '0';
+            spi1_tx_message_dv <= '0';
+            spi2_tx_message_dv <= '0';
+            spi3_tx_message_dv <= '0';
+            
+            if cpu_wr = '1' and cpu_sel = '1' then
                 
-            -- Write registers
-            elsif (cpu_sel='1' and cpu_wr='1') then
-    
-                case to_integer(unsigned(cpu_addr(3 downto 0))) is
-    
-                    when  0         => reg_debug         <= cpu_wdata;
-                    when others     => null;
-                end case;
-    
-            -- Read registers
-            elsif (cpu_sel='1' and cpu_wr='0') then
-    
-                case to_integer(unsigned(cpu_addr(3 downto 0))) is
+                case cpu_addr(5 downto 3) is
+                        
+                    when C_ADDR_POWER_ON =>
+                        spi0_tx_message     <= "0000" & C_CMD_DAC_DC_POWER & "1111" & "000000000000" & "11111111";
+                        spi1_tx_message     <= "0000" & C_CMD_DAC_DC_POWER & "1111" & "000000000000" & "11111111";
+                        spi2_tx_message     <= "0000" & C_CMD_DAC_DC_POWER & "1111" & "000000000000" & "11111111";
+                        spi3_tx_message     <= "0000" & C_CMD_DAC_DC_POWER & "1111" & "000000000000" & "11111111";
+                        
+                        spi0_tx_message_dv  <= '1';
+                        spi1_tx_message_dv  <= '1';
+                        spi2_tx_message_dv  <= '1';
+                        spi3_tx_message_dv  <= '1';
 
-                    when   0        => cpu_rdata        <= reg_debug;    
-                    when others     => cpu_rdata        <= X"CCCCCCCC";
+                    when C_ADDR_SPI0 =>
+                        spi0_tx_message     <= "0000" & C_CMD_DAC_DC_WR & "0" & cpu_addr(2 downto 0) & cpu_wdata(11 downto 0) & "00000000";
+                        spi0_tx_message_dv  <= '1';
+                    
+                    when C_ADDR_SPI1 =>
+                        spi1_tx_message     <= "0000" & C_CMD_DAC_DC_WR & "0" & cpu_addr(2 downto 0) & cpu_wdata(11 downto 0) & "00000000";
+                        spi1_tx_message_dv  <= '1';
+                        
+                    when C_ADDR_SPI2 =>
+                        spi2_tx_message     <= "0000" & C_CMD_DAC_DC_WR & "0" & cpu_addr(2 downto 0) & cpu_wdata(11 downto 0) & "00000000";
+                        spi2_tx_message_dv  <= '1';
+                    
+                    when C_ADDR_SPI3 =>
+                        spi3_tx_message     <= "0000" & C_CMD_DAC_DC_WR & "0" & cpu_addr(2 downto 0) & cpu_wdata(11 downto 0) & "00000000";
+                        spi3_tx_message_dv  <= '1';
+                        
+                    when C_ADDR_SPI_ALL =>  
+                        spi0_tx_message     <= "0000" & C_CMD_DAC_DC_WR & "1111" & cpu_wdata(11 downto 0) & "00000000";
+                        spi1_tx_message     <= "0000" & C_CMD_DAC_DC_WR & "1111" & cpu_wdata(11 downto 0) & "00000000";
+                        spi2_tx_message     <= "0000" & C_CMD_DAC_DC_WR & "1111" & cpu_wdata(11 downto 0) & "00000000";
+                        spi3_tx_message     <= "0000" & C_CMD_DAC_DC_WR & "1111" & cpu_wdata(11 downto 0) & "00000000";
+                        
+                        spi0_tx_message_dv  <= '1';
+                        spi1_tx_message_dv  <= '1';
+                        spi2_tx_message_dv  <= '1';
+                        spi3_tx_message_dv  <= '1';    
+   
+                    when others => null;
+                        
                 end case;
-                cpu_rdata_dv  <= '1';
-    
+            
             end if;
-    
+        
         end if;
-    
+            
     end process;
 
-end dummy;
+end rtl;
