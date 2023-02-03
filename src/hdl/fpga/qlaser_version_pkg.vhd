@@ -12,9 +12,9 @@ package qlaser_version_pkg is
 ----------------------------------------------------------------------------------------
 --  Constants 
 ----------------------------------------------------------------------------------------
--- 0x0001     : First version.
+-- 0xDC000001     : First version of DC only system.
 ----------------------------------------------------------------------------------------
-constant C_QLASER_VERSION   : std_logic_vector(31 downto 0) := X"3DA0500D";     -- HDL Version
+constant C_QLASER_VERSION   : std_logic_vector(31 downto 0) := X"DC000001";     -- HDL Version
 
 
 end package qlaser_version_pkg;
