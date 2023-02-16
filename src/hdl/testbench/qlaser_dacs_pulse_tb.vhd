@@ -24,7 +24,7 @@ architecture sim of qlaser_dacs_pulse_tb is
     signal cpu_rdata         : std_logic_vector(31 downto 0);    -- Data output
     signal cpu_rdata_dv      : std_logic;                        -- Acknowledge output
     
-    signal ram0_data         : std_logic_vector(39 downto 0);
+    signal ram_data         : std_logic_vector(39 downto 0);
                    
     -- Pulse train outputs
     signal dacs_pulse        : std_logic_vector(31 downto 0);     -- Data output
@@ -48,7 +48,7 @@ begin
         cpu_rdata       => cpu_rdata,             -- Data output
         cpu_rdata_dv    => cpu_rdata_dv,          -- Acknowledge output
         
-        ram0_data       => ram0_data,         
+        ram_data       => ram_data,         
                        
         -- Pulse train outputs
         dacs_pulse      => dacs_pulse            -- Data output
@@ -61,8 +61,9 @@ begin
         
         reset <= '0';
         
+        -- First pulse entry start.
         wait until rising_edge(clk);
-        cpu_wdata <= X"00000001";
+        cpu_wdata <= X"00001234";
         cpu_wr <= '1';
         cpu_sel <= '1';
         
@@ -70,16 +71,13 @@ begin
         cpu_wr <= '0';
         cpu_sel <= '0';
         
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
+        for i in 0 to 6 loop
+            wait until rising_edge(clk);
+        end loop;
+        
         
         wait until rising_edge(clk);
-        cpu_wdata <= X"00000002";
+        cpu_wdata <= X"ABABABAB";
         cpu_wr <= '1';
         cpu_sel <= '1';
         
@@ -87,16 +85,12 @@ begin
         cpu_wr <= '0';
         cpu_sel <= '0';
         
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
+        for i in 0 to 6 loop
+            wait until rising_edge(clk);
+        end loop;
         
         wait until rising_edge(clk);
-        cpu_wdata <= X"00000003";
+        cpu_wdata <= X"00002345";
         cpu_wr <= '1';
         cpu_sel <= '1';
         
@@ -104,16 +98,15 @@ begin
         cpu_wr <= '0';
         cpu_sel <= '0';
         
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
+        for i in 0 to 6 loop
+            wait until rising_edge(clk);
+        end loop;
+        -- First pulse entry end.
         
+        
+        -- Second pulse entry start.
         wait until rising_edge(clk);
-        cpu_wdata <= X"00000004";
+        cpu_wdata <= X"00003456";
         cpu_wr <= '1';
         cpu_sel <= '1';
         
@@ -121,16 +114,13 @@ begin
         cpu_wr <= '0';
         cpu_sel <= '0';
         
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
+        for i in 0 to 6 loop
+            wait until rising_edge(clk);
+        end loop;
+        
         
         wait until rising_edge(clk);
-        cpu_wdata <= X"00000005";
+        cpu_wdata <= X"BCBCBCBC";
         cpu_wr <= '1';
         cpu_sel <= '1';
         
@@ -138,58 +128,75 @@ begin
         cpu_wr <= '0';
         cpu_sel <= '0';
         
+        for i in 0 to 6 loop
+            wait until rising_edge(clk);
+        end loop;
+        
         wait until rising_edge(clk);
+        cpu_wdata <= X"00004567";
+        cpu_wr <= '1';
+        cpu_sel <= '1';
+        
         wait until rising_edge(clk);
+        cpu_wr <= '0';
+        cpu_sel <= '0';
+        
+        for i in 0 to 6 loop
+            wait until rising_edge(clk);
+        end loop;
+        -- Second pulse entry end.
+        
+        -- Third pulse entry start.
         wait until rising_edge(clk);
+        cpu_wdata <= X"00005678";
+        cpu_wr <= '1';
+        cpu_sel <= '1';
+        
         wait until rising_edge(clk);
+        cpu_wr <= '0';
+        cpu_sel <= '0';
+        
+        for i in 0 to 6 loop
+            wait until rising_edge(clk);
+        end loop;
+        
+        
         wait until rising_edge(clk);
+        cpu_wdata <= X"CDCDCDCD";
+        cpu_wr <= '1';
+        cpu_sel <= '1';
+        
         wait until rising_edge(clk);
+        cpu_wr <= '0';
+        cpu_sel <= '0';
+        
+        for i in 0 to 6 loop
+            wait until rising_edge(clk);
+        end loop;
+        
         wait until rising_edge(clk);
+        cpu_wdata <= X"00006789";
+        cpu_wr <= '1';
+        cpu_sel <= '1';
+        
+        wait until rising_edge(clk);
+        cpu_wr <= '0';
+        cpu_sel <= '0';
+        
+        for i in 0 to 6 loop
+            wait until rising_edge(clk);
+        end loop;
+        -- Third pulse entry end.
+        
         
         trigger <= '1';
         wait until rising_edge(clk);
         trigger <= '0';
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
         
-        trigger <= '1';
-        wait until rising_edge(clk);
-        trigger <= '0';
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
+        for i in 0 to 5 loop
+            wait until rising_edge(clk);
+        end loop;
         
-        trigger <= '1';
-        wait until rising_edge(clk);
-        trigger <= '0';
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
-        
-        trigger <= '1';
-        wait until rising_edge(clk);
-        trigger <= '0';
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
-        
-        trigger <= '1';
-        wait until rising_edge(clk);
-        trigger <= '0';
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
         wait;
         
         

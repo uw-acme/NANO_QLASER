@@ -14,6 +14,7 @@ package qlaser_dac_pulse_pkg is
 ----------------------------------------------------------------------------------------
 
 -- Addresses
-constant C_ADDR_RAM0                : std_logic_vector(1 downto 0) := "00";
+constant C_ADDR_RAM0                : std_logic_vector(1 downto 0)  := "00";
+constant C_MAX_TIME                 : std_logic_vector(23 downto 0) := X"4C4B40";
 
 end package qlaser_dac_pulse_pkg;
