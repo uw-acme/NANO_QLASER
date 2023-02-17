@@ -17,19 +17,6 @@ def write(ser, addr, data):
     print(msg)
     ser.write(msg)
 
-# Writes a message to the FPGA with Read command at an address. The FPGA should return 32 bits of data    
-def read(ser, addr):
-    print ('Write regaddr = 0x{:04x}' .format(addr))
-    print ('Write data    = 0x{:08x}' .format(0))
-    msg = addr.to_bytes(2, byteorder='big') + data.to_bytes(4, byteorder='big')
-    msg = b'\x72' + msg
-    print(msg)
-    # Send a message to the FPGA in the form "RAAAADDDDDDDD"
-    ser.write(msg)
-    
-    # Read the 4 bytes that get sent back.
-    return ser.read(4)
-
 # Calculates the binary representation as of the desired voltage given the reference voltage.
 # Output the number of bits for the output is determined by the resolution parameter.
 def get_value(val, ref, resolution):
@@ -103,7 +90,6 @@ layout = [[gui.Text("DC Channels")],
           [gui.Text('Channel 15', size=(15, 1)), gui.InputText(0), gui.Button("Enter Channel 15")],
           [gui.Text('Update All', size=(15, 1)), gui.Button("Enter")],
           [gui.Text('Set All Channels', size=(15, 1)), gui.InputText(), gui.Button("Enter All")],
-          [gui.Text('Version', size=(15, 1)), gui.Text("Press button to read Version ->", key='Version'), gui.Button("Read Version")],
           ]    
 window = gui.Window("DC Dacs", layout)
 val = 0
@@ -119,12 +105,6 @@ while True:
     elif event == "Enter":
         for i in range(0, 16):
             update_channel(i, values[i])
-    elif event == "Read Version":
-        # Select the misc block
-        addr = 1 << 13
-        # To read the version register, addr bits 3 downto 0 should be 0.
-        num = read(ser, addr)
-        window['Version'].update(hex(num))
     elif event:
         e = event.split()
         # The last item in e is the channel number

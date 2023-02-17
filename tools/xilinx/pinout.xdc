@@ -1,10 +1,9 @@
 ## 125MHz Clock from Ethernet PHY
 set_property -dict {PACKAGE_PIN D18 IOSTANDARD LVCMOS33} [get_ports p_clk]
-create_clock -period 8.000 -name sys_clk_pin -waveform {0.000 4.000} -add [get_ports p_clk]
 
 ## Buttons
 set_property -dict {PACKAGE_PIN C17 IOSTANDARD LVCMOS33} [get_ports p_reset]
-set_property -dict { PACKAGE_PIN C18   IOSTANDARD LVCMOS33 } [get_ports { p_trigger }]; #IO_L11N_T1_SRCC Sch=btn[1]
+#set_property -dict { PACKAGE_PIN C18   IOSTANDARD LVCMOS33 } [get_ports { p_trigger }]; #IO_L11N_T1_SRCC Sch=btn[1]
 
 ## RGB LEDs
 set_property -dict {PACKAGE_PIN A17 IOSTANDARD LVCMOS33} [get_ports {p_leds0_rgb[0]}]
@@ -17,8 +16,8 @@ set_property -dict {PACKAGE_PIN A19 IOSTANDARD LVCMOS33} [get_ports {p_leds1_rgb
 
 
 ## Pmod Header JA
-#set_property -dict { PACKAGE_PIN B15   IOSTANDARD LVCMOS33 } [get_ports { ja[0] }]; #IO_0 Sch=ja1_fpga
-#set_property -dict { PACKAGE_PIN C15   IOSTANDARD LVCMOS33 } [get_ports { ja[1] }]; #IO_25 Sch=ja2_fpga
+set_property -dict { PACKAGE_PIN B15   IOSTANDARD LVCMOS33 } [get_ports { p_debug_out[0] }]; #IO_0 Sch=ja1_fpga
+set_property -dict { PACKAGE_PIN C15   IOSTANDARD LVCMOS33 } [get_ports { p_debug_out[1] }]; #IO_25 Sch=ja2_fpga
 set_property -dict { PACKAGE_PIN D15   IOSTANDARD LVCMOS33 } [get_ports { p_serial_txd }]; #IO_L1N_T0_AD0N Sch=ja3_fpga
 set_property -dict { PACKAGE_PIN E16   IOSTANDARD LVCMOS33 } [get_ports { p_serial_rxd }]; #IO_L1P_T0_AD0P Sch=ja4_fpga
 set_property -dict { PACKAGE_PIN E15   IOSTANDARD LVCMOS33 } [get_ports { p_dc0_cs_n }]; #IO_L2N_T0_AD8N Sch=ja7_fpga

@@ -56,7 +56,7 @@ signal tick_sec_i           : std_logic := '0';
 signal cnt_tick             : integer range 0 to G_INTERVAL_TICK_SLOW;
 signal tick_i               : std_logic := '0';
 
-signal count                : unsigned( 5 downto 0);
+signal count                : unsigned( 7 downto 0);
 signal pulse_d1             : std_logic_vector(G_NBITS-1 downto 0);
 signal edge_low             : std_logic_vector(G_NBITS-1 downto 0);
 signal clr_edge_low         : std_logic_vector(G_NBITS-1 downto 0);
@@ -71,6 +71,7 @@ signal states               : t_states;
 type t_cnt_stretch is array (G_NBITS-1 downto 0) of unsigned( 3 downto 0);
 signal cnt_stretch          : t_cnt_stretch;
 
+signal toggle_1usec         : std_logic;    -- Toggle a signal every microsecond. Use to reduce LED brightness
 begin
 
     tick_usec       <= tick_usec_i;
@@ -81,18 +82,21 @@ begin
     -----------------------------------------------------------
     -- Make 1 microsecond tick.
     -- Single clock cycle high every N cycles
+    -- Toggle a signal every microsecond. Use to reduce LED brightness
     -----------------------------------------------------------
     pr_tick_usec : process (reset, clk)
     begin
         if (reset='1') then
             cnt_tick_usec   <= 0;
             tick_usec_i     <= '0';
+            toggle_1usec    <= '0'; 
 
         elsif rising_edge(clk) then
 
             if (cnt_tick_usec = C_DIV_TICK_USEC-1) then
                 cnt_tick_usec   <= 0;
                 tick_usec_i     <= '1';
+                toggle_1usec    <= not(toggle_1usec); 
             else
                 cnt_tick_usec   <= cnt_tick_usec + 1 ;
                 tick_usec_i     <= '0';
@@ -198,7 +202,7 @@ begin
     -----------------------------------------------------------
     pr_count : process (reset, clk)
     begin
-        if (reset='1') then
+        if (reset='1') or (tick_sec_i='1') then
             count   <= (others=>'0');
         elsif rising_edge(clk) then
             if (tick_i='1') then
@@ -210,11 +214,12 @@ begin
 
     -----------------------------------------------------------
     -- Use count bits to generate a 'flash' signal that blinks twice 
+    -- Toggle signal reduces flash LED brightness
     -----------------------------------------------------------
     pr_flash : process (clk)
     begin
         if rising_edge(clk) then
-            if (count(5)='1' and count(4)='1' and count(BIT_FLASH)='1') then
+            if (count(7 downto 4)="0000" and count(BIT_FLASH)='0' and toggle_1usec = '1') then
                 flash  <= '1';
             else
                 flash  <= '0';

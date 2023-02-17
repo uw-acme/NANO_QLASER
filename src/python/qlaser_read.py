@@ -1,8 +1,3 @@
-#---------------------------------------------------------------
-#--  File         : dc_dacs_gui.py
-#--  Description  : Python script to set DAC output values using a GUI
-#---------------------------------------------------------------
-
 import serial
 import time
 import random
@@ -19,10 +14,11 @@ def write(ser, addr, data):
 
 # Writes a message to the FPGA with Read command at an address. The FPGA should return 32 bits of data    
 def read(ser, addr):
+    data = 0xFFFFFFFE
     print ('Write regaddr = 0x{:04x}' .format(addr))
-    print ('Write data    = 0x{:08x}' .format(0))
+    print ('Write data    = 0x{:08x}' .format(data))
     msg = addr.to_bytes(2, byteorder='big') + data.to_bytes(4, byteorder='big')
-    msg = b'\x72' + msg
+    msg = b'\x52' + msg
     print(msg)
     # Send a message to the FPGA in the form "RAAAADDDDDDDD"
     ser.write(msg)
@@ -72,13 +68,8 @@ ser.baudrate = 115200
 ser.port = 'COM3'
 ser.open()
 
-# Enable the internal references.
-# This can be removed once the external reference supply has been connected (pmod board modification)
-write(ser, 0x0028, 0x00000000)
-
 # Power on all DACs
 write(ser, 0x0030, 0x00000000)
-
 
 
 
