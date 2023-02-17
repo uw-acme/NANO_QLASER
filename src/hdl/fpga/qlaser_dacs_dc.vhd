@@ -156,6 +156,7 @@ begin
             spi1_tx_message <= (others => '0');
             spi2_tx_message <= (others => '0');
             spi3_tx_message <= (others => '0');
+
         elsif rising_edge(clk) then
           
             spi0_tx_message_dv <= '0';
@@ -167,6 +168,19 @@ begin
                 
                 case cpu_addr(5 downto 3) is
                         
+                   -- THIS CASE ONLY FOR DEVELOPMENT, WILL BE REMOVED LATER
+                   -- Enable the DAC internal reference 
+                    when C_ADDR_INTERNAL_REF =>
+                        spi0_tx_message     <= "0000" & C_CMD_DAC_DC_INTERNAL_REF & "0000" & "000000000000" & "00000001";
+                        spi1_tx_message     <= "0000" & C_CMD_DAC_DC_INTERNAL_REF & "0000" & "000000000000" & "00000001";
+                        spi2_tx_message     <= "0000" & C_CMD_DAC_DC_INTERNAL_REF & "0000" & "000000000000" & "00000001";
+                        spi3_tx_message     <= "0000" & C_CMD_DAC_DC_INTERNAL_REF & "0000" & "000000000000" & "00000001";
+
+                        spi0_tx_message_dv  <= '1';
+                        spi1_tx_message_dv  <= '1';
+                        spi2_tx_message_dv  <= '1';
+                        spi3_tx_message_dv  <= '1';
+
                     when C_ADDR_POWER_ON =>
                         spi0_tx_message     <= "0000" & C_CMD_DAC_DC_POWER & "1111" & "000000000000" & "11111111";
                         spi1_tx_message     <= "0000" & C_CMD_DAC_DC_POWER & "1111" & "000000000000" & "11111111";

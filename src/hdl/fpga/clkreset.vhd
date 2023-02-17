@@ -3,7 +3,7 @@
 ----------------------------------------------------------------------------
 --  Description  : Wrapper for clock PLL and reset logic
 --
--- External 'p_reset_n' input resets the PLL immediately and sets the 'reset'
+-- External 'p_reset' input resets the PLL immediately and sets the 'reset'
 -- active high to the internal FPGA logic. 
 -- When the reset goes inactive the PLL will try to generate the requested
 -- output freq clock 'clk_i' for the FPGA internal logic from the 'p_clk' input. 
