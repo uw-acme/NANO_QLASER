@@ -44,7 +44,8 @@ end ps1_wrapper;
 
 
 architecture sim_empty of ps1_wrapper is
- 
+begin
+  
     -- Drive everything to '0'
     DDR_addr            <= (others=>'0');   -- inout std_logic_vector(14 downto 0 );
     DDR_ba              <= (others=>'0');   -- inout std_logic_vector( 2 downto 0 );
