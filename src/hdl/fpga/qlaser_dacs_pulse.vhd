@@ -155,29 +155,29 @@ begin
                 -- Load the amplitude/time into the RAM.    
                 when S_LOAD_RAM => 
                         ram_ena <= "1";
-                        state <= S_STOP_TIME;
+                        state <= S_IDLE;
                         
                 -- Wait for another cpu write that contains the stop time of the pulse.        
-                when S_STOP_TIME =>
-                    -- If we just entered this state, set enable to 0 and increment the address.
-                    if ram_ena = "1" then
-                        ram_ena <= "0";
-                        ram_addr <= std_logic_vector(unsigned(ram_addr) + "1");
-                    end if;
-                        
-
-                    if cpu_wr = '1' and cpu_sel = '1' then
-                        -- The amplitude should be 0.
-                        ram_din <= X"0000" & cpu_wdata(23 downto 0);
-                        state <= S_LOAD_RAM2;
-                    else
-                        state <= S_STOP_TIME;
-                    end if;
-                
-                -- Load the end of the pulse into the RAM.
-                when S_LOAD_RAM2 =>
-                    ram_ena <= "1";
-                    state <= S_IDLE;
+                --when S_STOP_TIME =>
+                --    -- If we just entered this state, set enable to 0 and increment the address.
+                --    if ram_ena = "1" then
+                --        ram_ena <= "0";
+                --        ram_addr <= std_logic_vector(unsigned(ram_addr) + "1");
+                --    end if;
+                --        
+                --
+                --    if cpu_wr = '1' and cpu_sel = '1' then
+                --        -- The amplitude should be 0.
+                --        ram_din <= X"0000" & cpu_wdata(23 downto 0);
+                --        state <= S_LOAD_RAM2;
+                --    else
+                --        state <= S_STOP_TIME;
+                --    end if;
+                --
+                ---- Load the end of the pulse into the RAM.
+                --when S_LOAD_RAM2 =>
+                --    ram_ena <= "1";
+                --    state <= S_IDLE;
                 
                 
                 when S_READ =>
