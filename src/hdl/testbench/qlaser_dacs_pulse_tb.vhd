@@ -28,6 +28,8 @@ architecture sim of qlaser_dacs_pulse_tb is
                    
     -- Pulse train outputs
     signal dacs_pulse        : std_logic_vector(31 downto 0);     -- Data output
+    
+    signal data_to_JESD     : t_JESD_data_arr;
 begin
 
     clk <= not clk after 5 ns;
@@ -48,10 +50,8 @@ begin
         cpu_rdata       => cpu_rdata,             -- Data output
         cpu_rdata_dv    => cpu_rdata_dv,          -- Acknowledge output
         
-        ram_data       => ram_data,         
-                       
-        -- Pulse train outputs
-        dacs_pulse      => dacs_pulse            -- Data output
+        dacs_pulse      => dacs_pulse,
+        data_to_JESD    => data_to_JESD
     );
     
     process is
@@ -61,6 +61,8 @@ begin
         
         reset <= '0';
         
+        cpu_addr(11 downto 5) <= (others => '0');
+        cpu_addr(4 downto 0) <= "01111";
         -- First pulse entry start.
         wait until rising_edge(clk);
         cpu_wdata <= X"00001234";
@@ -78,19 +80,6 @@ begin
         
         wait until rising_edge(clk);
         cpu_wdata <= X"ABABABAB";
-        cpu_wr <= '1';
-        cpu_sel <= '1';
-        
-        wait until rising_edge(clk);
-        cpu_wr <= '0';
-        cpu_sel <= '0';
-        
-        for i in 0 to 6 loop
-            wait until rising_edge(clk);
-        end loop;
-        
-        wait until rising_edge(clk);
-        cpu_wdata <= X"00002345";
         cpu_wr <= '1';
         cpu_sel <= '1';
         
@@ -131,19 +120,6 @@ begin
         for i in 0 to 6 loop
             wait until rising_edge(clk);
         end loop;
-        
-        wait until rising_edge(clk);
-        cpu_wdata <= X"00004567";
-        cpu_wr <= '1';
-        cpu_sel <= '1';
-        
-        wait until rising_edge(clk);
-        cpu_wr <= '0';
-        cpu_sel <= '0';
-        
-        for i in 0 to 6 loop
-            wait until rising_edge(clk);
-        end loop;
         -- Second pulse entry end.
         
         -- Third pulse entry start.
@@ -163,19 +139,6 @@ begin
         
         wait until rising_edge(clk);
         cpu_wdata <= X"CDCDCDCD";
-        cpu_wr <= '1';
-        cpu_sel <= '1';
-        
-        wait until rising_edge(clk);
-        cpu_wr <= '0';
-        cpu_sel <= '0';
-        
-        for i in 0 to 6 loop
-            wait until rising_edge(clk);
-        end loop;
-        
-        wait until rising_edge(clk);
-        cpu_wdata <= X"00006789";
         cpu_wr <= '1';
         cpu_sel <= '1';
         

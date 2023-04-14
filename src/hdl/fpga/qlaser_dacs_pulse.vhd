@@ -24,11 +24,11 @@ port (
         cpu_sel           : in  std_logic;                        -- Block select
         cpu_rdata         : out std_logic_vector(31 downto 0);    -- Data output
         cpu_rdata_dv      : out std_logic;                        -- Acknowledge output
-        
-        ram_data         : out std_logic_vector(39 downto 0);
                        
         -- Pulse train outputs
-        dacs_pulse        : out std_logic_vector(31 downto 0)     -- Data output
+        dacs_pulse        : out std_logic_vector(31 downto 0);    -- Data output
+        
+        data_to_JESD      : out t_arr_data_JESD
 );
 end entity;
 
@@ -50,31 +50,42 @@ signal time_count       : std_logic_vector(23 downto 0);
 
 signal trigger_i        : std_logic;
 
-type t_state is (S_IDLE, S_READ, S_AMPLITUDE, S_LOAD_RAM, S_LOAD_RAM2, S_STOP_TIME);
-signal state        : t_state;
-
 type t_state2 is (S0, S1, S2, S3, S4);
 signal trig_state   : t_state2;
+
+signal channel_sels     : std_logic_vector(31 downto 0);
 
 begin
 
     dacs_pulse  <= reg_pulse;
     busy        <= '0';
-
     
-    u_ram: entity work.blk_mem_40x32
-    port map(
-        addra               => ram_addr,
-        clka                => clk, 
-
-        dina                => ram_din,
+    -- Select channel from address during write.
+    pr_channel_sel : process(cpu_wr, cpu_sel, cpu_addr)
+    begin
+        channel_sels    <= (others=>'0');
+        if (cpu_wr = '1' and cpu_sel = '1') then
+            channel_sels(to_integer(unsigned(cpu_addr(4 downto 0)))) <= '1';
+        end if;
+    end process;
+    
+    g_pulsed_dacs: for i in 0 to 31 generate
+        u_pulsed_channel : entity work.qlaser_single_pulse_channel
+            port map(
+                clk               => clk, 
+                reset             => reset,
         
-        wea                 => ram_ena,
+                trigger           => trigger_i,                        -- Trigger (rising edge) to start pulse output
         
-        addrb               => ram_addrb,
-        clkb                => clk,
-        doutb               => ram_doutb
-    );
+                -- CPU interface
+                cpu_addr          => cpu_addr,    -- Address input
+                cpu_wdata         => cpu_wdata,    -- Data input
+                cpu_wr            => cpu_wr,                        -- Write enable 
+                cpu_sel           => channel_sels(i),                        -- Block select
+                
+                data_to_JESD      => data_to_JESD(i)
+            );
+    end generate;
     
    
     
@@ -110,93 +121,5 @@ begin
             
     end process;
     
-    ram_data   <= ram_doutb;
-    
-    pr_trigger  : process(clk, reset)
-    begin
-        if reset = '1' then
-            state           <= S_IDLE;
-            ram_addr        <= (others => '0');
-            ram_din         <= (others => '0');
-            ram_addrb       <= (others => '0');
-            ram_din_reg     <= (others => '0');
-            time_count      <= (others => '0');
-            
-        elsif rising_edge(clk) then
-            case state is
-                when S_IDLE =>
-                    -- If we just entered this state after a write, set enable to 0 and increment the address.
-                    if ram_ena = "1" then
-                        ram_ena <= "0";
-                        ram_addr <= std_logic_vector(unsigned(ram_addr) + "1");
-                    end if;
-
-                    if trigger_i = '1' then
-                        time_count <= (others => '0');
-                        ram_addrb  <= (others => '0');
-                        state <= S_READ;
-                    -- Wait for the first cpu write which contains the start time of a pulse.
-                    elsif cpu_wr = '1' and cpu_sel = '1' then
-                        state <= S_AMPLITUDE;
-                        ram_din_reg(23 downto 0) <= cpu_wdata(23 downto 0);
-                    else
-                        state <= S_IDLE;
-                    end if;
-                
-                -- Wait for another cpu write to get the amplitude of the pulse.
-                when S_AMPLITUDE =>
-                    if cpu_wr = '1' and cpu_sel = '1' then
-                        ram_din <= cpu_wdata(15 downto 0) & ram_din_reg;
-                        state <= S_LOAD_RAM;
-                    else
-                        state <= S_AMPLITUDE;
-                    end if;
-                        
-                -- Load the amplitude/time into the RAM.    
-                when S_LOAD_RAM => 
-                        ram_ena <= "1";
-                        state <= S_IDLE;
-                        
-                -- Wait for another cpu write that contains the stop time of the pulse.        
-                --when S_STOP_TIME =>
-                --    -- If we just entered this state, set enable to 0 and increment the address.
-                --    if ram_ena = "1" then
-                --        ram_ena <= "0";
-                --        ram_addr <= std_logic_vector(unsigned(ram_addr) + "1");
-                --    end if;
-                --        
-                --
-                --    if cpu_wr = '1' and cpu_sel = '1' then
-                --        -- The amplitude should be 0.
-                --        ram_din <= X"0000" & cpu_wdata(23 downto 0);
-                --        state <= S_LOAD_RAM2;
-                --    else
-                --        state <= S_STOP_TIME;
-                --    end if;
-                --
-                ---- Load the end of the pulse into the RAM.
-                --when S_LOAD_RAM2 =>
-                --    ram_ena <= "1";
-                --    state <= S_IDLE;
-                
-                
-                when S_READ =>
-                    if time_count /= C_MAX_TIME then
-                        time_count <= std_logic_vector(unsigned(time_count) + "1");
-                        -- If the current time equals the time of the entry, send a JESD message and increment address.
-                        if time_count = ram_doutb(23 downto 0) then
-                            ram_addrb   <= std_logic_vector(unsigned(ram_addrb) + "1");
-                            -- TODO: Add JESD message send.
-                        end if;
-                        state <= S_READ;
-                    else
-                        -- TODO: Send JESD message to set amplitude to 0 in case the table wasn't entered correctly.
-                        state <= S_IDLE;
-                    end if;
-    
-                        
-            end case;
-        end if;
-    end process;
 
 end rtl;

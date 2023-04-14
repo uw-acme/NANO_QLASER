@@ -30,6 +30,7 @@ constant ADR_BASE_MISC          : std_logic_vector( 3 downto 0) :=  X"2";    -- 
 --------------------------------------------------------------------------------
 constant C_NUM_BLOCKS           : integer   := 3; 
 type t_arr_cpu_dout is array (0 to C_NUM_BLOCKS-1) of std_logic_vector(31 downto 0);
+type t_arr_data_JESD  is array (0 to 31) of std_logic_vector(15 downto 0);
 
 
 -------------------------------------------------------------------------------------------------------------------------- 
@@ -89,6 +90,67 @@ constant ADR_MISC_LEDS_EN       : std_logic_vector(15 downto 0) := ADR_BASE_MISC
 constant ADR_MISC_SW_IN         : std_logic_vector(15 downto 0) := ADR_BASE_MISC & X"003";   -- Read board switch settings (if present)
 constant ADR_MISC_DEBUG_CTRL    : std_logic_vector(15 downto 0) := ADR_BASE_MISC & X"004";   -- Select debug output from top level to pins
 
+------------- Begin Cut here for COMPONENT Declaration ------ COMP_TAG
+COMPONENT jesd204c_0
+  PORT (
+    s_axi_aclk : IN STD_LOGIC;
+    s_axi_aresetn : IN STD_LOGIC;
+    s_axi_awaddr : IN STD_LOGIC_VECTOR(11 DOWNTO 0);
+    s_axi_awvalid : IN STD_LOGIC;
+    s_axi_awready : OUT STD_LOGIC;
+    s_axi_wdata : IN STD_LOGIC_VECTOR(31 DOWNTO 0);
+    s_axi_wstrb : IN STD_LOGIC_VECTOR(3 DOWNTO 0);
+    s_axi_wvalid : IN STD_LOGIC;
+    s_axi_wready : OUT STD_LOGIC;
+    s_axi_bresp : OUT STD_LOGIC_VECTOR(1 DOWNTO 0);
+    s_axi_bvalid : OUT STD_LOGIC;
+    s_axi_bready : IN STD_LOGIC;
+    s_axi_araddr : IN STD_LOGIC_VECTOR(11 DOWNTO 0);
+    s_axi_arvalid : IN STD_LOGIC;
+    s_axi_arready : OUT STD_LOGIC;
+    s_axi_rdata : OUT STD_LOGIC_VECTOR(31 DOWNTO 0);
+    s_axi_rresp : OUT STD_LOGIC_VECTOR(1 DOWNTO 0);
+    s_axi_rvalid : OUT STD_LOGIC;
+    s_axi_rready : IN STD_LOGIC;
+    tx_core_clk : IN STD_LOGIC;
+    tx_core_reset : IN STD_LOGIC;
+    tx_sysref : IN STD_LOGIC;
+    irq : OUT STD_LOGIC;
+    tx_tdata : IN STD_LOGIC_VECTOR(255 DOWNTO 0);
+    tx_tready : OUT STD_LOGIC;
+    tx_aresetn : OUT STD_LOGIC;
+    tx_sof : OUT STD_LOGIC_VECTOR(3 DOWNTO 0);
+    tx_somf : OUT STD_LOGIC_VECTOR(3 DOWNTO 0);
+    tx_sync : IN STD_LOGIC;
+    tx_reset_gt : OUT STD_LOGIC;
+    tx_reset_done : IN STD_LOGIC;
+    gt0_txdata : OUT STD_LOGIC_VECTOR(63 DOWNTO 0);
+    gt0_txcharisk : OUT STD_LOGIC_VECTOR(3 DOWNTO 0);
+    gt0_txheader : OUT STD_LOGIC_VECTOR(1 DOWNTO 0);
+    gt1_txdata : OUT STD_LOGIC_VECTOR(63 DOWNTO 0);
+    gt1_txcharisk : OUT STD_LOGIC_VECTOR(3 DOWNTO 0);
+    gt1_txheader : OUT STD_LOGIC_VECTOR(1 DOWNTO 0);
+    gt2_txdata : OUT STD_LOGIC_VECTOR(63 DOWNTO 0);
+    gt2_txcharisk : OUT STD_LOGIC_VECTOR(3 DOWNTO 0);
+    gt2_txheader : OUT STD_LOGIC_VECTOR(1 DOWNTO 0);
+    gt3_txdata : OUT STD_LOGIC_VECTOR(63 DOWNTO 0);
+    gt3_txcharisk : OUT STD_LOGIC_VECTOR(3 DOWNTO 0);
+    gt3_txheader : OUT STD_LOGIC_VECTOR(1 DOWNTO 0);
+    gt4_txdata : OUT STD_LOGIC_VECTOR(63 DOWNTO 0);
+    gt4_txcharisk : OUT STD_LOGIC_VECTOR(3 DOWNTO 0);
+    gt4_txheader : OUT STD_LOGIC_VECTOR(1 DOWNTO 0);
+    gt5_txdata : OUT STD_LOGIC_VECTOR(63 DOWNTO 0);
+    gt5_txcharisk : OUT STD_LOGIC_VECTOR(3 DOWNTO 0);
+    gt5_txheader : OUT STD_LOGIC_VECTOR(1 DOWNTO 0);
+    gt6_txdata : OUT STD_LOGIC_VECTOR(63 DOWNTO 0);
+    gt6_txcharisk : OUT STD_LOGIC_VECTOR(3 DOWNTO 0);
+    gt6_txheader : OUT STD_LOGIC_VECTOR(1 DOWNTO 0);
+    gt7_txdata : OUT STD_LOGIC_VECTOR(63 DOWNTO 0);
+    gt7_txcharisk : OUT STD_LOGIC_VECTOR(3 DOWNTO 0);
+    gt7_txheader : OUT STD_LOGIC_VECTOR(1 DOWNTO 0) 
+  );
+END COMPONENT;
+-- COMP_TAG_END ------ End COMPONENT Declaration ------------
 
 end package;
 
