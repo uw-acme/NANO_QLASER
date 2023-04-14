@@ -20,6 +20,7 @@ port (
 end entity;
 
 architecture rtl of qlaser_jesd_tx is
+    signal s_axi_aresetn        : STD_LOGIC;
     signal s_axi_awaddr         : STD_LOGIC_VECTOR(11 DOWNTO 0);
     signal s_axi_awvalid        : STD_LOGIC;
     signal s_axi_awready        : STD_LOGIC;
@@ -79,19 +80,20 @@ architecture rtl of qlaser_jesd_tx is
     signal write_error          : std_logic;
     signal send_write           : std_logic;
     
-    signal addr <= std_logic_vector(11 downto 0);
-    signal data <= std_logic_vector(31 downto 0);
+    signal write_addr : std_logic_vector(11 downto 0);
+    signal write_data : std_logic_vector(31 downto 0);
     
     type t_setup_state is (IDLE, ILA, DONE);
     signal setup_state : t_setup_state;
 
 begin
 
+    s_axi_aresetn <= not reset;
     ------------- Begin Cut here for INSTANTIATION Template ----- INST_TAG
     u_jesd_tx : jesd204c_0
     PORT MAP (
         s_axi_aclk => clk,
-        s_axi_aresetn => not reset,
+        s_axi_aresetn => s_axi_aresetn,
         s_axi_awaddr => s_axi_awaddr,
         s_axi_awvalid => s_axi_awvalid,
         s_axi_awready => s_axi_awready,
@@ -157,7 +159,7 @@ begin
             s_axi_wdata     <= (others => '0');
             s_axi_wstrb     <= (others => '0');
             s_axi_wvalid    <= '0';
-            s_axi_bready    <= (others => '0');
+            s_axi_bready    <= '0';
             write_complete  <= '0';
             write_error     <= '0';
             write_state     <= IDLE;
@@ -169,7 +171,7 @@ begin
                 s_axi_wdata     <= (others => '0');
                 s_axi_wstrb     <= (others => '0');
                 s_axi_wvalid    <= '0';
-                s_axi_bready    <= (others => '0');
+                s_axi_bready    <= '0';
                 s_axi_araddr    <= (others => '0');
                 s_axi_arvalid   <= '0';
                 s_axi_rready    <= '0';
@@ -185,7 +187,7 @@ begin
             
             -- Send the write address
             when ADDR => 
-                s_axi_awaddr <= addr;
+                s_axi_awaddr <= write_addr;
                 s_axi_awvalid <= '1';
                 s_axi_bready <= '0';
                 -- wait for awready to be 1.
@@ -198,7 +200,7 @@ begin
             -- Send the write data
             when DATA =>
                 s_axi_awvalid <= '0';
-                s_axi_wdata <= data;
+                s_axi_wdata <= write_data;
                 s_axi_wvalid <= '1';
                 -- wait for wready to be 1.
                 if s_axi_wready = '1' then
@@ -217,12 +219,12 @@ begin
                     s_axi_bready <= '1';
                     -- if bresp is 00, transaction was successful
                     if s_axi_bresp = "00" then
-                        write_complete <= '1'
+                        write_complete <= '1';
                         write_state <= IDLE;
                     -- otherwise try to send the message again.
                     else
                         write_error <= '1';
-                        write_state <= ADDR:
+                        write_state <= ADDR;
                     end if;
                 end if;
          end case;
@@ -232,20 +234,20 @@ begin
     pr_setup : process(clk, reset)
     begin
         if reset = '1' then
-            addr <= (others => '0');
-            data <= (others => '0');
+            write_addr <= (others => '0');
+            write_data <= (others => '0');
             setup_state <= IDLE;
         elsif rising_edge(clk) then
             case setup_state is
                 when IDLE =>
-                    addr <= x"008";
-                    data <= x"00000001";
+                    write_addr <= x"008";
+                    write_data <= x"00000001";
                     send_write <= '1';
                     setup_state <= ILA;
                     
                 when ILA =>
-                    addr <= x"008";
-                    data <= x"00000001";
+                    write_addr <= x"008";
+                    write_data <= x"00000001";
                     send_write <= '0';
                     if write_complete = '0' then
                         setup_state <= ILA;
@@ -255,8 +257,8 @@ begin
                     end if;
                 
                 when DONE =>
-                    addr <= (others => '0');
-                    data <= (others => '0');
+                    write_addr <= (others => '0');
+                    write_data <= (others => '0');
                     setup_state <= DONE;
             end case;
         end if;

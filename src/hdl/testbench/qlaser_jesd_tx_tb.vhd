@@ -5,10 +5,10 @@ use     ieee.numeric_std.all;
 use     work.qlaser_pkg.all;
 use     work.qlaser_dac_pulse_pkg.all;
 
-entity qlaser_dacs_pulse_tb is
-end entity qlaser_dacs_pulse_tb;
+entity qlaser_jesd_tx_tb is
+end entity qlaser_jesd_tx_tb;
 
-architecture sim of qlaser_dacs_pulse_tb is
+architecture sim of qlaser_jesd_tx_tb is
 
     signal clk               : std_logic := '0'; 
     signal reset             : std_logic := '1';
@@ -39,7 +39,9 @@ begin
         
         reset <= '0';
         
-        wait 1 ms;
+        wait for 1 ms;
+        
+        wait;
     end process;
     
 end architecture sim;

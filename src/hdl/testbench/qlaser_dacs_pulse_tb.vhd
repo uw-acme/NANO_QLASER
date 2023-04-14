@@ -29,7 +29,7 @@ architecture sim of qlaser_dacs_pulse_tb is
     -- Pulse train outputs
     signal dacs_pulse        : std_logic_vector(31 downto 0);     -- Data output
     
-    signal data_to_JESD     : t_JESD_data_arr;
+    signal data_to_JESD     : t_arr_data_JESD;
 begin
 
     clk <= not clk after 5 ns;
