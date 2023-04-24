@@ -83,7 +83,6 @@ architecture rtl of qlaser_jesd_tx is
     
     signal read_complete        : std_logic;
     signal read_error           : std_logic;
-    signal read_addr            : std_logic_vector(11 downto 0);
     signal read_data            : std_logic_vector(31 downto 0);
     signal read_request         : std_logic;
     signal rresp_data           : std_logic_vector(1 downto 0);
@@ -96,7 +95,7 @@ architecture rtl of qlaser_jesd_tx is
     signal write_addr : std_logic_vector(11 downto 0);
     signal write_data : std_logic_vector(31 downto 0);
     
-    type t_setup_state is (IDLE, ILA_WRITE, ILA_READ, DONE);
+    type t_setup_state is (IDLE, ILA_WRITE, RESET_WRITE, RESET_READ, ILA_READ, DONE);
     signal setup_state : t_setup_state;
     
     signal setup_error : std_logic;
@@ -321,9 +320,34 @@ begin
                     if write_complete = '0' then
                         setup_state <= ILA_WRITE;
                     else
-                        setup_state <= ILA_READ;
+                        setup_state <= RESET_WRITE;
+                        s_axi_awaddr <= x"004";
+                        s_axi_wdata <= x"00000001";
+                        send_write <= '1';
+                    end if;
+                
+                when RESET_WRITE =>
+                    send_write <= '0';
+                    if write_complete = '0' then
+                        setup_state <= RESET_WRITE;
+                    else 
+                        setup_state <= RESET_READ;
+                        s_axi_araddr <= x"004";
                         read_request <= '1';
-                        s_axi_araddr <= x"008";
+                    end if;
+                    
+                when RESET_READ =>
+                    read_request <= '0';
+                    if read_complete = '0' then
+                        setup_state <= RESET_READ;
+                    else
+                        read_request <= '1';
+                        if read_data(0) /= '0' then
+                            setup_state <= RESET_READ;
+                        else
+                            setup_state <= ILA_READ;
+                            s_axi_araddr <= x"008";
+                        end if;
                     end if;
                     
                 when ILA_READ =>
