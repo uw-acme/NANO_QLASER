@@ -13,6 +13,8 @@ port (
         clk               : in  std_logic; 
         reset             : in  std_logic;
         
+        core_clk          : in  std_logic;
+        
         tx_tdata          : in std_logic_vector(255 downto 0);
         tx_tready         : out std_logic
         
@@ -76,6 +78,17 @@ architecture rtl of qlaser_jesd_tx is
     type t_axi_write_state is (IDLE, ADDR, DATA, BRESP);
     signal write_state   : t_axi_write_state;
     
+    type t_axi_read_state is (IDLE, ADDR, DATA, RRESP);
+    signal read_state   : t_axi_read_state;
+    
+    signal read_complete        : std_logic;
+    signal read_error           : std_logic;
+    signal read_addr            : std_logic_vector(11 downto 0);
+    signal read_data            : std_logic_vector(31 downto 0);
+    signal read_request         : std_logic;
+    signal rresp_data           : std_logic_vector(1 downto 0);
+    
+    
     signal write_complete       : std_logic;
     signal write_error          : std_logic;
     signal send_write           : std_logic;
@@ -83,14 +96,16 @@ architecture rtl of qlaser_jesd_tx is
     signal write_addr : std_logic_vector(11 downto 0);
     signal write_data : std_logic_vector(31 downto 0);
     
-    type t_setup_state is (IDLE, ILA, DONE);
+    type t_setup_state is (IDLE, ILA_WRITE, ILA_READ, DONE);
     signal setup_state : t_setup_state;
+    
+    signal setup_error : std_logic;
 
 begin
 
     s_axi_aresetn <= not reset;
     ------------- Begin Cut here for INSTANTIATION Template ----- INST_TAG
-    u_jesd_tx : jesd204c_0
+    u_jesd_tx : entity work.jesd204c_0
     PORT MAP (
         s_axi_aclk => clk,
         s_axi_aresetn => s_axi_aresetn,
@@ -111,8 +126,8 @@ begin
         s_axi_rresp => s_axi_rresp,
         s_axi_rvalid => s_axi_rvalid,
         s_axi_rready => s_axi_rready,
-        tx_core_clk => tx_core_clk,
-        tx_core_reset => tx_core_reset,
+        tx_core_clk => core_clk,
+        tx_core_reset => reset,
         tx_sysref => tx_sysref,
         irq => irq,
         tx_tdata => tx_tdata,
@@ -154,69 +169,61 @@ begin
     pr_axi_write : process(clk, reset)
     begin
         if reset = '1' then
-            s_axi_awaddr    <= (others => '0');
             s_axi_awvalid   <= '0';
-            s_axi_wdata     <= (others => '0');
-            s_axi_wstrb     <= (others => '0');
+            s_axi_wstrb     <= (others => '1');
             s_axi_wvalid    <= '0';
             s_axi_bready    <= '0';
             write_complete  <= '0';
             write_error     <= '0';
             write_state     <= IDLE;
+            tx_reset_done   <= '0';
         elsif rising_edge(clk) then
          case write_state is
             when IDLE =>
-                s_axi_awaddr    <= (others => '0');
                 s_axi_awvalid   <= '0';
-                s_axi_wdata     <= (others => '0');
-                s_axi_wstrb     <= (others => '0');
+                s_axi_wstrb     <= (others => '1');
                 s_axi_wvalid    <= '0';
                 s_axi_bready    <= '0';
-                s_axi_araddr    <= (others => '0');
-                s_axi_arvalid   <= '0';
-                s_axi_rready    <= '0';
                 write_complete  <= '0';
                 write_error     <= '0';
                 
                 
                 if send_write = '1' then
                     write_state <= ADDR;
+                    s_axi_awvalid <= '1';
+                    s_axi_wvalid  <= '1';
                 else
                     write_state <= IDLE;
                 end if;
             
             -- Send the write address
             when ADDR => 
-                s_axi_awaddr <= write_addr;
-                s_axi_awvalid <= '1';
-                s_axi_bready <= '0';
                 -- wait for awready to be 1.
                 if s_axi_awready = '1' then
                     write_state <= DATA;
+                    s_axi_awvalid <= '0';
                 else
                     write_state <= ADDR;
                 end if;
             
             -- Send the write data
             when DATA =>
-                s_axi_awvalid <= '0';
-                s_axi_wdata <= write_data;
-                s_axi_wvalid <= '1';
                 -- wait for wready to be 1.
                 if s_axi_wready = '1' then
                     write_state <= BRESP;
+                    s_axi_wvalid <= '0';
+                    s_axi_bready <= '1';
                 else
                     write_state <= DATA;
                 end if;
             
             -- Wait for response to verify transaction worked.
             when BRESP =>
-                s_axi_wvalid <= '0';
                 -- Wait for bvalid to be 1
                 if s_axi_bvalid = '0' then
                     write_state <= BRESP;
                 else
-                    s_axi_bready <= '1';
+                    s_axi_bready <= '0';
                     -- if bresp is 00, transaction was successful
                     if s_axi_bresp = "00" then
                         write_complete <= '1';
@@ -231,35 +238,108 @@ begin
         end if;
     end process;
     
+    -- Process for doing 1 axi read, starts from asserting "read_request" outside of this process
+    pr_axi_read : process(clk, reset)
+    begin
+        if reset = '1' then
+            s_axi_arvalid   <= '0';
+            s_axi_rready    <= '0';
+            read_state      <= IDLE;
+            read_complete   <= '0';
+            read_error      <= '0';
+        elsif rising_edge(clk) then
+            case read_state is
+                when IDLE =>
+                    s_axi_arvalid   <= '0';
+                    s_axi_rready    <= '0';
+                    read_complete   <= '0';
+                    read_error      <= '0';
+                    
+                    if read_request = '1' then
+                        read_state <= ADDR;
+                    else
+                        read_state <= IDLE;
+                    end if;
+                
+                when ADDR =>
+                    s_axi_arvalid <= '1';
+                    -- wait for arready to be '1'
+                    if s_axi_arready = '1' then
+                        read_state <= DATA;
+                        s_axi_arvalid <= '0';
+                    else
+                        read_state <= ADDR;
+                    end if;
+                    
+                when DATA =>
+                    s_axi_rready <= '1';
+                    -- wait for rvalid to be '1'
+                    if s_axi_rvalid = '1' then
+                        read_data <= s_axi_rdata;
+                        rresp_data <= s_axi_rresp;
+                        read_state <= RRESP;
+                        s_axi_rready <= '0';
+                    else
+                        read_state <= DATA;
+                    end if;
+                    
+                when RRESP =>
+                    if rresp_data /= "00" then
+                        read_error <= '1';
+                        read_state <= ADDR;
+                    else
+                        read_complete <= '1';
+                        read_state <= IDLE;
+                    end if;
+            end case;
+        end if;
+    end process;
+    
     pr_setup : process(clk, reset)
     begin
         if reset = '1' then
-            write_addr <= (others => '0');
-            write_data <= (others => '0');
+            read_request <= '0';
+            send_write <= '0';
+            
+            s_axi_araddr    <= x"008";--(others => '0');
+            s_axi_awaddr    <= x"008";--(others => '0');
+            s_axi_wdata     <= x"00000001";--(others => '0');
+            
+            setup_error <= '0';
             setup_state <= IDLE;
+            
         elsif rising_edge(clk) then
             case setup_state is
                 when IDLE =>
-                    write_addr <= x"008";
-                    write_data <= x"00000001";
+                    s_axi_awaddr <= x"008";
+                    s_axi_wdata <= x"00000001";
                     send_write <= '1';
-                    setup_state <= ILA;
+                    setup_state <= ILA_WRITE;
                     
-                when ILA =>
-                    write_addr <= x"008";
-                    write_data <= x"00000001";
+                when ILA_WRITE =>
                     send_write <= '0';
                     if write_complete = '0' then
-                        setup_state <= ILA;
+                        setup_state <= ILA_WRITE;
                     else
+                        setup_state <= ILA_READ;
+                        read_request <= '1';
+                        s_axi_araddr <= x"008";
+                    end if;
+                    
+                when ILA_READ =>
+                    read_request <= '0';
+                    if read_complete = '0' then
+                        setup_state <= ILA_READ;
+                    else
+                        if read_data /= x"00000001" then
+                            setup_error <= '1';
+                        end if;
                         setup_state <= DONE;
-                        send_write <= '0';
                     end if;
                 
                 when DONE =>
-                    write_addr <= (others => '0');
-                    write_data <= (others => '0');
                     setup_state <= DONE;
+                    
             end case;
         end if;
     end process;

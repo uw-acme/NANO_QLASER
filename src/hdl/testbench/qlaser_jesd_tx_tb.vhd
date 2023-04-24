@@ -12,17 +12,21 @@ architecture sim of qlaser_jesd_tx_tb is
 
     signal clk               : std_logic := '0'; 
     signal reset             : std_logic := '1';
+    signal core_clk          : std_logic := '0';
 
     signal tx_tdata          : std_logic_vector(255 downto 0);
     signal tx_tready         : std_logic;
 begin
 
     clk <= not clk after 5 ns;
+    core_clk <= not core_clk after 5 ns;
     
     DUT : entity work.qlaser_jesd_tx(rtl)
     port map(
         clk             => clk,              
-        reset           => reset,            
+        reset           => reset,
+
+        core_clk        => core_clk,
 
         tx_tdata        => tx_tdata,
         tx_tready       => tx_tready
