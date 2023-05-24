@@ -16,10 +16,28 @@ architecture sim of qlaser_jesd_tx_tb is
 
     signal tx_tdata          : std_logic_vector(255 downto 0);
     signal tx_tready         : std_logic;
+    
+    signal tx_sysref         : std_logic;
+    signal sysref_count      : std_logic_vector(5 downto 0);
 begin
 
     clk <= not clk after 5 ns;
-    core_clk <= not core_clk after 5 ns;
+    core_clk <= not core_clk after 1.6 ns;
+  
+    pr_sysref : process(clk, reset)
+    begin
+        if reset = '1' then
+            sysref_count <= (others => '0');
+            tx_sysref <= '0';
+        elsif rising_edge(clk) then
+            sysref_count <= std_logic_vector(unsigned(sysref_count) + 1);
+            if sysref_count = "111111" then
+                tx_sysref <= '1';
+            else
+                tx_sysref <= '0';
+            end if;
+        end if;
+    end process;
     
     DUT : entity work.qlaser_jesd_tx(rtl)
     port map(
@@ -29,7 +47,9 @@ begin
         core_clk        => core_clk,
 
         tx_tdata        => tx_tdata,
-        tx_tready       => tx_tready
+        tx_tready       => tx_tready,
+        
+        tx_sysref       => tx_sysref
     );
     
     process is
@@ -39,6 +59,31 @@ begin
         
         reset <= '1';
         
+        wait until rising_edge(clk);
+        wait until rising_edge(clk);
+        wait until rising_edge(clk);
+        wait until rising_edge(clk);
+        wait until rising_edge(clk);
+        wait until rising_edge(clk);
+        wait until rising_edge(clk);
+        wait until rising_edge(clk);
+        wait until rising_edge(clk);
+        wait until rising_edge(clk);
+        wait until rising_edge(clk);
+        wait until rising_edge(clk);
+        wait until rising_edge(clk);
+        wait until rising_edge(clk);
+        wait until rising_edge(clk);
+        wait until rising_edge(clk);
+        wait until rising_edge(clk);
+        wait until rising_edge(clk);
+        wait until rising_edge(clk);
+        wait until rising_edge(clk);
+        wait until rising_edge(clk);
+        wait until rising_edge(clk);
+        wait until rising_edge(clk);
+        wait until rising_edge(clk);
+        wait until rising_edge(clk);
         wait until rising_edge(clk);
         
         reset <= '0';
