@@ -37,7 +37,7 @@ dataGpo             = 0x55555555
 #---------------------------------------------------------------
 #---------------------------------------------------------------
 root = Tk()
-root.title('QLASER_DAC_DC v1.1')
+root.title('QLASER_DAC_DC v1.2')
 
 strMsg              = StringVar()
 strMsg1             = StringVar()
@@ -368,7 +368,7 @@ framePmodTop.pack(side=TOP, padx = 5, pady = 0)
 #-----------------------------------------------------------------------------------------------------------------------------
 # Read FPGA version
 #-----------------------------------------------------------------------------------------------------------------------------
-frameVersion   = Frame(root, borderwidth=3,relief=GROOVE, padx = 5, pady = 2)
+frameVersion   = Frame(root, borderwidth=3,relief=FLAT, padx = 5, pady = 2)
 Label (frameVersion, text = 'Version ').pack(side = LEFT, padx = 5, pady = 2)
 Entry (frameVersion, width = 12, textvariable = strVersion).pack(side=LEFT, padx = 5, pady = 2)
 buttonVerRead  = Button (frameVersion, width = 10, text = "Read",  command = lambda: read_version(ser), state=DISABLED)
@@ -384,7 +384,7 @@ frameVersion.pack(side=TOP, padx = 5, pady = 2)
 
 #frameQuitHelp   = Frame(root, borderwidth=3,relief=GROOVE, padx = 5, pady = 5)
 
-frameQuitHelp   = Frame(root, borderwidth=3,relief=GROOVE, padx = 5, pady = 5)
+frameQuitHelp   = Frame(root, borderwidth=3,relief=FLAT, padx = 5, pady = 5)
 #buttonHelp      = Button (frameQuitHelp, width = 10, text = "Help",        command = lambda: gj_send(ser, b'\x68')).pack(side=LEFT, padx = 5, pady = 5)
 buttonQuit      = Button (frameQuitHelp, width = 10, text = "Quit",        command = root.quit).pack(side=RIGHT, padx = 5, pady = 5)
 frameQuitHelp.pack(side=BOTTOM, padx = 5, pady = 5)
