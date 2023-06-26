@@ -22,7 +22,7 @@ def read(ser, addr):
     print ('Write regaddr = 0x{:04x}' .format(addr))
     print ('Write data    = 0x{:08x}' .format(0))
     msg = addr.to_bytes(2, byteorder='big') + data.to_bytes(4, byteorder='big')
-    msg = b'\x72' + msg
+    msg = b'\x52' + msg
     print(msg)
     # Send a message to the FPGA in the form "RAAAADDDDDDDD"
     ser.write(msg)
@@ -69,7 +69,7 @@ def update_channel(ch, val):
 # Set up serial port
 ser = serial.Serial()
 ser.baudrate = 115200
-ser.port = 'COM3'
+ser.port = 'COM4'
 ser.open()
 
 # Enable the internal references.
@@ -85,7 +85,8 @@ write(ser, 0x0030, 0x00000000)
 
 
 layout = [[gui.Text("DC Channels")], 
-          [gui.Text('Channel 0', size=(15, 1)), gui.InputText(0), gui.Button("Enter Channel 0")],
+
+          [gui.Text('Channel 0', size=(10, 1)), gui.InputText(0, size = 5), gui.Button("Enter Channel 0")],
           [gui.Text('Channel 1', size=(15, 1)), gui.InputText(0), gui.Button("Enter Channel 1")],
           [gui.Text('Channel 2', size=(15, 1)), gui.InputText(0), gui.Button("Enter Channel 2")],
           [gui.Text('Channel 3', size=(15, 1)), gui.InputText(0), gui.Button("Enter Channel 3")],

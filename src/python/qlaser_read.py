@@ -23,8 +23,8 @@ def read(ser, addr):
     # Send a message to the FPGA in the form "RAAAADDDDDDDD"
     ser.write(msg)
     
-    # Read the 4 bytes that get sent back.
-    return ser.read(4)
+    # Read the 5 bytes that get sent back.
+    return ser.read(5)
 
 # Calculates the binary representation as of the desired voltage given the reference voltage.
 # Output the number of bits for the output is determined by the resolution parameter.
