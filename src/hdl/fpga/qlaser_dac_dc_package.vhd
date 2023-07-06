@@ -1,6 +1,6 @@
 ----------------------------------------------------------------------------------------
 -- Project       : qlaser FPGA
--- File          : qlaser_version_pkg.vhd
+-- File          : qlaser_dac_dc_pkg.vhd
 -- Description   : Version package file.
 -- Author        : akozyra
 ----------------------------------------------------------------------------------------

@@ -16,6 +16,8 @@ constant C_CLK_FREQ_MHZ         : real      := 100.0;
 -- Clock period
 constant C_CLK_PERIOD           : time      := integer(1.0E+6/(C_CLK_FREQ_MHZ)) * 1 ps;
 
+constant C_NUM_CHAN_DC          : integer :=  8;    -- Number of DC channels
+constant C_NUM_CHAN_AC          : integer :=  8;    -- Number of AC (pulse) channels
 
 --------------------------------------------------------------------------------
 -- FPGA Addresses
@@ -30,6 +32,7 @@ constant ADR_BASE_MISC          : std_logic_vector( 3 downto 0) :=  X"2";    -- 
 --------------------------------------------------------------------------------
 constant C_NUM_BLOCKS           : integer   := 3; 
 type t_arr_cpu_dout is array (0 to C_NUM_BLOCKS-1) of std_logic_vector(31 downto 0);
+type t_arr_dout_ac  is array (0 to C_NUM_CHAN_AC-1) of std_logic_vector(15 downto 0);
 
 
 -------------------------------------------------------------------------------------------------------------------------- 
@@ -74,10 +77,11 @@ constant ADR_DAC_PULSE29        : std_logic_vector(15 downto 0) := ADR_BASE_PULS
 constant ADR_DAC_PULSE30        : std_logic_vector(15 downto 0) := ADR_BASE_PULSE  & X"780";   -- 
 constant ADR_DAC_PULSE31        : std_logic_vector(15 downto 0) := ADR_BASE_PULSE  & X"7C0";   -- 
 
-constant ADR_DAC_PULSE_RUNTIME  : std_logic_vector(15 downto 0) := ADR_BASE_PULSE  & X"800";   -- Max time for pulse train
-constant ADR_DAC_PULSE_EN       : std_logic_vector(15 downto 0) := ADR_BASE_PULSE  & X"801";   -- Enable bit for each individual channel
-constant ADR_DAC_PULSE_STATUS   : std_logic_vector(15 downto 0) := ADR_BASE_PULSE  & X"802";   -- Level status for outpu of each channel
-constant ADR_DAC_PULSE_TIMER    : std_logic_vector(15 downto 0) := ADR_BASE_PULSE  & X"803";   -- Current timer value (used by all channels)
+constant ADR_DAC_PULSE_CTRL     : std_logic_vector(15 downto 0) := ADR_BASE_PULSE  & X"800";   -- 3:0 select channel for CPU read/write
+constant ADR_DAC_PULSE_STATUS   : std_logic_vector(15 downto 0) := ADR_BASE_PULSE  & X"801";   -- R/O Level status for output of each channel
+constant ADR_DAC_PULSE_RUNTIME  : std_logic_vector(15 downto 0) := ADR_BASE_PULSE  & X"802";   -- Max time for pulse train
+constant ADR_DAC_PULSE_CH_EN    : std_logic_vector(15 downto 0) := ADR_BASE_PULSE  & X"803";   -- Enable bit for each individual channel
+constant ADR_DAC_PULSE_TIMER    : std_logic_vector(15 downto 0) := ADR_BASE_PULSE  & X"804";   -- R/O Current timer value (used by all channels)
 
 
 -------------------------------------------------------------------------------------------------------------------------- 
