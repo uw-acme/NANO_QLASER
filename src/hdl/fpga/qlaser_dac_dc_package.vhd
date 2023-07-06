@@ -23,7 +23,6 @@ constant C_ADDR_INTERNAL_REF        : std_logic_vector(2 downto 0) := "101";
 constant C_ADDR_POWER_ON            : std_logic_vector(2 downto 0) := "110";
 
 -- Commands
-
 constant C_CMD_DAC_DC_WR            : std_logic_vector(3 downto 0) := "0011";
 constant C_CMD_DAC_DC_INTERNAL_REF  : std_logic_vector(3 downto 0) := "1000";
 constant C_CMD_DAC_DC_POWER         : std_logic_vector(3 downto 0) := "0100";

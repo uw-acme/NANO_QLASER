@@ -1,8 +1,17 @@
+
+#---------------------------------------------------------------
+#--  File         : dc_dacs_gui.py
+#--  Description  : Python script to set DAC output values using a GUI
+#---------------------------------------------------------------
+
 import serial
 import time
 import random
 import PySimpleGUI as gui
+
 import pandas as pd
+
+
 
 # Writes a single message out on the UART interface with the given address and data.
 def write(ser, addr, data):
@@ -18,7 +27,7 @@ def read(ser, addr):
     print ('Write regaddr = 0x{:04x}' .format(addr))
     print ('Write data    = 0x{:08x}' .format(0))
     msg = addr.to_bytes(2, byteorder='big') + data.to_bytes(4, byteorder='big')
-    msg = b'\x72' + msg
+    msg = b'\x52' + msg
     print(msg)
     # Send a message to the FPGA in the form "RAAAADDDDDDDD"
     ser.write(msg)
@@ -61,6 +70,7 @@ def update_channel(ch, val):
     # Write to the FPGA
     write(ser, addr, data)
     
+
 def add_pulse(ch, amplitude, duration, last):
     # Convert the amplitude to the binary data value
     data = get_value(float(amplitude), 3.3, 16)
@@ -100,13 +110,9 @@ def linear_ramp(ch, start_amp, end_amp, duration):
         
         current_amp = current_amp + step
         
+   
     
     
-    
-
-# Set up serial port
-ser = serial.Serial()
-ser.baudrate = 115200
 ser.port = 'COM3'
 ser.open()
 
@@ -121,11 +127,23 @@ linear_ramp(6, 0, 3.3, 3)
 
 print(times)
 
+ser.port = 'COM4'
+ser.open()
+
+# Enable the internal references.
+# This can be removed once the external reference supply has been connected (pmod board modification)
+write(ser, 0x0028, 0x00000000)
+
+# Power on all DACs
+write(ser, 0x0030, 0x00000000)
+
+
+
 
 
 
 layout = [[gui.Text("DC Channels")], 
-          [gui.Text('Channel 0', size=(15, 1)), gui.InputText(0), gui.Button("Enter Channel 0")],
+
           [gui.Text('Channel 1', size=(15, 1)), gui.InputText(0), gui.Button("Enter Channel 1")],
           [gui.Text('Channel 2', size=(15, 1)), gui.InputText(0), gui.Button("Enter Channel 2")],
           [gui.Text('Channel 3', size=(15, 1)), gui.InputText(0), gui.Button("Enter Channel 3")],
@@ -144,6 +162,7 @@ layout = [[gui.Text("DC Channels")],
           [gui.Text('Update All', size=(15, 1)), gui.Button("Enter")],
           [gui.Text('Set All Channels', size=(15, 1)), gui.InputText(), gui.Button("Enter All")],
           [gui.Text('Version', size=(15, 1)), gui.Text("Press button to read Version ->", key='Version'), gui.Button("Read Version")],
+
           [gui.Text('Choose a file: ', size=(15, 1)), gui.Input(), gui.FileBrowse(key="FileName"), gui.Button("Submit")],
           ]    
 window = gui.Window("DC Dacs", layout)
@@ -166,6 +185,7 @@ while True:
         # To read the version register, addr bits 3 downto 0 should be 0.
         num = read(ser, addr)
         window['Version'].update(hex(num))
+
     elif event == "Submit":
         path = values["FileName"]
         df = pd.read_excel(path)
@@ -199,7 +219,6 @@ while True:
                 
                 
 
-        
     elif event:
         e = event.split()
         # The last item in e is the channel number

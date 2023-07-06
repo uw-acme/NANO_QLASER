@@ -13,8 +13,8 @@ port (
     p_clk                   : in    std_logic;          -- Clock 
     p_reset                 : in    std_logic;          -- Reset. Check polarity is correct 
 
-    --p_trigger               : in    std_logic;          -- Trigger (rising edge) to start pulse output
-    --p_busy                  : out   std_logic;          -- Set to '1' while pulse outputs are occurring
+  --p_trigger               : in    std_logic;          -- Trigger (rising edge) to start pulse output
+  --p_busy                  : out   std_logic;          -- Set to '1' while pulse outputs are occurring
 
     -- Serial interface for register read/write
     p_serial_rxd            : in    std_logic;          -- UART Receive data
@@ -39,33 +39,59 @@ port (
     p_trigger               : in    std_logic;
     
     -- Interface SPI bus to 8-channel PMOD for DC channels 24-31
-    --p_dc3_sclk              : out   std_logic; 
-    --p_dc3_mosi              : out   std_logic;  
-    --p_dc3_cs_n              : out   std_logic;  
-    --
-    ---- 32 pulse outputs
-    --p_dacs_pulse            : out   std_logic_vector(31 downto 0);
-    --
-    ---- User buttons
-    --p_btn0                  : in    std_logic; 
-    --p_btn1                  : in    std_logic; 
+  --p_dc3_sclk              : out   std_logic; 
+  --p_dc3_mosi              : out   std_logic;  
+  --p_dc3_cs_n              : out   std_logic;  
+  --
+  ---- 32 pulse outputs
+  --p_dacs_pulse            : out   std_logic_vector(31 downto 0);
+  --
+  ---- User buttons
+  --p_btn0                  : in    std_logic; 
+  --p_btn1                  : in    std_logic; 
 
     -- Indicator LEDs
     p_leds0_rgb             : out   std_logic_vector( 2 downto 0);      -- 
-    p_leds1_rgb             : out   std_logic_vector( 2 downto 0)      -- 
+    p_leds1_rgb             : out   std_logic_vector( 2 downto 0);      -- 
+
+
+    -- PS unit ports
+    DDR_addr                : inout std_logic_vector(14 downto 0);
+    DDR_ba                  : inout std_logic_vector( 2 downto 0);
+    DDR_cas_n               : inout std_logic;
+    DDR_ck_n                : inout std_logic;
+    DDR_ck_p                : inout std_logic;
+    DDR_cke                 : inout std_logic;
+    DDR_cs_n                : inout std_logic;
+    DDR_dm                  : inout std_logic_vector( 3 downto 0);
+    DDR_dq                  : inout std_logic_vector(31 downto 0);
+    DDR_dqs_n               : inout std_logic_vector( 3 downto 0);
+    DDR_dqs_p               : inout std_logic_vector( 3 downto 0);
+    DDR_odt                 : inout std_logic;
+    DDR_ras_n               : inout std_logic;
+    DDR_reset_n             : inout std_logic;
+    DDR_we_n                : inout std_logic;
+    FIXED_IO_ddr_vrn        : inout std_logic;
+    FIXED_IO_ddr_vrp        : inout std_logic;
+    FIXED_IO_mio            : inout std_logic_vector( 53 downto 0 );
+    FIXED_IO_ps_clk         : inout std_logic;
+    FIXED_IO_ps_porb        : inout std_logic;
+    FIXED_IO_ps_srstb       : inout std_logic;
 
     -- Debug port (if present)
-    --p_debug_out             : out   std_logic_vector( 7 downto 0)       -- 
+    p_debug_out             : out   std_logic_vector( 1 downto 0)       -- 
 );
 end entity;
 
 ---------------------------------------------------------------
---
+-- Top level of FPGA.  Serial interface for register R/W.
+-- PS for booting.
 ---------------------------------------------------------------
-architecture rtl of qlaser_top is
+architecture rtl_eclypse of qlaser_top is
 
 signal clk                  : std_logic;
 signal reset                : std_logic;
+signal ext_reset_n          : std_logic;
 
 signal cpuint_rxd           : std_logic;    -- UART Receive data
 signal cpuint_txd           : std_logic;    -- UART Transmit data 
@@ -274,9 +300,7 @@ begin
     --begin
     --    if rising_edge(clk) then
     --
-    --
     --        p_leds0_rgb(C_LED_BLUE)     <= misc_flash;
-    --
     --
     --        -- LEDs can be controlled by the CPU or from pulse stretcher.
     --        for N in 1 to 3 loop
@@ -290,30 +314,24 @@ begin
     --     end if;
     --end process;
     
-    p_leds0_rgb <= reg_led0;
-    p_leds1_rgb <= reg_led1;
-    
-    pr_leds: process(clk, reset)
-    begin
-        if reset = '1' then
-            reg_led0 <= "000";
-            reg_led1 <= "000";
-        elsif rising_edge(clk) then
-            reg_led0 <= ram0_data(2 downto 0);
-            reg_led1 <= "011";
-            
-            
-        end if;
-    end process;
-    
-    
-
     -- Input to pulse stretcher in the misc block which will make signals visible on the LEDs
-    pulse(0)    <= '0';
+    pulse(0)    <= tick_sec;
     pulse(1)    <= trigger or dacs_dc_busy(0) or dacs_dc_busy(1) or dacs_dc_busy(2) or dacs_dc_busy(3) or dacs_pulse_busy;
-    pulse(2)    <= p_serial_rxd;
-    pulse(3)    <= cpuint_txd;
+    pulse(2)    <= not(p_serial_rxd);
+    pulse(3)    <= not(cpuint_txd);
 
+    p_debug_out(0)              <= cpuint_rxd;
+    p_debug_out(1)              <= cpuint_txd;
+    
+    p_leds0_rgb(C_LED_RED)      <= pulse_stretched(1);  -- trigger, dac busy, etc.
+    p_leds0_rgb(C_LED_GREEN)    <= '0';
+    p_leds0_rgb(C_LED_BLUE)     <= '0';  
+    
+    p_leds1_rgb(C_LED_RED)      <= pulse_stretched(3);  -- cpuint_txd  
+    p_leds1_rgb(C_LED_GREEN)    <= pulse_stretched(2);  -- p_serial_rxd;
+    p_leds1_rgb(C_LED_BLUE)     <= misc_flash;
+    
+    
 
     ---------------------------------------------------------------------------------
     -- UART pins
@@ -321,36 +339,37 @@ begin
     cpuint_rxd          <= p_serial_rxd;
     p_serial_txd        <= cpuint_txd;
 
-
+    
     ---------------------------------------------------------------------------------
-    -- Debug output mux.
+    -- Processing system.  No current use. Had to add to use SDK to build boot files
     ---------------------------------------------------------------------------------
-    --pr_dbg_mux : process (clk)
-    --begin
-    --    if rising_edge(clk) then
-    --
-    --        case to_integer(unsigned(misc_dbg_ctrl)) is
-    --
-    --            -- "1111" is the default setting for misc_dbg_ctrl
-    --            -- Normally selects all zero debug output.
-    --            when 15  => -- Default
-    --                    p_debug_out    <= (others=>'0');
-    --
-    --
-    --            when 14 => 
-    --                    p_debug_out(0)              <= '0';
-    --                    p_debug_out(1)              <= '0';
-    --                    p_debug_out(2)              <= pll_lock;
-    --                    p_debug_out(3)              <= tick_msec;
-    --                    p_debug_out(4)              <= tick_sec;
-    --                    p_debug_out(7 downto  5)    <= (others=>'0');
-    --
-    --
-    --            when others => 
-    --                    p_debug_out                 <= (others=>'0');
-    --        end case;
-    --    end if;
-    --end process;
+    u_ps1 : entity work.ps1_wrapper
+    port map(
+        DDR_addr            => DDR_addr             , -- inout std_logic_vector(14 downto 0);
+        DDR_ba              => DDR_ba               , -- inout std_logic_vector( 2 downto 0);
+        DDR_cas_n           => DDR_cas_n            , -- inout std_logic;
+        DDR_ck_n            => DDR_ck_n             , -- inout std_logic;
+        DDR_ck_p            => DDR_ck_p             , -- inout std_logic;
+        DDR_cke             => DDR_cke              , -- inout std_logic;
+        DDR_cs_n            => DDR_cs_n             , -- inout std_logic;
+        DDR_dm              => DDR_dm               , -- inout std_logic_vector( 3 downto 0);
+        DDR_dq              => DDR_dq               , -- inout std_logic_vector(31 downto 0);
+        DDR_dqs_n           => DDR_dqs_n            , -- inout std_logic_vector( 3 downto 0);
+        DDR_dqs_p           => DDR_dqs_p            , -- inout std_logic_vector( 3 downto 0);
+        DDR_odt             => DDR_odt              , -- inout std_logic;
+        DDR_ras_n           => DDR_ras_n            , -- inout std_logic;
+        DDR_reset_n         => DDR_reset_n          , -- inout std_logic;
+        DDR_we_n            => DDR_we_n             , -- inout std_logic;
+        FIXED_IO_ddr_vrn    => FIXED_IO_ddr_vrn     , -- inout std_logic;
+        FIXED_IO_ddr_vrp    => FIXED_IO_ddr_vrp     , -- inout std_logic;
+        FIXED_IO_mio        => FIXED_IO_mio         , -- inout std_logic_vector ( 53 downto 0 );
+        FIXED_IO_ps_clk     => FIXED_IO_ps_clk      , -- inout std_logic;
+        FIXED_IO_ps_porb    => FIXED_IO_ps_porb     , -- inout std_logic;
+        FIXED_IO_ps_srstb   => FIXED_IO_ps_srstb    , -- inout std_logic;
+        ext_reset_n         => ext_reset_n            -- in    std_logic
+    );
 
+    -- Invert external reset to use in PS
+    ext_reset_n   <= not(p_reset);
 
-end rtl;
+end rtl_eclypse;
