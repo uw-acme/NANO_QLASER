@@ -34,7 +34,9 @@ port (
     -- Interface SPI bus to 8-channel PMOD for DC channels 16-23
     p_dc2_sclk              : out   std_logic;  
     p_dc2_mosi              : out   std_logic;  
-    p_dc2_cs_n              : out   std_logic;  
+    p_dc2_cs_n              : out   std_logic;
+
+    p_trigger               : in    std_logic;
     
     -- Interface SPI bus to 8-channel PMOD for DC channels 24-31
   --p_dc3_sclk              : out   std_logic; 
@@ -82,10 +84,10 @@ port (
 end entity;
 
 ---------------------------------------------------------------
--- Top level of FPGA.  iSerial interface for register R/W.
+-- Top level of FPGA.  Serial interface for register R/W.
 -- PS for booting.
 ---------------------------------------------------------------
-architecture rtl of qlaser_top is
+architecture rtl_eclypse of qlaser_top is
 
 signal clk                  : std_logic;
 signal reset                : std_logic;
@@ -137,6 +139,10 @@ signal reg_led1             : std_logic_vector(2 downto 0);
 signal dc0_sclk             : std_logic;
 signal dc0_mosi             : std_logic;
 signal dc0_cs_n             : std_logic;
+
+signal ram0_data            : std_logic_vector(39 downto 0);
+
+signal data_to_JESD     : t_arr_data_JESD;
 
 begin
 
@@ -225,7 +231,7 @@ begin
         
     );
     
-
+   
     -----------------------------------------------------------------------------------
     ---- Pulse DAC interface
     ----
@@ -235,7 +241,7 @@ begin
         clk                 => clk                              , -- in  std_logic; 
         reset               => reset                            , -- in  std_logic;
     
-        trigger             => trigger                          , -- in  std_logic;                        -- Trigger (rising edge) to start pulse output
+        trigger             => p_trigger                        , -- in  std_logic;                        -- Trigger (rising edge) to start pulse output
         busy                => dacs_pulse_busy                  , -- out std_logic;                        -- Set to '1' while pulse outputs are occurring
     
         -- CPU interface
@@ -247,7 +253,9 @@ begin
         cpu_rdata_dv        => arr_cpu_dout_dv(SEL_DAC_PULSE)   , -- out std_logic;                        -- Acknowledge output
                        
         -- Pulse train outputs
-        dacs_pulse          => open                       -- out std_logic_vector(31 downto 0);    -- Data output, goes to p_dacs_pulse when implemented
+        dacs_pulse          => open,                       -- out std_logic_vector(31 downto 0);    -- Data output, goes to p_dacs_pulse when implemented
+        
+        data_to_JESD        => data_to_JESD
     );
     
     -- Combine p_trigger (from pad) with misc block trigger to create internal trigger
@@ -364,4 +372,4 @@ begin
     -- Invert external reset to use in PS
     ext_reset_n   <= not(p_reset);
 
-end rtl;
+end rtl_eclypse;

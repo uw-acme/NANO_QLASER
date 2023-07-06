@@ -1,3 +1,4 @@
+
 #---------------------------------------------------------------
 #--  File         : dc_dacs_gui.py
 #--  Description  : Python script to set DAC output values using a GUI
@@ -7,6 +8,10 @@ import serial
 import time
 import random
 import PySimpleGUI as gui
+
+import pandas as pd
+
+
 
 # Writes a single message out on the UART interface with the given address and data.
 def write(ser, addr, data):
@@ -66,9 +71,62 @@ def update_channel(ch, val):
     write(ser, addr, data)
     
 
-# Set up serial port
-ser = serial.Serial()
-ser.baudrate = 115200
+def add_pulse(ch, amplitude, duration, last):
+    # Convert the amplitude to the binary data value
+    data = get_value(float(amplitude), 3.3, 16)
+    ## select the pulse block
+    addr = 1 << 12
+    
+    ## add the channel id to the address, which is just channel
+    addr = addr + ch
+    
+    # send the start time of the pulse first
+    write(ser, addr, int(times[ch] * 10))
+    # add duration to the channel time, so that the next added pulse sends that time.
+    times[ch] = times[ch] + duration
+    
+    # send the amplitude of the pulse
+    write(ser, addr, data)
+    
+    # If this is the last pulse on the channel for the experiment, send an amplitude of 0 with the end time.
+    if last:
+        write(ser, addr, int(times[ch] * 10))
+        times[ch] = 0
+        write(ser, addr, 0)
+        
+def linear_ramp(ch, start_amp, end_amp, duration):
+    
+    # Calculate amplitude step value
+    step = (end_amp - start_amp) / duration
+    
+    current_amp = start_amp
+    
+    # add pulses starting at start_amp and step up until end_amp
+    for i in range(0, duration + 1):
+        if current_amp == end_amp:
+            add_pulse(ch, current_amp, 1, True)
+        else:
+            add_pulse(ch, current_amp, 1, False)
+        
+        current_amp = current_amp + step
+        
+   
+    
+    
+ser.port = 'COM3'
+ser.open()
+
+# Power on all DACs
+write(ser, 0x0030, 0x00000000)
+times = [0] * 32
+
+add_pulse(5, 2.2, 5, False)
+add_pulse(5, 3.3, 10, False)
+
+linear_ramp(6, 0, 3.3, 3)
+
+print(times)
+
 ser.port = 'COM4'
 ser.open()
 
@@ -86,7 +144,6 @@ write(ser, 0x0030, 0x00000000)
 
 layout = [[gui.Text("DC Channels")], 
 
-          [gui.Text('Channel 0', size=(10, 1)), gui.InputText(0, size = 5), gui.Button("Enter Channel 0")],
           [gui.Text('Channel 1', size=(15, 1)), gui.InputText(0), gui.Button("Enter Channel 1")],
           [gui.Text('Channel 2', size=(15, 1)), gui.InputText(0), gui.Button("Enter Channel 2")],
           [gui.Text('Channel 3', size=(15, 1)), gui.InputText(0), gui.Button("Enter Channel 3")],
@@ -105,6 +162,8 @@ layout = [[gui.Text("DC Channels")],
           [gui.Text('Update All', size=(15, 1)), gui.Button("Enter")],
           [gui.Text('Set All Channels', size=(15, 1)), gui.InputText(), gui.Button("Enter All")],
           [gui.Text('Version', size=(15, 1)), gui.Text("Press button to read Version ->", key='Version'), gui.Button("Read Version")],
+
+          [gui.Text('Choose a file: ', size=(15, 1)), gui.Input(), gui.FileBrowse(key="FileName"), gui.Button("Submit")],
           ]    
 window = gui.Window("DC Dacs", layout)
 val = 0
@@ -126,6 +185,40 @@ while True:
         # To read the version register, addr bits 3 downto 0 should be 0.
         num = read(ser, addr)
         window['Version'].update(hex(num))
+
+    elif event == "Submit":
+        path = values["FileName"]
+        df = pd.read_excel(path)
+        print(path)
+        print(df)
+        addr = -1
+        for i in range(0, 32):
+            j = 1
+            addr = addr + 1
+            time = 0
+            while(df.loc[i].iat[j] != "end"):
+                val = df.loc[i].iat[j]
+                
+                # If j is odd, we are sending a duration
+                if j % 2 == 1:
+                    # The duration entry in the excel sheet is number of 100 ns periods
+                    # The fpga is looking for 10 ns periods
+                    # Send time * 10, then add val to the overall time.
+                    write(ser, addr, int(time * 10))
+                    time = time + val
+                else:
+                    # We are sending an amplitude, get the binary representation and send it.
+                    data = get_value(float(val), 3.3, 16)
+                    write(ser, addr, data)
+               
+                j = j + 1
+            
+            # At the end, send the final time value to finish the last pulse, and send an amplitude of 0
+            write(ser, addr, int(time * 10))
+            write(ser, addr, 0)
+                
+                
+
     elif event:
         e = event.split()
         # The last item in e is the channel number
