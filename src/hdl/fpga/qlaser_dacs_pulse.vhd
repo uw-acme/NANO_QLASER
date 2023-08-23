@@ -34,16 +34,19 @@ port (
 end entity;
 
 ----------------------------------------------------------------
--- Uses multiple copies of a single channel pulse generator 
+-- Contains block-level registers
+-- and uses multiple copies of a single channel pulse generator 
 ----------------------------------------------------------------
 architecture rtl of qlaser_dacs_pulse is
 
--- Local registers
--- CPU_ADDR(11) = '0' selects local regs
--- CPU_ADDR(11) = '1' selects the channel specified in reg_ctrl(3 :0)
+-- Block-level registers
+-- CPU_ADDR(11) = '1' selects local regs
+-- CPU_ADDR(11) = '0' selects the channel specified in reg_ctrl(3 :0)
 --               Then CPU_ADDR(10:1) selects RAM word address    (1024 address MAX)
 --					  CPU_ADDR(0) selects MSB or LSB of 40-bit RAM word (time or amplitude)
-signal reg_ctrl         : std_logic_vector( 3 downto 0);
+signal reg_ctrl         : std_logic_vector( 8 downto 0);    -- bits[4:0] reserved to select one of 32 channels to load RAM
+                                                            -- bit 8 rising edge generates an internal trigger to start 
+signal reg_status       : std_logic_vector(31 downto 0);
 signal reg_runtime      : std_logic_vector(23 downto 0);
 signal reg_enable       : std_logic_vector(31 downto 0);
 signal reg_rdata        : std_logic_vector(31 downto 0);
@@ -51,7 +54,11 @@ signal reg_rdata_dv     : std_logic;
 
 signal cnt_time         : std_logic_vector(23 downto 0);
 
+alias  reg_ctrl_trigger : std_logic is reg_ctrl(8);
+signal trigger_comb     : std_logic;
 signal trigger_d1       : std_logic;
+
+signal busy_i           : std_logic;
 
 type  t_state_ac is (S_IDLE, S_RUN, S_DONE);
 signal state_ac         : t_state_ac;
@@ -60,14 +67,13 @@ signal cpu_ch_sels     	: std_logic_vector(31 downto 0);
 signal cpu_ch_addr		: std_logic_vector(10 downto 0);	-- RAM address in channel
 signal cpu_ch_wdata		: std_logic_vector(31 downto 0);
 signal cpu_ch_wr		: std_logic;
-signal cpu_ch_rdata_dv	: std_logic;
+--signal cpu_ch_rdata_dv	: std_logic;
 signal cpu_ch_rdata		: t_arr_dout_ac;
 signal cpu_ch_rdata_dv	: std_logic_vector(15 downto 0);
 
-signal busy_i			: std_logic;
-signal arr_ch_dout		: t_arr_dout_ac;
-
 begin
+  	
+  	reg_status   <= busy_i & "0000000" & cnt_time;
   	
 	----------------------------------------------------------------
     -- Select channel from address during write.
@@ -89,7 +95,7 @@ begin
 
 			cpu_ch_sels    	<= (others=>'0');			
 			
-			if (cpu_addr(11) = '1' and cpu_sel = '1') then
+			if (cpu_addr(11) = '0' and cpu_sel = '1') then
 				cpu_ch_sels(to_integer(unsigned(reg_ctrl(4 downto 0)))) <= '1';  -- Max 32 channels
 				cpu_ch_addr	<= cpu_addr(10 downto 0);
 			else
@@ -99,14 +105,14 @@ begin
 			
 			
 			-- Combine channel RAM readbacks
-			v_rdata		<= (others=>'0');
-			v_rdata_dv  <= '0';
-			for NBIT in 0 to 31
-				for NCHAN in 0 to 31
+			v_rdata		:= (others=>'0');
+			v_rdata_dv  := '0';
+			for NBIT in 0 to 31 loop
+				for NCHAN in 0 to 31 loop
 					v_rdata(NBIT)	:= v_rdata(NBIT) or cpu_ch_rdata(NCHAN)(NBIT);
 					v_rdata_dv		:= v_rdata_dv    or cpu_ch_rdata_dv(NCHAN);
-				end for;
-			end for;
+				end loop;
+			end loop;
 			
 			-- Combine channel readback with register readback
 			cpu_rdata		<= v_rdata    or reg_rdata;
@@ -118,14 +124,14 @@ begin
     
 	
 	----------------------------------------------------------------
-    -- Write local registers.
+    -- Read and Write block-level registers.
 	-- constant ADR_DAC_PULSE_CTRL     : std_logic_vector(15 downto 0) := ADR_BASE_PULSE  & X"800";   -- 3:0 select channel for CPU read/write
 	-- constant ADR_DAC_PULSE_STATUS   : std_logic_vector(15 downto 0) := ADR_BASE_PULSE  & X"801";   -- R/O Level status for output of each channel
 	-- constant ADR_DAC_PULSE_RUNTIME  : std_logic_vector(15 downto 0) := ADR_BASE_PULSE  & X"802";   -- Max time for pulse train
 	-- constant ADR_DAC_PULSE_CH_EN    : std_logic_vector(15 downto 0) := ADR_BASE_PULSE  & X"803";   -- Enable bit for each individual channel
 	-- constant ADR_DAC_PULSE_TIMER    : std_logic_vector(15 downto 0) := ADR_BASE_PULSE  & X"804";   -- R/O Current timer value (used by all channels)
 	----------------------------------------------------------------
-    pr_regs : process(clk)
+    pr_rw_regs : process(clk)
     begin
 	    if (reset = '1') then
             reg_ctrl		<= (others=>'0');
@@ -136,9 +142,9 @@ begin
 
         elsif rising_edge(clk) then
 			
-			if (cpu_addr(11) = '0' and cpu_wr = '1' and cpu_sel = '1') then
+			if (cpu_addr(11) = '1' and cpu_wr = '1' and cpu_sel = '1') then
 				case cpu_addr(7 downto 0) is
-					when X"00" 	=>	reg_ctrl	<= cpu_wdata( 4 downto 0);
+					when X"00" 	=>	reg_ctrl	<= cpu_wdata( 8 downto 0);
 				  --when X"01" status
 					when X"02" 	=>	reg_enable	<= cpu_wdata(31 downto 0);
 					when X"03" 	=>	reg_runtime <= cpu_wdata(23 downto 0);
@@ -150,8 +156,8 @@ begin
 				
 			elsif (cpu_addr(11) = '0' and cpu_wr = '0' and cpu_sel = '1') then
 				case cpu_addr(7 downto 0) is
-					when X"00" 	=>	reg_rdata( 4 downto 0)	<= reg_ctrl;
-									reg_rdata(31 downto 5)	<= (others=>'0');
+					when X"00" 	=>	reg_rdata( 8 downto 0)	<= reg_ctrl;
+									reg_rdata(31 downto 9)	<= (others=>'0');
 				    when X"01"  =>  reg_rdata				<= reg_status;
 					when X"02" 	=>	reg_rdata               <= reg_enable;
 					when X"03" 	=>	reg_rdata(23 downto 0)  <= reg_runtime;
@@ -161,8 +167,8 @@ begin
 				reg_rdata_dv	<= '1';
 				
 			else
-				reg_rdata		<= (others=>'0');
-				reg_rdata		<= '0';
+				reg_rdata       <= (others=>'0');
+				reg_rdata_dv    <= '0';
 			end if;
 			
         end if;
@@ -189,8 +195,8 @@ begin
 			cpu_rdata       => cpu_ch_rdata(i)		,    -- Data output
 			cpu_rdata_dv    => cpu_ch_rdata_dv(i)	,    -- Data output valid 
 			
-			dout            => ch_dout(i)       	,    -- DAC data out (16-bit)
-			dout_dv			=> ch_dout_dv(i)             
+			dout            => arr_dout_ac(i)      	,    -- DAC data out (16-bit)
+			dout_dv			=> arr_dout_ac_dv(i)             
 		);
     end generate;
    
@@ -201,33 +207,35 @@ begin
     pr_cnt_time : process(clk, reset)
     begin
         if reset = '1' then
-            trigger_d1 	<= '0';
-			busy		<= '0';
+            trigger_d1  <= '0';
+			busy_i      <= '0';
 			cnt_time	<= (others=>'0');
             state_ac 	<= S_IDLE;
 			
         elsif rising_edge(clk) then
 		
-            trigger_d1 	<= trigger;
+            trigger_comb    <= trigger or reg_ctrl_trigger;
+            trigger_d1 	    <= trigger_comb;
 			
             case state_ac is
 			
+                -- Start counter on rising edge of external or register trigger
                 when S_IDLE =>
 				
-                    if (trigger = '1') and (trigger_d1= '0') then
+                    if (trigger_comb = '1') and (trigger_d1= '0') then
 
                         state_ac 	<= S_RUN;
-						busy	    <= '1';
-						cnt_time 	<= std_logic_vector(unsigned(cnt_time) + 1);
-						
+						busy_i      <= '1';
+						cnt_time 	<= (others=>'0');
+					
                     end if;
                     
                 when S_RUN =>				
 
-					if (cnt_time = reg_time_max) then
+					if (cnt_time = reg_runtime) then
 						state_ac	<= S_IDLE;
 						cnt_time	<= (others=>'0');
-						busy		<= '0';
+						busy_i      <= '0';
 					else
 						cnt_time 	<= std_logic_vector(unsigned(cnt_time) + 1);
                     end if;

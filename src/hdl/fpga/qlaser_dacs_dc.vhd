@@ -2,7 +2,8 @@
 --  File         : qlaser_dacs_dc.vhd
 --  Description  : DC output control of Qlaser FPGA
 --                 Block drives 4 SPI-bus interfaces to 8 channel DAC boards
---                 Writing to a DAC register starts data transfer to DAC
+--                 Writing to a DAC register starts data transfer to DAC.
+--                 Reading any address return the busy flags.
 ----------------------------------------------------------------
 library ieee;
 use     ieee.std_logic_1164.all;
@@ -53,38 +54,35 @@ end entity;
 ---------------------------------------------------------------
 architecture rtl of qlaser_dacs_dc is
 
- 
 signal spi0_tx_message              : std_logic_vector(31 downto 0);
 signal spi0_tx_message_dv           : std_logic;
-signal spi0_busy                    : std_logic;
 
 signal spi1_tx_message              : std_logic_vector(31 downto 0);
 signal spi1_tx_message_dv           : std_logic;
-signal spi1_busy                    : std_logic;
 
 signal spi2_tx_message              : std_logic_vector(31 downto 0);
 signal spi2_tx_message_dv           : std_logic;
-signal spi2_busy                    : std_logic;
 
 signal spi3_tx_message              : std_logic_vector(31 downto 0);
 signal spi3_tx_message_dv           : std_logic;
-signal spi3_busy                    : std_logic;
+
+signal spi_busy                     : std_logic_vector( 3 downto 0);
 
 
 begin
 
-    busy(0)        <= spi0_busy; 
-    busy(1)        <= spi1_busy;
-    busy(2)        <= spi2_busy;
-    busy(3)        <= spi3_busy;
+    busy       <= spi_busy; 
 
 
+    --------------------------------------------
+    -- Serial interface to an 8-DAC PMOD
+    --------------------------------------------
     u_spi0: entity work.qlaser_spi
     port map(  
         clk                 => clk,  
         reset               => reset, 
     
-        busy                => spi0_busy,
+        busy                => spi_busy(0),
     
         -- Transmit data
         tx_message_dv       => spi0_tx_message_dv,                        -- Start message transmit
@@ -96,12 +94,14 @@ begin
         spi_sel             => dc0_cs_n                         -- Serial block select
     );
     
+    --------------------------------------------
+    --------------------------------------------
     u_spi1: entity work.qlaser_spi
     port map(
         clk                 => clk,  
         reset               => reset, 
     
-        busy                => spi1_busy,
+        busy                => spi_busy(1),
     
         -- Transmit data
         tx_message_dv       => spi1_tx_message_dv,                        -- Start message transmit
@@ -113,12 +113,14 @@ begin
         spi_sel             => dc1_cs_n                         -- Serial block select
     );
     
+    --------------------------------------------
+    --------------------------------------------
     u_spi2: entity work.qlaser_spi
     port map(
         clk                 => clk,  
         reset               => reset, 
     
-        busy                => spi2_busy,
+        busy                => spi_busy(2),
     
         -- Transmit data
         tx_message_dv       => spi2_tx_message_dv,                        -- Start message transmit
@@ -130,12 +132,14 @@ begin
         spi_sel             => dc2_cs_n                         -- Serial block select
     );
     
+    --------------------------------------------
+    --------------------------------------------
     u_spi3: entity work.qlaser_spi
     port map(
         clk                 => clk,  
         reset               => reset, 
     
-        busy                => spi3_busy,
+        busy                => spi_busy(3),
     
         -- Transmit data
         tx_message_dv       => spi3_tx_message_dv,                        -- Start message transmit
@@ -146,31 +150,44 @@ begin
         spi_mosi            => dc3_mosi,                        -- Serial data. (Master Out, Slave In)
         spi_sel             => dc3_cs_n                         -- Serial block select
     );
+
+
     -------------------------------------------------------
     -- CPU interface.
     -------------------------------------------------------
     pr_cpu : process(clk, reset)
     begin
         if reset = '1' then
-            spi0_tx_message <= (others => '0');
-            spi1_tx_message <= (others => '0');
-            spi2_tx_message <= (others => '0');
-            spi3_tx_message <= (others => '0');
+
+            spi0_tx_message <= (others=>'0');
+            spi1_tx_message <= (others=>'0');
+            spi2_tx_message <= (others=>'0');
+            spi3_tx_message <= (others=>'0');
+
+            cpu_rdata       <= (others=>'0');
+            cpu_rdata_dv    <= '0';
 
         elsif rising_edge(clk) then
           
-            spi0_tx_message_dv <= '0';
+            spi0_tx_message_dv <= '0';  -- Defaults
             spi1_tx_message_dv <= '0';
             spi2_tx_message_dv <= '0';
             spi3_tx_message_dv <= '0';
             
-            if cpu_wr = '1' and cpu_sel = '1' then
+            cpu_rdata       <= (others=>'0');
+            cpu_rdata_dv    <= '0';
+
+            -- Write to one or more channels
+            if (cpu_sel = '1' and cpu_wr = '1') then
                 
                 case cpu_addr(5 downto 3) is
                         
-                   -- THIS CASE ONLY FOR DEVELOPMENT, WILL BE REMOVED LATER
-                   -- Enable the DAC internal reference 
+                    --------------------------------------------------
+                    -- Message to all SPI devices
+                    -- Enable the DAC internal reference 
+                    --------------------------------------------------
                     when C_ADDR_INTERNAL_REF =>
+
                         spi0_tx_message     <= "0000" & C_CMD_DAC_DC_INTERNAL_REF & "0000" & "000000000000" & "00000001";
                         spi1_tx_message     <= "0000" & C_CMD_DAC_DC_INTERNAL_REF & "0000" & "000000000000" & "00000001";
                         spi2_tx_message     <= "0000" & C_CMD_DAC_DC_INTERNAL_REF & "0000" & "000000000000" & "00000001";
@@ -181,7 +198,12 @@ begin
                         spi2_tx_message_dv  <= '1';
                         spi3_tx_message_dv  <= '1';
 
+                    --------------------------------------------------
+                    -- Message to all SPI devices
+                    -- Enable DAC power
+                    --------------------------------------------------
                     when C_ADDR_POWER_ON =>
+
                         spi0_tx_message     <= "0000" & C_CMD_DAC_DC_POWER & "1111" & "000000000000" & "11111111";
                         spi1_tx_message     <= "0000" & C_CMD_DAC_DC_POWER & "1111" & "000000000000" & "11111111";
                         spi2_tx_message     <= "0000" & C_CMD_DAC_DC_POWER & "1111" & "000000000000" & "11111111";
@@ -192,6 +214,9 @@ begin
                         spi2_tx_message_dv  <= '1';
                         spi3_tx_message_dv  <= '1';
 
+                    --------------------------------------------------
+                    -- Write 12-bit value to one of 8 DC DACs
+                    --------------------------------------------------
                     when C_ADDR_SPI0 =>
                         spi0_tx_message     <= "0000" & C_CMD_DAC_DC_WR & "0" & cpu_addr(2 downto 0) & cpu_wdata(11 downto 0) & "00000000";
                         spi0_tx_message_dv  <= '1';
@@ -208,6 +233,9 @@ begin
                         spi3_tx_message     <= "0000" & C_CMD_DAC_DC_WR & "0" & cpu_addr(2 downto 0) & cpu_wdata(11 downto 0) & "00000000";
                         spi3_tx_message_dv  <= '1';
                         
+                    --------------------------------------------------
+                    -- Write a common 12-bit value to all DC ADCs
+                    --------------------------------------------------
                     when C_ADDR_SPI_ALL =>  
                         spi0_tx_message     <= "0000" & C_CMD_DAC_DC_WR & "1111" & cpu_wdata(11 downto 0) & "00000000";
                         spi1_tx_message     <= "0000" & C_CMD_DAC_DC_WR & "1111" & cpu_wdata(11 downto 0) & "00000000";
@@ -223,6 +251,12 @@ begin
                         
                 end case;
             
+            -- Read status register
+            elsif (cpu_sel = '1' and cpu_wr = '0') then
+
+                cpu_rdata           <= X"0000000" & spi3_busy & spi2_busy & spi1_busy & spi0_busy;
+                cpu_rdata_dv        <= '1';
+
             end if;
         
         end if;
