@@ -14,8 +14,8 @@ Tasks.
    
 2. Migrate design to ZCU102 board. This will require modifying the pinout in the constraint file.
     
-3. Create new Vivado 2022.1 project for ZCU102 that uses the FPGAs ARM CPU to read the board pushbuttons and control the board LEDs. This will help understanding of the Vivado and Vitis tool flow.
+3. Create new Vivado 2022.1 project for ZCU102 that uses the FPGAs ARM CPU to read the board pushbuttons and control the board LEDs. This will help understanding of the Vivado and Vitis tool flow. ZCU102 board definition files are in a Xilinx repo on Github called 'XilinxBoardStore'.
    
 5. Migrate the second design, with pulse outputs, to the ZCU102 board. Connect RAM tables to the CPU. Write a simple program to download RAM tables or generate test tables internally.
 
-6. Read the JESD204B documentation and add JESD IP blocks to the CPU. Create pinout constraints for the JESD interface to the Abaco board(s). Write HDL blocks to generate AXI-stream test data to the JESD interfaces. Add CPU code to set up and control the JESD blocks.  
+6. Read the JESD204B documentation and add JESD IP blocks to the CPU. Create pinout constraints for the JESD interface to the Abaco board(s). Write HDL blocks to generate AXI-stream test data to the JESD interfaces. Add CPU code to set up and control the JESD blocks. Documentation is in the repo at /documents/Hardware and /documents/JESD 
