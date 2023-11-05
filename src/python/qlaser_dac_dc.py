@@ -247,8 +247,12 @@ comlist = (list(serial.tools.list_ports.comports()))
 print('Number of ports = {0:8}' .format(len(comlist)))
 
 if len(comlist) > 0:
-    portinfo = comlist[0]
-    portname = portinfo[0]
+    for i in comlist:
+        if "2 " in i.description and "UART" in i.description:        
+            portname = i[0]
+            break
+    else:
+        raise Exception("No valid UART2 COM port found")
     print(portname)
 
      # Open serial port
@@ -261,7 +265,7 @@ if len(comlist) > 0:
         timeout=1)
 
     strMsg.set(ser.name)
-    strMsg1.set(comlist[0][0])
+    strMsg1.set(portname)
 
 else:
     print("No ports")
