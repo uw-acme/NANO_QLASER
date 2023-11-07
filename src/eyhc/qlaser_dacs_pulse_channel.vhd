@@ -16,7 +16,7 @@ port (
         cnt_time          : in  std_logic_vector(23 downto 0);    -- Time since trigger.
 
         -- CPU interface
-        cpu_addr          : in  std_logic_vector(10 downto 0);    -- Address input
+        cpu_addr          : in  std_logic_vector(9 downto 0);    -- Address input
         cpu_wdata         : in  std_logic_vector(31 downto 0);    -- Data input
         cpu_wr            : in  std_logic;                        -- Write enable 
         cpu_sel           : in  std_logic;                        -- Block select
@@ -25,7 +25,8 @@ port (
                                
         t_ready			  : in std_logic;                         -- axi_stream ready
 		dout              : out std_logic_vector(15 downto 0);    -- output data
-        dout_dv           : out std_logic                         -- dout valid (new output)
+        dout_dv           : out std_logic;                        -- dout valid (new output)
+		busy			  : out std_logic						  -- status signal
 );
 end entity;
 
@@ -52,9 +53,9 @@ signal ram_amplitude    : std_logic_vector(15 downto 0);
 
 -- Waveform RAM port
 signal ram_waveform_ena		: std_logic;
--- signal ram_waveform_wea		: std_logic;
+signal ram_waveform_wea		: std_logic_vector(0 downto 0);
 signal ram_waveform_addra	: std_logic_vector(8 downto 0);
--- signal ram_waveform_dina	: std_logic_vector(31 downto 0);
+signal ram_waveform_dina	: std_logic_vector(31 downto 0);
 signal ram_waveform_douta	: std_logic_vector(31 downto 0);
 
 signal ram_waveform_enb		: std_logic;
@@ -70,14 +71,16 @@ signal fifo_empty			: std_logic;
 signal fifo_wr_rst_busy		: std_logic;
 signal fifo_rd_rst_busy		: std_logic;
 
+-- Misc signals
+signal start_pulse			: std_logic;
+signal read_table			: std_logic;
+
 begin
 
 	----------------------------------------------------------------
-	-- RAM currently has 32 40-bit entries.
+	-- RAM for 16 24-bit Pulse times.
 	-- Port A is for CPU read/write.
 	-- Port B is for pulse data.
-	-- Each entry LSB24 is a time and the MSB16 are an amplitude.
-	-- For JESD output the RAM will be increased to 1024 entries
 	----------------------------------------------------------------
 	-- Distributed RAM
     u_ram_pulse : entity work.bram_pulseposition
@@ -91,30 +94,37 @@ begin
 		dpra               => ram_addrb,	-- input slv[3:0]
         dpo                => ram_doutb		-- output slv(23 downto 0)
     );
-
+	----------------------------------------------------------------
+	-- Waveform table RAM.
+	-- Port A is for CPU read/write.
+	-- Port B is for waveform data.
+	----------------------------------------------------------------
 	u_ram_waveform : entity work.bram_waveform
 	port map (
-		-- Port A internal use, read only
+		-- Port A CPU Bus
 		clka => clk,					-- input std_logic
 		ena => ram_waveform_ena,		-- input std_logic
-		wea => (others => '0'),			-- input slv(0 downto 0)
+		wea => ram_waveform_wea,			-- input slv(0 downto 0)
 		addra => ram_waveform_addra,	-- input slv(8 downto 0)
-		dina => (others => '0'),		-- input slv(31 downto 0)
+		dina => ram_waveform_dina,		-- input slv(31 downto 0)
 		douta => ram_waveform_douta,	-- output slv(31 downto 0)
-		-- Port B CPU use
+		-- Port B internal
 		clkb => clk,					-- input std_logic
 		enb => ram_waveform_enb,		-- input std_logic
-		web => ram_waveform_web,		-- input slv(0 downto 0)
+		web => (others => '0'),		-- input slv(0 downto 0)
 		addrb => ram_waveform_addrb,	-- input slv(9 downto 0)
-		dinb => ram_waveform_dinb,		-- input slv(15 downto 0)
+		dinb => (others => '0'),		-- input slv(15 downto 0)
 		doutb => ram_waveform_doutb		-- output slv(15 downto 0)
 	);
-
+	----------------------------------------------------------------
+	-- FIFO for waveform data
+	-- connect to external output to whatever we want to connect
+	----------------------------------------------------------------
 	u_data_to_stream : entity work.fifo_data_to_stream
 	port map (
 		clk => clk,  						-- input std_logic
 		srst => reset,						-- input std_logic
-		din => ram_waveform_douta,			-- input slv(31 downto 0)
+		din => ram_waveform_doutb,			-- input slv(16 downto 0)
 		wr_en => fifo_wr_en,				-- input std_logic
 		rd_en => t_ready,					-- input std_logic
 		dout => dout,						-- output slv(15 downto 0)
@@ -204,41 +214,79 @@ begin
     -- end process;
 
 
-	-- ----------------------------------------------------------------
-	-- -- Read time and amplitude from RAM to generate pulses
-	-- -- When input cnt_time equals RAM time output then set dout
-	-- -- to RAM amplitude output and read next set of RAM data.
-	-- ----------------------------------------------------------------
-    -- pr_dout  : process(reset, clk)
-    -- begin
-    --     if (reset = '1') then
+	----------------------------------------------------------------
+	-- Read time from RAM to generate pulses
+	-- When input cnt_time equals RAM time output then set dout
+	-- to RAM amplitude output and read next set of RAM data.
+	----------------------------------------------------------------
+    pr_ram_pulseposition  : process(reset, clk)
+    begin
+        if (reset = '1') then
 		
-    --         ram_addrb       <= (others => '0');
-    --         dout            <= (others => '0');
-	-- 		dout_dv			<= '0';
+            ram_addrb       <= (others => '0');
+            -- dout            <= (others => '0');
+			start_pulse		<= '0';
+			dout_dv			<= '0';
 
-    --     elsif rising_edge(clk) then
+        elsif rising_edge(clk) then
 
-	-- 		dout		<= ram_amplitude;
+			-- dout		<= ram_amplitude;
 			
-	-- 		if (cnt_time = X"000000") then	-- Not triggered
-	-- 			ram_addrb	<= (others=>'0');
-	-- 			dout_dv		<= '0';
+			if (cnt_time = X"000000") then	-- Not triggered
+				ram_addrb	<= (others=>'0');
+				dout_dv		<= '0';
+				start_pulse		<= '0';
 				
-	-- 		elsif (ram_time = cnt_time) then
-    --             ram_addrb	<= std_logic_vector(unsigned(ram_addrb) + 1);
-	-- 			dout_dv		<= '1';
+			elsif (ram_time = cnt_time) then
+                ram_addrb	<= std_logic_vector(unsigned(ram_addrb) + 1);
+				dout_dv		<= '1';
+				start_pulse		<= '1';
 				
-	-- 		else
-	-- 			dout_dv		<= '0';
-    --         end if;
+			else
+				dout_dv		<= '0';
+				start_pulse		<= '0';
+            end if;
 
-    --     end if;
+        end if;
 		 
-    -- end process;
+    end process;
+
+	----------------------------------------------------------------
+	-- Read amplitude from Waveform RAM to generate pulses
+	-- When start_pulse is asserted, and when FIFO is not full, write
+	-- amplitude to FIFO.
+	----------------------------------------------------------------
+	pr_ram_wavetable : process(reset, clk)
+	begin
+		if (reset = '1') then
+			fifo_wr_en <= '0';
+			ram_waveform_addra <= (others => '0');
+			ram_waveform_ena <= '0';
+			busy <= '0';
+		elsif rising_edge(clk) then
+			if (read_table = '1') then
+				busy <= '1';
+				if (fifo_full = '0') then
+					fifo_wr_en <= '1';
+					ram_waveform_addra <= std_logic_vector(unsigned(ram_waveform_addra) + 1);
+					ram_waveform_ena <= '1';
+				else
+					fifo_wr_en <= '0';
+					-- FIFO is full, wait
+					ram_waveform_addra <= ram_waveform_addra;
+					ram_waveform_ena <= '0';
+				end if;
+			else
+				fifo_wr_en <= '0';
+				ram_waveform_addra <= (others => '0');
+				ram_waveform_ena <= '0';
+			end if;
+		end if;
+
+	end process;
 	
 	-- For new versions, ram_doutb are differnt RAMs b port outputs, ram_amplitude should go thought a FIFO first from RAM
 	ram_time		<= ram_doutb;
-	-- ram_amplitude	<= ram_doutb(39 downto 24);
+	read_table 		<= start_pulse;
 
 end rtl;
