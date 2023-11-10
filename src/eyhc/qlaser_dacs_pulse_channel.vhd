@@ -26,7 +26,9 @@ port (
         t_ready			  : in std_logic;                         -- axi_stream ready
 		dout              : out std_logic_vector(15 downto 0);    -- output data
         dout_dv           : out std_logic;                        -- dout valid (new output)
-		busy			  : out std_logic						  -- status signal
+		busy			  : out std_logic;						  -- status signal
+
+		t_valid			  : out std_logic						  -- axi_stream valid
 );
 end entity;
 
@@ -70,6 +72,13 @@ signal fifo_full			: std_logic;
 signal fifo_empty			: std_logic;
 signal fifo_wr_rst_busy		: std_logic;
 signal fifo_rd_rst_busy		: std_logic;
+signal fifo_rd_en			: std_logic;
+-- FIFO status signals for debug purpose
+signal fifo_wr_ack			: std_logic;
+signal fifo_overflow		: std_logic;
+signal fifo_valid			: std_logic;
+signal fifo_underflow		: std_logic;
+
 
 -- Misc signals
 signal start_pulse			: std_logic;
@@ -102,19 +111,19 @@ begin
 	u_ram_waveform : entity work.bram_waveform
 	port map (
 		-- Port A CPU Bus
-		clka => clk,					-- input std_logic
-		ena => ram_waveform_ena,		-- input std_logic
-		wea => ram_waveform_wea,			-- input slv(0 downto 0)
-		addra => ram_waveform_addra,	-- input slv(8 downto 0)
-		dina => ram_waveform_dina,		-- input slv(31 downto 0)
-		douta => ram_waveform_douta,	-- output slv(31 downto 0)
+		clka  => clk,                -- input std_logic
+		ena   => ram_waveform_ena,   -- input std_logic
+		wea   => ram_waveform_wea,   -- input slv(0 downto 0)
+		addra => ram_waveform_addra, -- input slv(8 downto 0)
+		dina  => ram_waveform_dina,  -- input slv(31 downto 0)
+		douta => ram_waveform_douta, -- output slv(31 downto 0)
 		-- Port B internal
-		clkb => clk,					-- input std_logic
-		enb => ram_waveform_enb,		-- input std_logic
-		web => (others => '0'),		-- input slv(0 downto 0)
-		addrb => ram_waveform_addrb,	-- input slv(9 downto 0)
-		dinb => (others => '0'),		-- input slv(15 downto 0)
-		doutb => ram_waveform_doutb		-- output slv(15 downto 0)
+		clkb  => clk,                -- input std_logic
+		enb   => ram_waveform_enb,   -- input std_logic
+		web   => (others => '0'),    -- input slv(0 downto 0)
+		addrb => ram_waveform_addrb, -- input slv(9 downto 0)
+		dinb  => (others => '0'),    -- input slv(15 downto 0)
+		doutb => ram_waveform_doutb	 -- output slv(15 downto 0)
 	);
 	----------------------------------------------------------------
 	-- FIFO for waveform data
@@ -122,96 +131,125 @@ begin
 	----------------------------------------------------------------
 	u_data_to_stream : entity work.fifo_data_to_stream
 	port map (
-		clk => clk,  						-- input std_logic
-		srst => reset,						-- input std_logic
-		din => ram_waveform_doutb,			-- input slv(16 downto 0)
-		wr_en => fifo_wr_en,				-- input std_logic
-		rd_en => t_ready,					-- input std_logic
-		dout => dout,						-- output slv(15 downto 0)
-		full => fifo_full,					-- output std_logic
-		empty => fifo_empty,				-- output std_logic
-		wr_rst_busy => fifo_wr_rst_busy,	-- output std_logic
-		rd_rst_busy => fifo_rd_rst_busy		-- output std_logic
+		clk         => clk,                -- input std_logic
+		srst        => reset,              -- input std_logic
+		rd_en       => fifo_rd_en,         -- input std_logic
+		wr_en       => fifo_wr_en,         -- input std_logic
+		empty       => fifo_empty,         -- output std_logic
+		full        => fifo_full,          -- output std_logic
+		din         => ram_waveform_doutb, -- input slv(15 downto 0)
+		dout        => dout,               -- output slv(15 downto 0)
+		-- FIFO signals, some of then are for debug purpose
+		wr_ack      => fifo_wr_ack,        -- output std_logic
+		overflow    => fifo_overflow,      -- output std_logic
+		valid       => t_valid,            -- output std_logic
+		underflow   => fifo_underflow,     -- output std_logic
+		wr_rst_busy => fifo_wr_rst_busy,   -- output std_logic
+		rd_rst_busy => fifo_rd_rst_busy	   -- output std_logic
 	);
 
        
-	-- ----------------------------------------------------------------
-	-- -- CPU Read/Write RAM
+	----------------------------------------------------------------
+	-- CPU Read/Write RAM
 	-- For the new version, MSB1 of cpu_addr is used to select which RAM to read/write, and the rest can be
 	-- either 10 bit for zero-extended 4 bits, depends on the RAM to use.
-	-- ----------------------------------------------------------------
-    -- pr_ram_rw  : process(reset, clk)
-    -- begin
-    --     if (reset = '1') then
+	----------------------------------------------------------------
+    pr_ram_rw  : process(reset, clk)
+    begin
+        if (reset = '1') then
 		
-    --         ram_addra    	<= (others=>'0');
-    --         ram_addrb       <= (others=>'0');  
-	-- 		ram_dina        <= (others=>'0');
-    --         ram_we          <= '0';
-	-- 		cpu_rdata		<= (others=>'0');
-	-- 		cpu_rdata_dv	<= '0';
-	-- 		cpu_rdata_dv_e1	<= '0';
-	-- 		cpu_rdata_msb	<= '0';
-			
-    --     elsif rising_edge(clk) then
-		
-	-- 		-- CPU writing RAM
-    --         if (cpu_wr = '1') and (cpu_sel = '1') then
-			
-	-- 				-- Hold new time data if address is even, write 40 bits if odd
-	-- 				-- For new version, this is going to be select which RAM to write to
-    --                 if (cpu_addr(0) = '0') then
-    --                     ram_addra 	<= (others=>'0');
-	-- 					ram_dina	<= X"0000" & cpu_wdata(23 downto 0);
-    --                     ram_we  	<= '0';
-	-- 				else
-    --                     ram_addra 	<= cpu_addr(5 downto 1);
-	-- 					ram_dina(39 downto 24)	<= cpu_wdata(15 downto 0);
-    --                     ram_we  	<= '1';
-	-- 				end if;
-	-- 				cpu_rdata_dv_e1	<= '0';
-	-- 				cpu_rdata_msb	<= '0';
-			
-	-- 		-- CPU reading RAM
-    --         elsif (cpu_wr = '0') and (cpu_sel = '1') then
-				
-	-- 			ram_addra 		<= cpu_addr(5 downto 1);
-	-- 			ram_we   		<= '0';
-				
-	-- 			cpu_rdata_dv_e1	<= '1';				-- DV for next cycle, when RAM output occurs
-	-- 			cpu_rdata_msb   <= cpu_addr(0);		-- Save the lower bit to select bits one cycle later
-					
-	-- 		else
-    --             ram_addra 		<= (others=>'0');
-    --             ram_we   		<= '0';
-	-- 			cpu_rdata_dv_e1	<= '0';
-	-- 			cpu_rdata_msb	<= '0';
-			
-	-- 		end if;
-			
-	-- 		-------------------------------------
-	-- 		-- Output the delayed RAM data
-	-- 		-------------------------------------
-	-- 		if (cpu_rdata_dv_e1 = '1') then
-					
-	-- 			cpu_rdata_dv	<= '1';
-				
-	-- 			-- for the new version, this is going to decide which RAM to read from
-	-- 			if (cpu_rdata_msb = '0') then	-- Output 'time' field
-	-- 				cpu_rdata		<= X"00" & ram_douta(23 downto 0);
+            ram_addra    		<= (others=>'0');
+			ram_dina       	 	<= (others=>'0');
+            ram_we          	<= '0';
 
-	-- 			elsif (cpu_rdata_msb = '1') then
-	-- 				cpu_rdata		<= X"0000" & ram_douta(39 downto 24);
-	-- 			end if;
+			ram_waveform_ena	<= '0';
+			ram_waveform_wea	<= (others => '0');
+			ram_waveform_addra	<= (others => '0');
+			ram_waveform_dina	<= (others => '0');
 
-	-- 		else
-    --             cpu_rdata		<= (others=>'0');
-	-- 			cpu_rdata_dv	<= '0';
-	-- 		end if;
+			cpu_rdata			<= (others=>'0');
+			cpu_rdata_dv		<= '0';
+			cpu_rdata_dv_e1		<= '0';
+			cpu_rdata_msb		<= '0';
 			
-    --     end if;
+        elsif rising_edge(clk) then
 		
-    -- end process;
+			-- CPU writing RAM
+            if (cpu_wr = '1') and (cpu_sel = '1') then
+			
+					-- Look at the MSB of cpu_addr to decide which RAM to write to, 0 for pulse position, 1 for waveform table
+                    if (cpu_addr(9) = '1') then
+                        ram_addra 			<= (others=>'0');
+						ram_dina			<= (others=>'0');
+                        ram_we  			<= '0';
+
+						ram_waveform_ena	<= '0';
+						ram_waveform_wea(0)	<= '1';
+						ram_waveform_addra	<= cpu_addr(8 downto 0);
+						ram_waveform_dina	<= cpu_wdata;
+					else
+						ram_addra 			<= cpu_addr(3 downto 0);
+						ram_dina			<= cpu_wdata(23 downto 0);
+                        ram_we  			<= '1';
+
+						ram_waveform_ena	<= '0';
+						ram_waveform_wea	<= (others => '0');
+						ram_waveform_addra	<= (others => '0');
+						ram_waveform_dina	<= (others => '0');
+					end if;
+					cpu_rdata_dv_e1	<= '0';
+					cpu_rdata_msb	<= '0';
+			
+			-- CPU reading RAM
+            elsif (cpu_wr = '0') and (cpu_sel = '1') then
+				
+				-- ram_addra 			<= (others=>'0') when (cpu_addr(9) = '1') else cpu_addr(3 downto 0);
+				-- ram_waveform_addra	<= cpu_addr(8 downto 0) when (cpu_addr(9) = '1') else (others=>'0');
+				if (cpu_addr(9) = '1') then
+					ram_addra 			<= (others=>'0');
+					ram_waveform_addra	<= cpu_addr(8 downto 0);
+				else
+					ram_addra 			<= cpu_addr(3 downto 0);
+					ram_waveform_addra	<= (others=>'0');
+				end if;
+				ram_we   			<= '0';
+				
+				cpu_rdata_dv_e1		<= '1';				-- DV for next cycle, when RAM output occurs
+				cpu_rdata_msb   	<= cpu_addr(9);		-- Save the select bit one cycle later
+					
+			else
+                ram_addra 		 	<= (others=>'0');
+				ram_waveform_addra	<= (others=>'0');
+                ram_we   			<= '0';
+				cpu_rdata_dv_e1		<= '0';
+				cpu_rdata_msb		<= '0';
+			
+			end if;
+			
+			-- -------------------------------------
+			-- -- Output the delayed RAM data
+			-- -- TODO EricToGeoff: what is the purpose of this block? It seems to be a delayed version of the RAM output, but why?
+			-- -------------------------------------
+			if (cpu_rdata_dv_e1 = '1') then
+					
+				cpu_rdata_dv	<= '1';
+				
+				-- for the new version, this is going to decide which RAM to read from
+				if (cpu_rdata_msb = '0') then	-- Output waveform table
+					cpu_rdata		<= ram_waveform_douta;
+
+				elsif (cpu_rdata_msb = '1') then
+					cpu_rdata		<= X"00" & ram_douta;
+				end if;
+
+			else
+                cpu_rdata		<= (others=>'0');
+				cpu_rdata_dv	<= '0';
+			end if;
+			
+        end if;
+		
+    end process;
 
 
 	----------------------------------------------------------------
@@ -233,17 +271,17 @@ begin
 			-- dout		<= ram_amplitude;
 			
 			if (cnt_time = X"000000") then	-- Not triggered
-				ram_addrb	<= (others=>'0');
-				dout_dv		<= '0';
+				ram_addrb		<= (others=>'0');
+				dout_dv			<= '0';
 				start_pulse		<= '0';
 				
 			elsif (ram_time = cnt_time) then
-                ram_addrb	<= std_logic_vector(unsigned(ram_addrb) + 1);
-				dout_dv		<= '1';
+                ram_addrb		<= std_logic_vector(unsigned(ram_addrb) + 1);
+				dout_dv			<= '1';
 				start_pulse		<= '1';
 				
 			else
-				dout_dv		<= '0';
+				dout_dv			<= '0';
 				start_pulse		<= '0';
             end if;
 
@@ -259,27 +297,28 @@ begin
 	pr_ram_wavetable : process(reset, clk)
 	begin
 		if (reset = '1') then
-			fifo_wr_en <= '0';
-			ram_waveform_addra <= (others => '0');
-			ram_waveform_ena <= '0';
-			busy <= '0';
+			fifo_wr_en         <= '0';
+			ram_waveform_addrb <= (others => '0');
+			ram_waveform_enb   <= '0';
+			busy               <= '0';
 		elsif rising_edge(clk) then
-			if (read_table = '1') then
-				busy <= '1';
+			if (read_table = '1') then  -- start_pulse get asserted
+				busy               <= '1';
+				-- TODO EricToGeoff   : This condition may not satisfy all cases of a fifo_ready, maybe also utilize fifo_wr_ack or just a simple FSM?
 				if (fifo_full = '0') then
-					fifo_wr_en <= '1';
-					ram_waveform_addra <= std_logic_vector(unsigned(ram_waveform_addra) + 1);
-					ram_waveform_ena <= '1';
+					fifo_wr_en         <= '1';
+					ram_waveform_addrb <= std_logic_vector(unsigned(ram_waveform_addrb) + 1);
+					ram_waveform_enb   <= '1';
 				else
 					fifo_wr_en <= '0';
 					-- FIFO is full, wait
-					ram_waveform_addra <= ram_waveform_addra;
-					ram_waveform_ena <= '0';
+					ram_waveform_addrb <= ram_waveform_addrb;
+					ram_waveform_enb   <= '0';
 				end if;
 			else
-				fifo_wr_en <= '0';
-				ram_waveform_addra <= (others => '0');
-				ram_waveform_ena <= '0';
+				fifo_wr_en         <= '0';
+				ram_waveform_addrb <= (others => '0');
+				ram_waveform_enb   <= '0';
 			end if;
 		end if;
 
@@ -288,5 +327,7 @@ begin
 	-- For new versions, ram_doutb are differnt RAMs b port outputs, ram_amplitude should go thought a FIFO first from RAM
 	ram_time		<= ram_doutb;
 	read_table 		<= start_pulse;
+
+	fifo_rd_en 		<= t_ready and fifo_full;
 
 end rtl;

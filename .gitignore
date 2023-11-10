@@ -1,5 +1,6 @@
 *.ini
+*.log
+*.jou
 prj/
-tools/build_src/*.log
-tools/build_src/*.jou
-tools/build_src/.Xil/
+work/
+.Xil/
