@@ -7,7 +7,7 @@ use     ieee.std_logic_1164.all;
 use     ieee.numeric_std.all;
 
 use     work.qlaser_pkg.all;
-use     work.qlaser_dac_pulse_pkg.all;
+--use     work.qlaser_dac_ac_pkg.all;
 
 entity qlaser_dacs_pulse is
 port (
@@ -25,9 +25,10 @@ port (
 	cpu_rdata         	: out std_logic_vector(31 downto 0);  -- Data output
 	cpu_rdata_dv      	: out std_logic;                      -- Acknowledge output
 				   
-	-- Pulse train outputs
+	-- Pulse train outputs to GPIO
 	dacs_pulse        	: out std_logic_vector(31 downto 0); 	-- Single bit pulse data output
 	
+    -- Waveform outputs to DACs
 	arr_dout_ac       	: out t_arr_dout_ac;
 	arr_dout_ac_dv		: out std_logic
 );
@@ -142,6 +143,7 @@ begin
 
         elsif rising_edge(clk) then
 			
+            -- Write registers
 			if (cpu_addr(11) = '1' and cpu_wr = '1' and cpu_sel = '1') then
 				case cpu_addr(7 downto 0) is
 					when X"00" 	=>	reg_ctrl	<= cpu_wdata( 8 downto 0);
@@ -154,7 +156,8 @@ begin
 				reg_rdata		<= (others=>'0');
 				reg_rdata_dv	<= '0';
 				
-			elsif (cpu_addr(11) = '0' and cpu_wr = '0' and cpu_sel = '1') then
+            -- Read registers
+			elsif (cpu_addr(11) = '1' and cpu_wr = '0' and cpu_sel = '1') then
 				case cpu_addr(7 downto 0) is
 					when X"00" 	=>	reg_rdata( 8 downto 0)	<= reg_ctrl;
 									reg_rdata(31 downto 9)	<= (others=>'0');
@@ -178,7 +181,7 @@ begin
 	----------------------------------------------------------------
 	-- Instantiate one channel for each output
 	----------------------------------------------------------------
-    g_pulsed_dacs: for i in 0 to 31 generate
+    g_pulsed_dacs: for N in 0 to 31 generate
 	
         u_pulse_channel : entity work.qlaser_dacs_pulse_channel
 		port map(
@@ -191,12 +194,12 @@ begin
 			cpu_addr        => cpu_ch_addr			,    -- Address input
 			cpu_wdata       => cpu_ch_wdata			,    -- Data input
 			cpu_wr          => cpu_ch_wr			,    -- Write enable 
-			cpu_sel         => cpu_ch_sels(i)   	,    -- Block select
-			cpu_rdata       => cpu_ch_rdata(i)		,    -- Data output
-			cpu_rdata_dv    => cpu_ch_rdata_dv(i)	,    -- Data output valid 
+			cpu_sel         => cpu_ch_sels(N)   	,    -- Block select
+			cpu_rdata       => cpu_ch_rdata(N)		,    -- Data output
+			cpu_rdata_dv    => cpu_ch_rdata_dv(N)	,    -- Data output valid 
 			
-			dout            => arr_dout_ac(i)      	,    -- DAC data out (16-bit)
-			dout_dv			=> arr_dout_ac_dv(i)             
+			dout            => arr_dout_ac(N)      	,    -- DAC data out (16-bit)
+			dout_dv			=> arr_dout_ac_dv(N)             
 		);
     end generate;
    

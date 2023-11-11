@@ -244,16 +244,17 @@ def set_all_dc():
 # Get a list of serial ports. Open first COM port.
 #---------------------------------------------------------------
 comlist = (list(serial.tools.list_ports.comports()))
-print('Number of ports = {0:8}' .format(len(comlist)))
+#print('Number of ports = {0:8}' .format(len(comlist)))
+
 
 if len(comlist) > 0:
-    portinfo = comlist[0]
-    portname = portinfo[0]
-    print(portname)
+#    portinfo = comlist[0]
+#    portname = portinfo[0]
+#    print(portname)
 
      # Open serial port
     ser = serial.Serial(
-        port = portname,\
+        port = "COM4",\
         baudrate=115200,\
         parity=serial.PARITY_NONE,\
         stopbits=serial.STOPBITS_ONE,\
@@ -262,6 +263,8 @@ if len(comlist) > 0:
 
     strMsg.set(ser.name)
     strMsg1.set(comlist[0][0])
+    print (ser.name)
+    print (comlist[0][0])
 
 else:
     print("No ports")

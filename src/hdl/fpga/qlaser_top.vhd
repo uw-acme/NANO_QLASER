@@ -142,8 +142,6 @@ signal dc0_cs_n             : std_logic;
 
 signal ram0_data            : std_logic_vector(39 downto 0);
 
-signal data_to_JESD     : t_arr_data_JESD;
-
 begin
 
     --p_busy  <= dacs_dc_busy(0) or dacs_dc_busy(1) or dacs_dc_busy(2) or dacs_dc_busy(3) or dacs_pulse_busy;
@@ -252,10 +250,8 @@ begin
         cpu_rdata           => arr_cpu_dout(SEL_DAC_PULSE)      , -- out std_logic_vector(31 downto 0);    -- Data output
         cpu_rdata_dv        => arr_cpu_dout_dv(SEL_DAC_PULSE)   , -- out std_logic;                        -- Acknowledge output
                        
-        -- Pulse train outputs
-        dacs_pulse          => open,                       -- out std_logic_vector(31 downto 0);    -- Data output, goes to p_dacs_pulse when implemented
-        
-        data_to_JESD        => data_to_JESD
+        arr_dout_ac         => open                             , -- out std_logic_vector(31 downto 0);    -- Data output, goes to p_dacs_pulse when implemented        
+        arr_dout_ac_dv      => open
     );
     
     -- Combine p_trigger (from pad) with misc block trigger to create internal trigger

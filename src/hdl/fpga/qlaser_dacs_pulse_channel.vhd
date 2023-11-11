@@ -60,7 +60,7 @@ begin
 	-- For JESD output the RAM will be increased to 1024 entries
 	----------------------------------------------------------------
 	-- Distributed RAM
-    u_ram : entity work.dpram_32wx40b
+    u_ram : entity work.dpram32wx40b
     port map(
         clk                => clk,         -- input std_logic
         a                  => ram_addra,   -- input slv[4:0]

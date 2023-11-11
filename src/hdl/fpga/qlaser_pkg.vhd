@@ -5,8 +5,8 @@ library ieee;
 use     ieee.std_logic_1164.all;
 use     ieee.numeric_std.all;
 
-use     work.qlaser_dac_dc_pkg.all
-use     work.qlaser_dac_ac_pkg.all
+use     work.qlaser_dac_dc_pkg.all;
+--use     work.qlaser_dac_ac_pkg.all;
 
 --------------------------------------------------------------------------------
 -- FPGA constant definitions
@@ -34,8 +34,9 @@ constant ADR_BASE_MISC          : std_logic_vector( 3 downto 0) :=  X"2";    -- 
 --------------------------------------------------------------------------------
 constant C_NUM_BLOCKS           : integer   := 3; 
 type t_arr_cpu_dout is array (0 to C_NUM_BLOCKS-1) of std_logic_vector(31 downto 0);
-type t_arr_dout_ac  is array (0 to C_NUM_CHAN_AC-1) of std_logic_vector(15 downto 0);
 
+type t_arr_dout_ac  is array (0 to C_NUM_CHAN_AC-1) of std_logic_vector(15 downto 0);
+constant C_MAX_TIME_PULSE       : std_logic_vector(23 downto 0) := X"100000";
 
 -------------------------------------------------------------------------------------------------------------------------- 
 -- 'DC' DAC block registers. 32 16-bit DAC outputs [5:3]
@@ -49,23 +50,24 @@ constant C_ADDR_POWER_ON        : std_logic_vector(2 downto 0) := "110";
 
 -------------------------------------------------------------------------------------------------------------------------- 
 -- Individual DAC data registers
-constant ADR_DAC_DC0            : std_logic_vector(15 downto 0) := ADR_BASE_DC  & "000000" & C_ADDR_SPI0 & "000"   -- 
-constant ADR_DAC_DC1            : std_logic_vector(15 downto 0) := ADR_BASE_DC  & "000000" & C_ADDR_SPI0 & "001"   -- 
-constant ADR_DAC_DC2            : std_logic_vector(15 downto 0) := ADR_BASE_DC  & "000000" & C_ADDR_SPI0 & "010"   -- 
-constant ADR_DAC_DC3            : std_logic_vector(15 downto 0) := ADR_BASE_DC  & "000000" & C_ADDR_SPI0 & "011"   -- 
-constant ADR_DAC_DC4            : std_logic_vector(15 downto 0) := ADR_BASE_DC  & "000000" & C_ADDR_SPI0 & "100"   -- 
-constant ADR_DAC_DC5            : std_logic_vector(15 downto 0) := ADR_BASE_DC  & "000000" & C_ADDR_SPI0 & "101"   -- 
-constant ADR_DAC_DC6            : std_logic_vector(15 downto 0) := ADR_BASE_DC  & "000000" & C_ADDR_SPI0 & "110"   -- 
-constant ADR_DAC_DC7            : std_logic_vector(15 downto 0) := ADR_BASE_DC  & "000000" & C_ADDR_SPI0 & "111"   -- 
+constant ADR_DAC_DC0            : std_logic_vector(15 downto 0) := ADR_BASE_DC  & "000000" & C_ADDR_SPI0 & "000";   -- 
+constant ADR_DAC_DC1            : std_logic_vector(15 downto 0) := ADR_BASE_DC  & "000000" & C_ADDR_SPI0 & "001";   -- 
+constant ADR_DAC_DC2            : std_logic_vector(15 downto 0) := ADR_BASE_DC  & "000000" & C_ADDR_SPI0 & "010";   -- 
+constant ADR_DAC_DC3            : std_logic_vector(15 downto 0) := ADR_BASE_DC  & "000000" & C_ADDR_SPI0 & "011";   -- 
+constant ADR_DAC_DC4            : std_logic_vector(15 downto 0) := ADR_BASE_DC  & "000000" & C_ADDR_SPI0 & "100";   -- 
+constant ADR_DAC_DC5            : std_logic_vector(15 downto 0) := ADR_BASE_DC  & "000000" & C_ADDR_SPI0 & "101";   -- 
+constant ADR_DAC_DC6            : std_logic_vector(15 downto 0) := ADR_BASE_DC  & "000000" & C_ADDR_SPI0 & "110";   -- 
+constant ADR_DAC_DC7            : std_logic_vector(15 downto 0) := ADR_BASE_DC  & "000000" & C_ADDR_SPI0 & "111";   -- 
 
-constant ADR_DAC_DC8            : std_logic_vector(15 downto 0) := ADR_BASE_DC  & "000000" & C_ADDR_SPI1 & "000"   -- 
-constant ADR_DAC_DC9            : std_logic_vector(15 downto 0) := ADR_BASE_DC  & "000000" & C_ADDR_SPI1 & "001"   -- 
+constant ADR_DAC_DC8            : std_logic_vector(15 downto 0) := ADR_BASE_DC  & "000000" & C_ADDR_SPI1 & "000";   -- 
+constant ADR_DAC_DC9            : std_logic_vector(15 downto 0) := ADR_BASE_DC  & "000000" & C_ADDR_SPI1 & "001";   -- 
 
-constant ADR_DAC_DC6            : std_logic_vector(15 downto 0) := ADR_BASE_DC  & "000000" & C_ADDR_SPI2 & "000"   -- 
-constant ADR_DAC_DC7            : std_logic_vector(15 downto 0) := ADR_BASE_DC  & "000000" & C_ADDR_SPI2 & "001"   -- 
+--constant ADR_DAC_DC16            : std_logic_vector(15 downto 0) := ADR_BASE_DC  & "000000" & C_ADDR_SPI2 & "000";   -- 
+--constant ADR_DAC_DC17            : std_logic_vector(15 downto 0) := ADR_BASE_DC  & "000000" & C_ADDR_SPI2 & "001";   -- 
 -- etc. etc.
-constant ADR_DAC_DC6            : std_logic_vector(15 downto 0) := ADR_BASE_DC  & "000000" & C_ADDR_SPI3 & "110"   -- 
-constant ADR_DAC_DC7            : std_logic_vector(15 downto 0) := ADR_BASE_DC  & "000000" & C_ADDR_SPI3 & "111"   -- 
+--constant ADR_DAC_DC24            : std_logic_vector(15 downto 0) := ADR_BASE_DC  & "000000" & C_ADDR_SPI3 & "000";   -- 
+--constant ADR_DAC_DC25            : std_logic_vector(15 downto 0) := ADR_BASE_DC  & "000000" & C_ADDR_SPI3 & "001";   --
+ 
 constant ADR_DAC_DC30           : std_logic_vector(15 downto 0) := ADR_BASE_DC  & X"01E";   -- 
 constant ADR_DAC_DC31           : std_logic_vector(15 downto 0) := ADR_BASE_DC  & X"01F";   -- 
 
