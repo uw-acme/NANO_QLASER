@@ -37,7 +37,7 @@ dataGpo             = 0x55555555
 #---------------------------------------------------------------
 #---------------------------------------------------------------
 root = Tk()
-root.title('QLASER_DAC_DC v1.2')
+root.title('GUI_QLASER_DAC_DC v1.2')
 
 strMsg              = StringVar()
 strMsg1             = StringVar()
@@ -61,11 +61,6 @@ for i in range(NUM_CHAN_DC):   #  0 to 31
 
 strFileNameAC       = StringVar()
 strFileNameAC.set("AC.txt") 
-
-#strRegWriteAddr     = StringVar()
-#strRegWriteData     = StringVar()
-#strRegWriteAddr.set("0x0001")
-#strRegWriteData.set("0x12345678")
 
 
 #---------------------------------------------------------------
@@ -310,18 +305,6 @@ frameSetAllDC.pack(side=TOP, padx = 5, pady = 5)
 #buttonFileHitTextWrite.pack(side=LEFT)
 #frameFileHitTextWrite.pack(side=TOP, padx = 5, pady = 5)
 
-#-----------------------------------------------------------------------------------------------------------------------------
-# Write a register
-#-----------------------------------------------------------------------------------------------------------------------------
-#frameRegWrite   = Frame(root, borderwidth=3,relief=GROOVE, padx = 5, pady = 1)
-#Label (frameRegWrite, text = 'Write Address').pack(side = LEFT, padx = 5, pady = 5)
-#Entry (frameRegWrite, width = 10, textvariable = strRegWriteAddr).pack(side=LEFT, padx = 5, pady = 5)
-#Label (frameRegWrite, text = 'Data').pack(side = LEFT, padx = 5, pady = 5)
-#Entry (frameRegWrite, width = 12, textvariable = strRegWriteData).pack(side=LEFT, padx = 5, pady = 5)
-#buttonRegWrite  = Button (frameRegWrite, width = 10, text = "Write",        command = lambda: gj_reg_write(ser, strRegWriteAddr, strRegWriteData), state=DISABLED)
-#buttonRegWrite.pack(side=LEFT)
-#frameRegWrite.pack(side=TOP, padx = 5, pady = 1)
-
 arrFrameCh      = []
 arrButtonSetCh  = []
 #-----------------------------------------------------------------------------------------------------------------------------
@@ -378,17 +361,7 @@ buttonVerRead  = Button (frameVersion, width = 10, text = "Read",  command = lam
 buttonVerRead.pack(side=LEFT)
 frameVersion.pack(side=TOP, padx = 5, pady = 2)
 
-
-#buttonWriteGPO  = Button (root, width = 10, text = "Write GPO",   command = lambda: gj_reg_write_int(ser, adrRegGpo, dataGpo))
-#buttonWriteGPO.pack(side=BOTTOM, padx = 5, pady = 5)
-
-#buttonReadGPO   = Button (root, width = 10, text = "Read GPO",    command = lambda: gj_reg_read_int(ser, adrRegGpo))
-#buttonReadGPO.pack(side=BOTTOM, padx = 5, pady = 5)
-
-#frameQuitHelp   = Frame(root, borderwidth=3,relief=GROOVE, padx = 5, pady = 5)
-
 frameQuitHelp   = Frame(root, borderwidth=3,relief=FLAT, padx = 5, pady = 5)
-#buttonHelp      = Button (frameQuitHelp, width = 10, text = "Help",        command = lambda: gj_send(ser, b'\x68')).pack(side=LEFT, padx = 5, pady = 5)
 buttonQuit      = Button (frameQuitHelp, width = 10, text = "Quit",        command = root.quit).pack(side=RIGHT, padx = 5, pady = 5)
 frameQuitHelp.pack(side=BOTTOM, padx = 5, pady = 5)
 
