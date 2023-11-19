@@ -1,0 +1,10 @@
+*.ini
+*.log
+*.jou
+*.wlf
+transcript
+prj/
+work/
+.Xil/
+
+
