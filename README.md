@@ -1,6 +1,6 @@
 # NANO_QLASER
 
-FPGA controller for trapped ion quantum device experiments.
+FPGA controller for trapped ion quantum device experiments. Detailed diagram [here](https://github.com/uw-acme/NANO_QLASER/blob/eric_zcu_102/documents/Project-overview.pdf)
 
 ## Build
 
