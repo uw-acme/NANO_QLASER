@@ -40,10 +40,10 @@ port (
     p_trigger               : in    std_logic;
     
     -- Interface SPI bus to 8-channel PMOD for DC channels 24-31
-  --p_dc3_sclk              : out   std_logic; 
-  --p_dc3_mosi              : out   std_logic;  
-  --p_dc3_cs_n              : out   std_logic;  
-  --
+    p_dc3_sclk              : out   std_logic; 
+    p_dc3_mosi              : out   std_logic;  
+    p_dc3_cs_n              : out   std_logic;  
+    
   ---- 32 pulse outputs
   --p_dacs_pulse            : out   std_logic_vector(31 downto 0);
   --
@@ -92,7 +92,7 @@ end entity;
 -- Top level of FPGA.  Serial interface for register R/W.
 -- PS for booting.
 ---------------------------------------------------------------
-architecture rtl_eclypse of qlaser_top is
+architecture rtl_zcu of qlaser_top is
 
 signal clk                  : std_logic;
 signal reset                : std_logic;
@@ -378,4 +378,4 @@ begin
     -- Invert external reset to use in PS
     ext_reset_n   <= not(p_reset);
 
-end rtl_eclypse;
+end rtl_zcu;

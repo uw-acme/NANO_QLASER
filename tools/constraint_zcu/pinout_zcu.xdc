@@ -58,6 +58,13 @@ set_property IOSTANDARD  LVCMOS33 [get_ports "p_dc2_mosi"] ;# Bank  47 VCCO - VC
 set_property PACKAGE_PIN E22      [get_ports "p_dc2_sclk"] ;# Bank  47 VCCO - VCC3V3   - IO_L7N_HDGC_AD5N_47
 set_property IOSTANDARD  LVCMOS33 [get_ports "p_dc2_sclk"] ;# Bank  47 VCCO - VCC3V3   - IO_L7N_HDGC_AD5N_47
 
+set_property PACKAGE_PIN F20      [get_ports "p_dc3_cs_n"] ;# Bank  47 VCCO - VCC3V3   - IO_L8N_HDGC_AD4N_47
+set_property IOSTANDARD  LVCMOS33 [get_ports "p_dc3_cs_n"] ;# Bank  47 VCCO - VCC3V3   - IO_L8N_HDGC_AD4N_47
+set_property PACKAGE_PIN G20      [get_ports "p_dc3_mosi"] ;# Bank  47 VCCO - VCC3V3   - IO_L8P_HDGC_AD4P_47
+set_property IOSTANDARD  LVCMOS33 [get_ports "p_dc3_mosi"] ;# Bank  47 VCCO - VCC3V3   - IO_L8P_HDGC_AD4P_47
+set_property PACKAGE_PIN J19      [get_ports "p_dc3_sclk"] ;# Bank  47 VCCO - VCC3V3   - IO_L7N_HDGC_AD5N_47
+set_property IOSTANDARD  LVCMOS33 [get_ports "p_dc3_sclk"] ;# Bank  47 VCCO - VCC3V3   - IO_L7N_HDGC_AD5N_47
+
 # UART
 set_property PACKAGE_PIN E13      [get_ports "p_serial_rxd"] ;# Bank  49 VCCO - VCC3V3   - IO_L12N_AD8N_49
 set_property IOSTANDARD  LVCMOS33 [get_ports "p_serial_rxd"] ;# Bank  49 VCCO - VCC3V3   - IO_L12N_AD8N_49

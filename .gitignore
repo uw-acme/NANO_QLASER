@@ -2,9 +2,11 @@
 *.log
 *.jou
 *.wlf
+*.vstf
+wlft*
 transcript
 prj/
 work/
 .Xil/
-
+ip_netlists/
 
