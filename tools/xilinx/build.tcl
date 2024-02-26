@@ -107,11 +107,4 @@ foreach file $files {
     file copy -force $file ../../src/hdl/ip_netlists
 }
 
-# set simulation to modelsim, assumes that the modelsim is installed and libraries are compiled
-# get the absolute path of the modelsim libraries
-set modelsim_lib_dir [file normalize ../modelsim_uw]
-set_property target_simulator ModelSim [current_project]
-set_property compxlib.modelsim_compiled_library_dir $modelsim_lib_dir [current_project]
-set_property -name {modelsim.simulate.runtime} -value {} -objects [get_filesets sim_1]
-
 exit

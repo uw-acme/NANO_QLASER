@@ -7,9 +7,9 @@ FPGA controller for trapped ion quantum device experiments. Detailed diagram [he
 To build the project, make sure command `vivado` is valid in your desired terminals run the following commands:
 
 ```bash
-vivado -mode tcl -source build.tcl
+vivado -mode tcl -source tools\xilinx\build.tc
 ```
-in the `tools/xilinx` directory. After the build is finished, the project will be in the `prj` directory.
+After the build is finished, the project will be in the `prj` directory (or whatever name you set for `proj_dir` in the build script).
 
 ### Modelsim Simulation
 
