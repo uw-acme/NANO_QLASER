@@ -7,6 +7,7 @@ use     ieee.numeric_std.all;
 
 use     work.qlaser_dac_dc_pkg.all;
 -- use     work.qlaser_dac_ac_pkg.all;
+use     work.qlaser_dacs_pulse_channel_pkg.all;
 
 --------------------------------------------------------------------------------
 -- FPGA constant definitions
@@ -32,7 +33,7 @@ constant ADR_BASE_MISC          : std_logic_vector( 3 downto 0) :=  X"2";    -- 
 --------------------------------------------------------------------------------
 -- Define the number of internal blocks that are addressed by the CPU
 --------------------------------------------------------------------------------
-constant C_NUM_BLOCKS           : integer   := 3; 
+constant C_NUM_BLOCKS           : integer   := 4; 
 type t_arr_cpu_dout is array (0 to C_NUM_BLOCKS-1) of std_logic_vector(31 downto 0);
 type t_arr_dout_ac  is array (0 to C_NUM_CHAN_AC-1) of std_logic_vector(15 downto 0);
 

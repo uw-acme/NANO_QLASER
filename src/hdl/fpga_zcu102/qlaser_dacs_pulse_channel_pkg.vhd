@@ -33,4 +33,12 @@ constant C_PC_INCR          : integer   := 4;
                                 
 constant BIT_FRAC :          integer    := 8;                                     -- Define the number of fractional bits
 constant BIT_FRAC_GAIN :     integer    := C_BITS_GAIN_FACTOR - 1;                -- Define the number of fractional bits of the gain
+
+-- Addresses
+constant C_ADDR_XXX                 : std_logic_vector(2 downto 0) := "000";
+
+-- Array for 32 16-bit signals
+type t_arr_slv32x16b is array (31 downto 0) of std_logic_vector(15 downto 0);
+type t_arr_slv32x32b is array (31 downto 0) of std_logic_vector(31 downto 0);
+
 end package qlaser_dacs_pulse_channel_pkg;

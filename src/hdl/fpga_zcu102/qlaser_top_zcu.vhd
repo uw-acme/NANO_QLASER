@@ -7,6 +7,7 @@ use     ieee.std_logic_1164.all;
 use     ieee.numeric_std.all;
 
 use     work.qlaser_pkg.all;
+use     work.qlaser_dacs_pulse_channel_pkg.all;
 
 entity qlaser_top is
 port (
@@ -38,18 +39,24 @@ port (
     p_dc2_cs_n              : out   std_logic;
 
     p_trigger               : in    std_logic;
+    p_enable_dacs_pulse     : in    std_logic;          -- Set when DAC interface is running
     
     -- Interface SPI bus to 8-channel PMOD for DC channels 24-31
     p_dc3_sclk              : out   std_logic; 
     p_dc3_mosi              : out   std_logic;  
     p_dc3_cs_n              : out   std_logic;  
     
-  ---- 32 pulse outputs
-  --p_dacs_pulse            : out   std_logic_vector(31 downto 0);
-  --
-  ---- User buttons
-  --p_btn0                  : in    std_logic; 
-  --p_btn1                  : in    std_logic; 
+    ---- 32 pulse outputs
+    -- p_dacs_pulse            : out   std_logic_vector(31 downto 0);
+    --
+    ---- User buttons
+    -- p_btn0                  : in    std_logic; 
+    -- p_btn1                  : in    std_logic;
+    -- p_btn_e                 : in    std_logic; 
+    -- p_btn_s                 : in    std_logic; 
+    -- p_btn_n                 : in    std_logic; 
+    -- p_btn_w                 : in    std_logic; 
+    -- p_btn_c                 : in    std_logic; 
 
     -- Indicator LEDs
     p_leds_0             : out   std_logic;      -- 
@@ -115,6 +122,7 @@ signal arr_cpu_dout_dv      : std_logic_vector(C_NUM_BLOCKS-1 downto 0);
 constant SEL_DAC_DC         : integer :=  0;    -- For DC DACs
 constant SEL_DAC_PULSE      : integer :=  1;    -- For Pulse DACs
 constant SEL_MISC           : integer :=  2;    -- Misc, LEDs, switches, version
+constant SEL_SPARE          : integer :=  3;    -- Spare
 
 signal misc_leds            : std_logic_vector( 3 downto 0);
 signal misc_leds_en         : std_logic_vector( 3 downto 0);
@@ -148,6 +156,27 @@ signal dc0_cs_n             : std_logic;
 signal ram0_data            : std_logic_vector(39 downto 0);
 
 -- signal data_to_JESD     : t_arr_data_JESD;
+-- for Pmod Pulse testings
+
+signal dacs_pulse_ready         : std_logic;                        -- Status signal indicating all JESD channels are sync'ed.
+signal dacs_pulse_error         : std_logic;                        -- Instantanous JESD sync status.
+signal dacs_pulse_error_latched : std_logic;                        -- JESD lost sync after ready. Cleared by trigger
+                
+ -- Array of 32 AXI-Stream buses. Each with 16-bit data. Interface to JESD TX Interfaces
+signal dacs_pulse_axis_treadys  : std_logic_vector(31 downto 0);    -- axi_stream ready from downstream modules
+signal dacs_pulse_axis_tdatas   : t_arr_slv32x16b;                  -- axi stream output data array
+signal dacs_pulse_axis_tvalids  : std_logic_vector(31 downto 0);    -- axi_stream output data valid
+signal dacs_pulse_axis_tlasts   : std_logic_vector(31 downto 0);    -- axi_stream output set on last data  
+
+signal jesd_syncs               : std_logic_vector(31 downto 0);    -- Inputs from each JESD TX interface
+
+-- Pulse to PMOD block outputs == PROTO USE ONLY ==
+signal p2p_busy                 : std_logic;    -- Set to '1' while SPI interface is busy
+signal p2p_spi_sclk             : std_logic;    -- Clock (50 MHz?)
+signal p2p_spi_mosi             : std_logic;    -- Master out, Slave in. (Data to DAC)
+signal p2p_spi_cs_n             : std_logic;    -- Active low chip select (sync_n)
+
+signal gpio_btns                : std_logic_vector( 4 downto 0); 
 
 begin
 
@@ -240,32 +269,78 @@ begin
    
     -----------------------------------------------------------------------------------
     ---- Pulse DAC interface
-    ---- Currently is an empty module for just a placeholder.
     -----------------------------------------------------------------------------------
     u_dacs_pulse : entity work.qlaser_dacs_pulse
+    generic map(
+        G_NCHANS            => 1                                  -- integer := 1
+    )
     port map(
         clk                 => clk                              , -- in  std_logic; 
         reset               => reset                            , -- in  std_logic;
     
-        trigger             => p_trigger                        , -- in  std_logic;                        -- Trigger (rising edge) to start pulse output
-        busy                => dacs_pulse_busy                  , -- out std_logic;                        -- Set to '1' while pulse outputs are occurring
+        enable              => p_enable_dacs_pulse              , -- in  std_logic;                        -- Set when DAC interface is running
+        trigger             => p_trigger                        , -- in  std_logic;                        -- Set when pulse generation sequence begins (trigger)
+        jesd_syncs          => jesd_syncs                       , -- in  std_logic_vector(31 downto 0);    -- Inputs from each JESD TX interface
+
+        -- Status signals
+        ready               => dacs_pulse_ready                 , -- out std_logic;                        -- Status signal indicating all JESD channels are sync'ed.
+        busy                => dacs_pulse_busy                  , -- out std_logic;                        -- Running a waveform generation sequence.
+        error               => dacs_pulse_error                 , -- out std_logic;                        -- Instantanous JESD sync status.
+        error_latched       => dacs_pulse_error_latched         , -- out std_logic;                        -- JESD lost sync after ready. Cleared by trigger
     
         -- CPU interface
-        cpu_addr            => cpu_addr(11 downto 0)            , -- in  std_logic_vector(11 downto 0);    -- Address input
+        cpu_addr            => cpu_addr(12 downto 0)            , -- in  std_logic_vector(12 downto 0);    -- Address input
         cpu_wdata           => cpu_din                          , -- in  std_logic_vector(31 downto 0);    -- Data input
         cpu_wr              => cpu_wr                           , -- in  std_logic;                        -- Write enable 
         cpu_sel             => cpu_sels(SEL_DAC_PULSE)          , -- in  std_logic;                        -- Block select
         cpu_rdata           => arr_cpu_dout(SEL_DAC_PULSE)      , -- out std_logic_vector(31 downto 0);    -- Data output
         cpu_rdata_dv        => arr_cpu_dout_dv(SEL_DAC_PULSE)   , -- out std_logic;                        -- Acknowledge output
                        
-        -- Pulse train outputs
-        dacs_pulse          => open                       -- out std_logic_vector(31 downto 0);    -- Data output, goes to p_dacs_pulse when implemented
-        
-        -- data_to_JESD        => data_to_JESD
+        -- Array of 32 AXI-Stream buses. Each with 16-bit data. Interface to JESD TX Interfaces
+        axis_treadys        => dacs_pulse_axis_treadys          , -- in  std_logic_vector(31 downto 0);    -- axi_stream ready from downstream modules
+        axis_tdatas         => dacs_pulse_axis_tdatas           , -- out t_arr_slv32x16b;   -- axi stream output data array
+        axis_tvalids        => dacs_pulse_axis_tvalids          , -- out std_logic_vector(31 downto 0);    -- axi_stream output data valid
+        axis_tlasts         => dacs_pulse_axis_tlasts             -- out std_logic_vector(31 downto 0)     -- axi_stream output set on last data  
     );
+    
+    -- TODO : This will be driven by JESD interface status
+    jesd_syncs  <= (others=>'1');
     
     -- Combine p_trigger (from pad) with misc block trigger to create internal trigger
     trigger     <= misc_trigger; -- or with p_trigger when implemented
+
+        -----------------------------------------------------------------------------------
+    --      **** FOR PROTOTYPE TESTING ****
+    --
+    -- Block containing an AXI-Stream FIFO and a stream-to-spi PMOD interface 
+    -- Allows pulse data to drive a 'dc' DAC at a low speed.
+    -----------------------------------------------------------------------------------
+    u_pulse2pmod : entity work.pulse2pmod
+    port map(
+        clk                 => clk                          ,  -- in  std_logic;
+        reset               => reset                        ,  -- in  std_logic;
+
+        busy                => p2p_busy                     ,  -- out std_logic;    -- Set to '1' while SPI interface is busy
+
+        -- CPU interface
+        cpu_addr            => cpu_addr( 5 downto 0)        ,  -- in  std_logic_vector( 5 downto 0);
+        cpu_wdata           => cpu_din                      ,  -- in  std_logic_vector(31 downto 0);
+        cpu_wr              => cpu_wr                       ,  -- in  std_logic;
+        cpu_sel             => cpu_sels(SEL_SPARE)          ,  -- in  std_logic;
+        cpu_rdata           => arr_cpu_dout(SEL_SPARE)      ,  -- out std_logic_vector(31 downto 0);
+        cpu_rdata_dv        => arr_cpu_dout_dv(SEL_SPARE)   ,  -- out std_logic; 
+
+        -- AXI-stream input to FIFO
+        s_axis_tready       => dacs_pulse_axis_treadys(0)   ,  -- out std_logic;
+        s_axis_tvalid       => dacs_pulse_axis_tvalids(0)   ,  -- in  std_logic;
+        s_axis_tdata        => dacs_pulse_axis_tdatas(0)    ,  -- in  std_logic_vector(15 downto 0);
+        s_axis_tlast        => dacs_pulse_axis_tlasts(0)    ,  -- in  std_logic;
+                                        
+        -- Interface SPI bus to 8-channel PMOD for DC channels 0-7
+        spi_sclk            => p2p_spi_sclk                 ,  -- out std_logic;
+        spi_mosi            => p2p_spi_mosi                 ,  -- out std_logic;
+        spi_cs_n            => p2p_spi_cs_n                    -- out std_logic 
+    );
 
     ---------------------------------------------------------------------------------
     -- Misc interfaces. LEDs, Debug

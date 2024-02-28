@@ -19,6 +19,7 @@ port (
     cnt_time            : in  std_logic_vector(23 downto 0);    -- Time since trigger.
 
     busy                : out std_logic;                        -- Status signal
+    err_wave            : out std_logic;
     done_seq            : in  std_logic;                        -- Status signal to terminate sequence
     -- TODO: Add another status signal to indicate any errors?
 
@@ -38,10 +39,88 @@ port (
 );
 end entity;
 
+----------------------------------------------------------------
+-- Empty architecture with a single 32-bit r/w register
+----------------------------------------------------------------
+architecture empty of qlaser_dacs_pulse_channel is
+
+signal reg_test : std_logic_vector(31 downto 0);
+begin
+
+    busy    <= '0';
+    err_wave <= '0';
+
+    -- AXI-Stream output.
+    axis_tdata          <= (others=>'0');   -- axi stream output data
+    axis_tvalid         <= '0';             -- axi_stream output data valid
+    axis_tlast          <= '0';             -- axi_stream output last 
+
+
+    ----------------------------------------------------------------
+    -- CPU Read/Write 
+    ----------------------------------------------------------------
+    pr_ram_rw  : process (reset, clk)
+    begin
+        if (reset = '1') then
+        
+            cpu_rdata           <= (others=>'0');
+            cpu_rdata_dv        <= '0'; 
+            reg_test            <= X"CCCCCCCC";
+            
+        elsif rising_edge(clk) then
+        
+            -------------------------------------------------
+            -- CPU write
+            -------------------------------------------------
+            if (cpu_wr = '1') and (cpu_sel = '1') then
+            
+                reg_test        <= cpu_wdata;
+
+            -------------------------------------------------
+            -- CPU read
+            -------------------------------------------------
+            elsif (cpu_wr = '0') and (cpu_sel = '1') then
+                
+                cpu_rdata_dv    <= '1';     
+                cpu_rdata       <= reg_test; 
+                    
+            else
+                cpu_rdata_dv    <= '0';
+                cpu_rdata       <= (others=>'0');
+            
+            end if;
+            
+        end if;
+        
+    end process;
+
+end empty;
+
 ---------------------------------------------------------------------------
 -- Single channel pulse generator with two RAMs
 ---------------------------------------------------------------------------
 architecture channel of qlaser_dacs_pulse_channel is
+-- Constants declearations
+constant C_RAM_SELECT       : integer   := 11;                                    -- Select bit for which RAM for CPU read/write
+-- constant C_NUM_PULSE        : integer   := 16;                -- Number of output data values from pulse RAM (16x24-bit)
+
+constant C_START_TIME       : integer   := 24;                                    -- Start time for pulse generation
+constant C_BITS_ADDR_START  : integer   := 12;                                    -- Number of bits for starting address
+constant C_BITS_ADDR_LENGTH : integer   := 10;                                    -- Number of bits for length address used by an edge of a pulse
+constant C_BITS_GAIN_FACTOR : integer   := 16;                                    -- Number of bits in gain table
+constant C_BITS_TIME_FACTOR : integer   := 16;                                    -- Number of bits in time table
+constant C_BITS_TIME_INT    : integer   := 14;                                    -- Starting bit for time integer part of the time factor, counting from MSB
+constant C_BITS_TIME_FRAC   : integer   :=  5;                                    -- Starting bit for time fractional part of the time factor, counting from MSB
+constant C_BITS_ADDR_TOP    : integer   := 17;                                    -- Number of bits for the "flat top", the top of the pulse
+
+constant C_LENGTH_WAVEFORM  : integer   := 4096;                                  -- Number of output data values from waveform RAM (4kx16-bit)
+constant C_BITS_ADDR_WAVE   : integer   := 16;                                    -- Number of bits in address for waveform RAM
+
+constant C_BITS_ADDR_PULSE  : integer   := 10;                                    -- Number of bits in address for pulse definition RAM
+constant C_LEN_PULSE        : integer   := 2**C_BITS_ADDR_PULSE;                  -- Numbers of address for pulse definition RAM
+constant C_PC_INCR          : integer   := 4;                                     -- Width of pulse counter increment
+constant C_BITS_ADDR_FULL : integer := 20;                                        -- Number of bits for the untruncated address, should be C_BITS_ADDR_LENGTH + fractional bits of time factor
+
 
 -- Signal declarations for pulse RAM
 signal ram_pulse_we         : std_logic_vector( 0 downto 0);                      -- Write enable for pulse RAM
@@ -113,6 +192,8 @@ signal err_addr_of          : std_logic;
 
 
 begin
+
+    err_wave <= '0';
 
     ----------------------------------------------------------------
     -- Pulse Definition Block RAM.
@@ -382,27 +463,27 @@ begin
                     if (unsigned(ram_pulse_addrb) mod 4 = 0) then
                         ram_pulse_addrb  <= std_logic_vector(unsigned(pc) + 1);
                         sm_state            <= S_LOAD;
-                                                                                                                   -- first quarter of the pulse definition, no register is loaded
+                                                                                                                    -- first quarter of the pulse definition, no register is loaded
                         
                     elsif (unsigned(ram_pulse_addrb) mod 4 = 1) then
                         ram_pulse_addrb  <= std_logic_vector(unsigned(pc) + 2);
                         sm_state            <= S_LOAD;
-                                                                                                                   -- second quarter of the pulse definition, the start time is loaded
+                                                                                                                    -- second quarter of the pulse definition, the start time is loaded
                         reg_pulse_time      <= ram_pulse_doutb;
                         
                         
                     elsif (unsigned(ram_pulse_addrb) mod 4 = 2) then
                         ram_pulse_addrb  <= std_logic_vector(unsigned(pc) + 3);
                         sm_state            <= S_LOAD;
-                                                                                                                   -- third quarter of the pulse definition, the length and start address of the wavetable are loaded
+                                                                                                                    -- third quarter of the pulse definition, the length and start address of the wavetable are loaded
                         reg_wave_start_addr <= ram_pulse_doutb(C_BITS_ADDR_START - 1 downto 0);
                         reg_wave_length     <= unsigned(ram_pulse_doutb(25 downto 16));                            -- TODO: make this a constant
 
                     elsif (unsigned(ram_pulse_addrb) mod 4 = 3) then
                         sm_state            <= S_WAIT;                                                             -- address is on the forth word of the entry, the loading process is complete. Moving onto the next state
-                                                                                                                   -- hold the last pulse definition address as it will be used in the next state
+                                                                                                                    -- hold the last pulse definition address as it will be used in the next state
                         pc                  <= std_logic_vector(unsigned(pc) + C_PC_INCR);                         -- incremnet the pulse counter and start waiting to output the wave
-                                                                                                                   -- forth quarter of the pulse definition, the scale factors are loaded
+                                                                                                                    -- forth quarter of the pulse definition, the scale factors are loaded
                         reg_scale_gain      <= unsigned(ram_pulse_doutb(31 downto 16));
                         reg_scale_time      <= unsigned(ram_pulse_doutb(15 downto 0));
                         reg_wave_end_addr  <=  resize(unsigned(reg_wave_start_addr) + reg_wave_length, 20) sll 8;  -- get the supposed last value of the wavetable                        

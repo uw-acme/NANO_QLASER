@@ -104,7 +104,7 @@ set src_dir ../../$proj_dir/ip/
 set files [recursive_glob $src_dir]
 
 foreach file $files {
-    file copy -force $file ../../src/hdl/ip_netlists
+    file copy -force $file ../sim_zcu
 }
 
 exit
