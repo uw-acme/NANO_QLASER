@@ -50,18 +50,18 @@ port (
     p_btn_c                 : in    std_logic; 
 
     -- Indicator LEDs
-    p_leds                  : out   std_logic_vector( 7 downto 0);      -- 
+    p_leds                  : out   std_logic_vector( 7 downto 0)      -- 
 
     -- Interface to DAC board through FMC_0 (HPC)
-    p_tx0_sync              : in   std_logic;
-    p_tx0_sysref            : in   std_logic;
-    p_tx0n_out              : out  std_logic_vector( 1 downto 0);            -- Differential JESD outputs
-    p_tx0p_out              : out  std_logic_vector( 1 downto 0);  
+--    p_tx0_sync              : in   std_logic;
+--    p_tx0_sysref            : in   std_logic
+--    p_tx0n_out              : out  std_logic_vector( 1 downto 0);            -- Differential JESD outputs
+--    p_tx0p_out              : out  std_logic_vector( 1 downto 0)  
 
     -- Debug port (if present)
-    p_debug_out             : out   std_logic_vector( 7 downto 0);    
+--    p_debug_out             : out   std_logic_vector( 7 downto 0);    
     
-    dip_switches_8bits_tri_i : in std_logic_vector( 7 downto 0) 
+--    dip_switches_8bits_tri_i : in std_logic_vector( 7 downto 0) 
 );
 end entity;
 
@@ -154,6 +154,8 @@ signal ps_jesd_tx0outclk        : std_logic;
 signal ps_jesd_tx0n_out         : std_logic_vector( 1 downto 0);
 signal ps_jesd_tx0p_out         : std_logic_vector( 1 downto 0);
 
+
+
 begin
 
     clk     <= ps_clk0;
@@ -165,10 +167,10 @@ begin
     any_dacs_busy           <= dacs_dc_busy(0) or dacs_dc_busy(1) or dacs_dc_busy(2) or dacs_dc_busy(3) or dacs_pulse_busy;
 
     -- JESD outputs
-    p_tx0n_out              <= ps_jesd_tx0n_out;
-    p_tx0p_out              <= ps_jesd_tx0p_out;
-    tx0_sync                <= p_tx0_sync; 
-    tx0_sysref              <= p_tx0_sysref;
+--    p_tx0n_out              <= ps_jesd_tx0n_out;
+--    p_tx0p_out              <= ps_jesd_tx0p_out;
+--    tx0_sync                <= p_tx0_sync; 
+--    tx0_sysref              <= p_tx0_sysref;
     
     gpio_btns(0)            <= p_btn_e;
     gpio_btns(1)            <= p_btn_s;
@@ -180,7 +182,7 @@ begin
     ---------------------------------------------------------------------------------
     -- Processing system.  CPU, JESD interfaces, Console UART etc
     ---------------------------------------------------------------------------------
-    u_ps1 : entity work.design_1_wrapper
+    u_ps2 : entity work.design_1_wrapper
     port map(
         -- Signals to/from axi_cpuint peripheral
         clk_cpu                 => ps_clk_cpu           , -- out std_logic;
@@ -191,12 +193,12 @@ begin
         cpu_rdata               => cif_cpu_rdata        , -- in  std_logic_vector( 31 downto 0);
         cpu_rdata_dv            => cif_cpu_rdata_dv     , -- in  std_logic;
         
-        dip_switches_8bits_tri_i => dip_switches_8bits_tri_i
+--        dip_switches_8bits_tri_i => dip_switches_8bits_tri_i
         
         -- TODO: PUT THESE BACK
 
---        gpio_leds_tri_o         => ps_leds              , -- out std_logic_vector( 7 downto 0);
---        gpio_pbtns_tri_i        => gpio_btns            , -- in  std_logic_vector( 4 downto 0);
+        gpio_leds_tri_o         => p_leds              , -- out std_logic_vector( 7 downto 0);
+        gpio_pbtns_tri_i        => gpio_btns             -- in  std_logic_vector( 4 downto 0);
 
 --        gpio_int_in_tri_i       => ps_gpin              , -- in  std_logic_vector( 7 downto 0);
 --        gpio_int_out_tri_o      => ps_gpout               -- out std_logic_vector( 7 downto 0);
@@ -235,42 +237,42 @@ begin
     ---------------------------------------------------------------------------------
     -- DC DAC interface
     ---------------------------------------------------------------------------------
-    u_dacs_dc : entity work.qlaser_dacs_dc
-    port map(
-        clk                 => clk                          , -- in  std_logic; 
-        reset               => reset                        , -- in  std_logic;
+--    u_dacs_dc : entity work.qlaser_dacs_dc
+--    port map(
+--        clk                 => clk                          , -- in  std_logic; 
+--        reset               => reset                        , -- in  std_logic;
     
-        busy                => dacs_dc_busy                 , -- out std_logic_vector( 3 downto 0);    -- Set to '1' while pulse outputs are occurring
+--        busy                => dacs_dc_busy                 , -- out std_logic_vector( 3 downto 0);    -- Set to '1' while pulse outputs are occurring
     
-        -- CPU interface
-        cpu_addr            => cpu_addr(5 downto 0)         , -- in  std_logic_vector(5 downto 0);    -- Address input
-        cpu_wdata           => cpu_din(11 downto 0)         , -- in  std_logic_vector(31 downto 0);    -- Data input
-        cpu_wr              => cpu_wr                       , -- in  std_logic;                        -- Write enable 
-        cpu_sel             => cpu_sels(SEL_DAC_DC)         , -- in  std_logic;                        -- Block select
-        cpu_rdata           => arr_cpu_dout(SEL_DAC_DC)     , -- out std_logic_vector(31 downto 0);    -- Data output
-        cpu_rdata_dv        => arr_cpu_dout_dv(SEL_DAC_DC)  , -- out std_logic;                        -- Acknowledge output
+--        -- CPU interface
+--        cpu_addr            => cpu_addr(5 downto 0)         , -- in  std_logic_vector(5 downto 0);    -- Address input
+--        cpu_wdata           => cpu_din(11 downto 0)         , -- in  std_logic_vector(31 downto 0);    -- Data input
+--        cpu_wr              => cpu_wr                       , -- in  std_logic;                        -- Write enable 
+--        cpu_sel             => cpu_sels(SEL_DAC_DC)         , -- in  std_logic;                        -- Block select
+--        cpu_rdata           => arr_cpu_dout(SEL_DAC_DC)     , -- out std_logic_vector(31 downto 0);    -- Data output
+--        cpu_rdata_dv        => arr_cpu_dout_dv(SEL_DAC_DC)  , -- out std_logic;                        -- Acknowledge output
                        
-        -- Interface SPI bus to 8-channel PMOD for DC channels 0-7
-        dc0_sclk            => p_dc0_sclk                   , -- out   std_logic;          -- Clock (50 MHz?)
-        dc0_mosi            => p_dc0_mosi                   , -- out   std_logic;          -- Master out, Slave in. (Data to DAC)
-        dc0_cs_n            => p_dc0_cs_n                   , -- out   std_logic;          -- Active low chip select (sync_n)
-        --
-        -- Interface SPI bus to 8-channel PMOD for DC channels 8-15
-        dc1_sclk            => p_dc1_sclk                   , -- out   std_logic;  
-        dc1_mosi            => p_dc1_mosi                   , -- out   std_logic;  
-        dc1_cs_n            => p_dc1_cs_n                   , -- out   std_logic;  
+--        -- Interface SPI bus to 8-channel PMOD for DC channels 0-7
+--        dc0_sclk            => p_dc0_sclk                   , -- out   std_logic;          -- Clock (50 MHz?)
+--        dc0_mosi            => p_dc0_mosi                   , -- out   std_logic;          -- Master out, Slave in. (Data to DAC)
+--        dc0_cs_n            => p_dc0_cs_n                   , -- out   std_logic;          -- Active low chip select (sync_n)
+--        --
+--        -- Interface SPI bus to 8-channel PMOD for DC channels 8-15
+--        dc1_sclk            => p_dc1_sclk                   , -- out   std_logic;  
+--        dc1_mosi            => p_dc1_mosi                   , -- out   std_logic;  
+--        dc1_cs_n            => p_dc1_cs_n                   , -- out   std_logic;  
         
-        -- Interface SPI bus to 8-channel PMOD for DC channels 16-23
-        dc2_sclk            => open                         , -- out   std_logic;  
-        dc2_mosi            => open                         , -- out   std_logic;  
-        dc2_cs_n            => open                         , -- out   std_logic;  
+--        -- Interface SPI bus to 8-channel PMOD for DC channels 16-23
+--        dc2_sclk            => open                         , -- out   std_logic;  
+--        dc2_mosi            => open                         , -- out   std_logic;  
+--        dc2_cs_n            => open                         , -- out   std_logic;  
         
-        -- Interface SPI bus to 8-channel PMOD for DC channels 24-31
-        dc3_sclk            => open                   , -- out   std_logic; 
-        dc3_mosi            => open                   , -- out   std_logic;  
-        dc3_cs_n            => open                     -- out   std_logic;
+--        -- Interface SPI bus to 8-channel PMOD for DC channels 24-31
+--        dc3_sclk            => open                   , -- out   std_logic; 
+--        dc3_mosi            => open                   , -- out   std_logic;  
+--        dc3_cs_n            => open                     -- out   std_logic;
         
-    );
+--    );
     
    
     -----------------------------------------------------------------------------------
@@ -390,35 +392,36 @@ begin
     pulse(2)    <= tick_sec;
     pulse(3)    <= '0';
 
-    p_leds(0)   <= misc_flash or gpio_btns(0);          -- 
-    p_leds(1)   <= pulse_stretched(0);  -- trigger, dac busy, etc.
-    p_leds(2)   <= pulse_stretched(1);  
-    p_leds(3)   <= misc_leds(0);
-    p_leds(4)   <= misc_leds(1);  
-    p_leds(5)   <= or_reduce(dacs_pulse_axis_tdatas(1)) or ps_leds(0);  
-    p_leds(6)   <= or_reduce(dacs_pulse_axis_tdatas(2)) or ps_leds(1);  
-    p_leds(7)   <= or_reduce(dacs_pulse_axis_tdatas(3)) or ps_leds(2) or gpio_btns(4);  
+--    p_leds(0)   <= misc_flash or gpio_btns(0);          -- 
+--    p_leds(0)   <= '1';          -- 
+--    p_leds(1)   <= '1';  -- trigger, dac busy, etc.
+--    p_leds(2)   <= pulse_stretched(1);  
+--    p_leds(3)   <= '1';
+--    p_leds(4)   <= '1';  
+--    p_leds(5)   <= or_reduce(dacs_pulse_axis_tdatas(1)) or ps_leds(0);  
+--    p_leds(6)   <= or_reduce(dacs_pulse_axis_tdatas(2)) or ps_leds(1);  
+--    p_leds(7)   <= '1';  
     
     
  
     ---------------------------------------------------------------------------------
     -- Debug output mux.
     ---------------------------------------------------------------------------------
-    pr_dbg_mux : process (clk)
-    begin
-        if rising_edge(clk) then
+--    pr_dbg_mux : process (clk)
+--    begin
+--        if rising_edge(clk) then
 
-            p_debug_out(0)              <= trigger_dacs_pulse;
-            p_debug_out(1)              <= any_dacs_busy;
-            p_debug_out(2)              <= p2p_busy;
-            p_debug_out(3)              <= or_reduce(dacs_pulse_axis_tvalids);
-            p_debug_out(4)              <= or_reduce(dacs_pulse_axis_tdatas(0));
-            p_debug_out(5)              <= or_reduce(dacs_pulse_axis_tdatas(1));
-            p_debug_out(6)              <= or_reduce(dacs_pulse_axis_tdatas(2));
-            p_debug_out(7)              <= or_reduce(dacs_pulse_axis_tdatas(3));
+--            p_debug_out(0)              <= trigger_dacs_pulse;
+--            p_debug_out(1)              <= any_dacs_busy;
+--            p_debug_out(2)              <= p2p_busy;
+--            p_debug_out(3)              <= or_reduce(dacs_pulse_axis_tvalids);
+--            p_debug_out(4)              <= or_reduce(dacs_pulse_axis_tdatas(0));
+--            p_debug_out(5)              <= or_reduce(dacs_pulse_axis_tdatas(1));
+--            p_debug_out(6)              <= or_reduce(dacs_pulse_axis_tdatas(2));
+--            p_debug_out(7)              <= or_reduce(dacs_pulse_axis_tdatas(3));
 
-        end if;
-    end process;
+--        end if;
+--    end process;
 
 
 end zc102;
