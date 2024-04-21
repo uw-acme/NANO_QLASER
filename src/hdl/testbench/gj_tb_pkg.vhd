@@ -24,7 +24,7 @@ package gj_tb_pkg is
     constant CLK_PER_P_CLK      	: time      := 1000.0/(CLK_FREQ_P_CLK) * 1 ns;
 
     -- Define the number of blocks that are addressed by the CPU
-    constant C_NUM_BLOCKS       : integer   := 3; 
+    constant C_NUM_BLOCKS       : integer   := 4; 
     type t_arr_cpu_dout is array (0 to C_NUM_BLOCKS-1) of std_logic_vector(31 downto 0);
 
     constant CPU_CS0                : integer   := 0; 

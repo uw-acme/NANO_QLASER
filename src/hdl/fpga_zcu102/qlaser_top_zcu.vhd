@@ -59,7 +59,9 @@ port (
     p_tx0p_out              : out  std_logic_vector( 1 downto 0);  
 
     -- Debug port (if present)
-    p_debug_out             : out   std_logic_vector( 7 downto 0)       -- 
+    p_debug_out             : out   std_logic_vector( 7 downto 0);    
+    
+    dip_switches_8bits_tri_i : in std_logic_vector( 7 downto 0) 
 );
 end entity;
 
@@ -178,10 +180,8 @@ begin
     ---------------------------------------------------------------------------------
     -- Processing system.  CPU, JESD interfaces, Console UART etc
     ---------------------------------------------------------------------------------
-    u_ps1 : entity work.ps1_wrapper
+    u_ps1 : entity work.design_1_wrapper
     port map(
-        reset                   => p_reset              , -- in  std_logic
-        
         -- Signals to/from axi_cpuint peripheral
         clk_cpu                 => ps_clk_cpu           , -- out std_logic;
         cpu_addr                => ps_cpu_addr          , -- out std_logic_vector(17 downto 0);
@@ -190,31 +190,16 @@ begin
         cpu_rd                  => ps_cpu_rd            , -- out std_logic;
         cpu_rdata               => cif_cpu_rdata        , -- in  std_logic_vector( 31 downto 0);
         cpu_rdata_dv            => cif_cpu_rdata_dv     , -- in  std_logic;
-
-        pl_clk0                 => ps_clk0              , -- out std_logic;
-        pl_resetn0              => ps_resetn0           , -- out std_logic;
-
-        gpio_leds_tri_o         => ps_leds              , -- out std_logic_vector( 7 downto 0);
-        gpio_pbtns_tri_i        => gpio_btns            , -- in  std_logic_vector( 4 downto 0);
-
-        gpio_int_in_tri_i       => ps_gpin              , -- in  std_logic_vector( 7 downto 0);
-        gpio_int_out_tri_o      => ps_gpout             , -- out std_logic_vector( 7 downto 0);
-
-        -- JESD_0 interface (2 links)
-        s_axis_tx_fmc0_tdata    => s_axis_tx_fmc0_tdata , -- in  std_logic_vector(63 downto 0);
-        s_axis_tx_fmc0_tready   => s_axis_tx_fmc0_tready, -- out std_logic;
-        tx_aresetn_0            => tx0_aresetn          , -- out std_logic;
-        tx_core_reset_0         => tx0_core_reset       , -- in  std_logic;
-        tx_reset_done_0         => tx0_reset_done       , -- out std_logic;
-        tx_sof_0                => tx0_sof              , -- out std_logic_vector( 3 downto 0);
-        tx_somf_0               => tx0_somf             , -- out std_logic_vector( 3 downto 0);
-
-        tx_sync_0               => tx0_sync             , -- in  std_logic;
-        tx_sysref_0             => tx0_sysref           , -- in  std_logic;
         
-        txn_out_0               => ps_jesd_tx0n_out     , -- out std_logic_vector( 1 downto 0);
-        txoutclk_0              => ps_jesd_tx0outclk    , -- out std_logic;
-        txp_out_0               => ps_jesd_tx0p_out       -- out std_logic_vector( 1 downto 0)
+        dip_switches_8bits_tri_i => dip_switches_8bits_tri_i
+        
+        -- TODO: PUT THESE BACK
+
+--        gpio_leds_tri_o         => ps_leds              , -- out std_logic_vector( 7 downto 0);
+--        gpio_pbtns_tri_i        => gpio_btns            , -- in  std_logic_vector( 4 downto 0);
+
+--        gpio_int_in_tri_i       => ps_gpin              , -- in  std_logic_vector( 7 downto 0);
+--        gpio_int_out_tri_o      => ps_gpout               -- out std_logic_vector( 7 downto 0);
     );
     -- Instantiate Differential pads
 
@@ -291,38 +276,39 @@ begin
     -----------------------------------------------------------------------------------
     ---- Pulse DAC interface
     -----------------------------------------------------------------------------------
-    u_dacs_pulse : entity work.qlaser_dacs_pulse
-    generic map(
-        G_NCHANS            => 4                                  -- integer := 1
-    )
-    port map(
-        clk                 => clk                              , -- in  std_logic; 
-        reset               => reset                            , -- in  std_logic;
+    -- TODO: Put this back
+--    u_dacs_pulse : entity work.qlaser_dacs_pulse
+--    generic map(
+--        G_NCHANS            => 4                                  -- integer := 1
+--    )
+--    port map(
+--        clk                 => clk                              , -- in  std_logic; 
+--        reset               => reset                            , -- in  std_logic;
     
-        enable              => ps_enable_dacs_pulse             , -- in  std_logic;                        -- Set when DAC interface is running
-        trigger             => trigger_dacs_pulse               , -- in  std_logic;                        -- Set when pulse generation sequence begins (trigger)
-        jesd_syncs          => jesd_syncs                       , -- in  std_logic_vector(31 downto 0);    -- Inputs from each JESD TX interface
+--        enable              => ps_enable_dacs_pulse             , -- in  std_logic;                        -- Set when DAC interface is running
+--        trigger             => trigger_dacs_pulse               , -- in  std_logic;                        -- Set when pulse generation sequence begins (trigger)
+--        jesd_syncs          => jesd_syncs                       , -- in  std_logic_vector(31 downto 0);    -- Inputs from each JESD TX interface
 
-        -- Status signals
-        ready               => dacs_pulse_ready                 , -- out std_logic;                        -- Status signal indicating all JESD channels are sync'ed.
-        busy                => dacs_pulse_busy                  , -- out std_logic;                        -- Running a waveform generation sequence.
-        error               => dacs_pulse_error                 , -- out std_logic;                        -- Instantanous JESD sync status.
-        error_latched       => dacs_pulse_error_latched         , -- out std_logic;                        -- JESD lost sync after ready. Cleared by trigger
+--        -- Status signals
+--        ready               => dacs_pulse_ready                 , -- out std_logic;                        -- Status signal indicating all JESD channels are sync'ed.
+--        busy                => dacs_pulse_busy                  , -- out std_logic;                        -- Running a waveform generation sequence.
+--        error               => dacs_pulse_error                 , -- out std_logic;                        -- Instantanous JESD sync status.
+--        error_latched       => dacs_pulse_error_latched         , -- out std_logic;                        -- JESD lost sync after ready. Cleared by trigger
     
-        -- CPU interface
-        cpu_addr            => cpu_addr(12 downto 0)            , -- in  std_logic_vector(11 downto 0);    -- Address input
-        cpu_wdata           => cpu_din                          , -- in  std_logic_vector(31 downto 0);    -- Data input
-        cpu_wr              => cpu_wr                           , -- in  std_logic;                        -- Write enable 
-        cpu_sel             => cpu_sels(SEL_DAC_PULSE)          , -- in  std_logic;                        -- Block select
-        cpu_rdata           => arr_cpu_dout(SEL_DAC_PULSE)      , -- out std_logic_vector(31 downto 0);    -- Data output
-        cpu_rdata_dv        => arr_cpu_dout_dv(SEL_DAC_PULSE)   , -- out std_logic;                        -- Acknowledge output
+--        -- CPU interface
+--        cpu_addr            => cpu_addr(12 downto 0)            , -- in  std_logic_vector(11 downto 0);    -- Address input
+--        cpu_wdata           => cpu_din                          , -- in  std_logic_vector(31 downto 0);    -- Data input
+--        cpu_wr              => cpu_wr                           , -- in  std_logic;                        -- Write enable 
+--        cpu_sel             => cpu_sels(SEL_DAC_PULSE)          , -- in  std_logic;                        -- Block select
+--        cpu_rdata           => arr_cpu_dout(SEL_DAC_PULSE)      , -- out std_logic_vector(31 downto 0);    -- Data output
+--        cpu_rdata_dv        => arr_cpu_dout_dv(SEL_DAC_PULSE)   , -- out std_logic;                        -- Acknowledge output
                        
-        -- Array of 32 AXI-Stream buses. Each with 16-bit data. Interface to JESD TX Interfaces
-        axis_treadys        => dacs_pulse_axis_treadys          , -- in  std_logic_vector(31 downto 0);    -- axi_stream ready from downstream modules
-        axis_tdatas         => dacs_pulse_axis_tdatas           , -- out t_arr_slv32x16b;   -- axi stream output data array
-        axis_tvalids        => dacs_pulse_axis_tvalids          , -- out std_logic_vector(31 downto 0);    -- axi_stream output data valid
-        axis_tlasts         => dacs_pulse_axis_tlasts             -- out std_logic_vector(31 downto 0)     -- axi_stream output set on last data  
-    );
+--        -- Array of 32 AXI-Stream buses. Each with 16-bit data. Interface to JESD TX Interfaces
+--        axis_treadys        => dacs_pulse_axis_treadys          , -- in  std_logic_vector(31 downto 0);    -- axi_stream ready from downstream modules
+--        axis_tdatas         => dacs_pulse_axis_tdatas           , -- out t_arr_slv32x16b;   -- axi stream output data array
+--        axis_tvalids        => dacs_pulse_axis_tvalids          , -- out std_logic_vector(31 downto 0);    -- axi_stream output data valid
+--        axis_tlasts         => dacs_pulse_axis_tlasts             -- out std_logic_vector(31 downto 0)     -- axi_stream output set on last data  
+--    );
     
     -- TODO : This will be driven by JESD interface status
     jesd_syncs  <= (others=>'1');
@@ -333,7 +319,7 @@ begin
     --
     -- Block containing an AXI-Stream FIFO and a stream-to-spi PMOD interface 
     -- Allows pulse data to drive a 'dc' DAC at a low speed.
-    -----------------------------------------------------------------------------------
+    ----------------------- ------------------------------------------------------------
     u_pulse2pmod : entity work.pulse2pmod
     port map(
         clk                 => clk                          ,  -- in  std_logic;

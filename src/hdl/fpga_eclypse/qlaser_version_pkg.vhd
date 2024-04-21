@@ -27,7 +27,7 @@ package qlaser_version_pkg is
 -- 0x1DC0_0004     : SD clock dropped from 100MHz to 20MHz
 -- 0x1DC0_0005     : Restore internal reference enable for pmod DACs
 ----------------------------------------------------------------------------------------
-constant C_QLASER_VERSION   : std_logic_vector(31 downto 0) := X"1DC00004";     -- HDL Version
+constant C_QLASER_VERSION   : std_logic_vector(31 downto 0) := X"3AC00009";     -- HDL Version
 
 end package qlaser_version_pkg;
 
