@@ -50,7 +50,7 @@ port (
     p_btn_c                 : in    std_logic; 
 
     -- Indicator LEDs
-    p_leds                  : out   std_logic_vector( 7 downto 0)      -- 
+    p_leds                  : out   std_logic_vector( 7 downto 0);      -- 
 
     -- Interface to DAC board through FMC_0 (HPC)
 --    p_tx0_sync              : in   std_logic;
@@ -59,7 +59,7 @@ port (
 --    p_tx0p_out              : out  std_logic_vector( 1 downto 0)  
 
     -- Debug port (if present)
---    p_debug_out             : out   std_logic_vector( 7 downto 0);    
+    p_debug_out             : out   std_logic_vector( 9 downto 0)   
     
 --    dip_switches_8bits_tri_i : in std_logic_vector( 7 downto 0) 
 );
@@ -72,6 +72,7 @@ architecture zc102 of qlaser_top is
 
 signal clk                  : std_logic;
 signal reset                : std_logic;
+signal cif_reset            : std_logic;
 
 -- CPU interface
 signal cpu_sels             : std_logic_vector(C_NUM_BLOCKS-1 downto 0);    -- CPU block selects 
@@ -159,10 +160,11 @@ signal ps_jesd_tx0p_out         : std_logic_vector( 1 downto 0);
 begin
 
     clk     <= ps_clk0;
-    reset   <= not(ps_resetn0);
+    reset   <= p_reset;
+    cif_reset <= not(ps_resetn0);
 
     -- Combine p_btn trigger (from pad) with misc block trigger and ps_gpout(0) to create internal trigger
-    trigger_dacs_pulse      <= p_btn_c or misc_trigger or ps_gpout(0);
+    trigger_dacs_pulse      <= (p_btn_c or misc_trigger or ps_gpout(0)) and not(p2p_busy);
     ps_enable_dacs_pulse    <= ps_gpout(1);
     any_dacs_busy           <= dacs_dc_busy(0) or dacs_dc_busy(1) or dacs_dc_busy(2) or dacs_dc_busy(3) or dacs_pulse_busy;
 
@@ -214,7 +216,7 @@ begin
     u_cif : entity work.qlaser_cif      -- Cpu InterFace
     port map(
         clk                 => clk                 , -- in  std_logic;
-        reset               => reset               , -- in  std_logic;
+        reset               => cif_reset           , -- in  std_logic;
         -- From PS
         ps_clk_cpu          => ps_clk_cpu           , -- in  std_logic;
         ps_cpu_addr         => ps_cpu_addr          , -- in  std_logic_vector(17 downto 0);
@@ -255,9 +257,9 @@ begin
         cpu_rdata_dv        => arr_cpu_dout_dv(SEL_DAC_DC)  , -- out std_logic;                        -- Acknowledge output
                        
         -- Interface SPI bus to 8-channel PMOD for DC channels 0-7
-        dc0_sclk            => p_dc0_sclk                   , -- out   std_logic;          -- Clock (50 MHz?)
-        dc0_mosi            => p_dc0_mosi                   , -- out   std_logic;          -- Master out, Slave in. (Data to DAC)
-        dc0_cs_n            => p_dc0_cs_n                   , -- out   std_logic;          -- Active low chip select (sync_n)
+        dc0_sclk            => p_dc3_sclk                   , -- out   std_logic;          -- Clock (50 MHz?)
+        dc0_mosi            => p_dc3_mosi                   , -- out   std_logic;          -- Master out, Slave in. (Data to DAC)
+        dc0_cs_n            => p_dc3_cs_n                   , -- out   std_logic;          -- Active low chip select (sync_n)
         --
         -- Interface SPI bus to 8-channel PMOD for DC channels 8-15
         dc1_sclk            => p_dc1_sclk                   , -- out   std_logic;  
@@ -280,7 +282,6 @@ begin
     -----------------------------------------------------------------------------------
     ---- Pulse DAC interface
     -----------------------------------------------------------------------------------
-    -- TODO: Put this back
     u_dacs_pulse : entity work.qlaser_dacs_pulse
     generic map(
         G_NCHANS            => 4                                  -- integer := 1
@@ -351,9 +352,9 @@ begin
         spi_cs_n            => p2p_spi_cs_n                    -- out std_logic 
     );
     
-    p_dc3_sclk      <= p2p_spi_sclk; 
-    p_dc3_mosi      <= p2p_spi_mosi; 
-    p_dc3_cs_n      <= p2p_spi_cs_n; 
+    p_dc0_sclk      <= p2p_spi_sclk; 
+    p_dc0_mosi      <= p2p_spi_mosi; 
+    p_dc0_cs_n      <= p2p_spi_cs_n; 
 
 
 
@@ -392,37 +393,39 @@ begin
     pulse(0)    <= trigger_dacs_pulse or dacs_dc_busy(0) or dacs_dc_busy(1) or dacs_dc_busy(2) or dacs_dc_busy(3) or dacs_pulse_busy;
     pulse(1)    <= p2p_busy;
     pulse(2)    <= tick_sec;
-    pulse(3)    <= '0';
+    pulse(3)    <= trigger_dacs_pulse;
 
     p_leds(0)   <= misc_flash or gpio_btns(0);          -- 
     p_leds(1)   <= pulse_stretched(0);  -- trigger, dac busy, etc.
     p_leds(2)   <= pulse_stretched(1);  
-    p_leds(3)   <= misc_leds(0);
-    p_leds(4)   <= misc_leds(1);  
-    p_leds(5)   <= or_reduce(dacs_pulse_axis_tdatas(1)) or ps_leds(0);  
-    p_leds(6)   <= or_reduce(dacs_pulse_axis_tdatas(2)) or ps_leds(1);  
-    p_leds(7)   <= or_reduce(dacs_pulse_axis_tdatas(3)) or ps_leds(2) or gpio_btns(4);   
+    p_leds(3)   <= trigger_dacs_pulse;
+    p_leds(4)   <= pulse_stretched(3);  
+    p_leds(5)   <= ps_resetn0 or or_reduce(dacs_pulse_axis_tdatas(1)) or ps_leds(0);  
+    p_leds(6)   <= reset or or_reduce(dacs_pulse_axis_tdatas(2)) or ps_leds(1);  
+    p_leds(7)   <= dacs_pulse_busy or or_reduce(dacs_pulse_axis_tdatas(3)) or ps_leds(2) or gpio_btns(4);  -- changed this one  
     
     
  
     ---------------------------------------------------------------------------------
     -- Debug output mux.
     ---------------------------------------------------------------------------------
---    pr_dbg_mux : process (clk)
---    begin
---        if rising_edge(clk) then
+    pr_dbg_mux : process (clk)
+    begin
+        if rising_edge(clk) then
 
---            p_debug_out(0)              <= trigger_dacs_pulse;
---            p_debug_out(1)              <= any_dacs_busy;
---            p_debug_out(2)              <= p2p_busy;
---            p_debug_out(3)              <= or_reduce(dacs_pulse_axis_tvalids);
---            p_debug_out(4)              <= or_reduce(dacs_pulse_axis_tdatas(0));
---            p_debug_out(5)              <= or_reduce(dacs_pulse_axis_tdatas(1));
---            p_debug_out(6)              <= or_reduce(dacs_pulse_axis_tdatas(2));
---            p_debug_out(7)              <= or_reduce(dacs_pulse_axis_tdatas(3));
-
---        end if;
---    end process;
+            p_debug_out(0)              <= trigger_dacs_pulse;
+            p_debug_out(1)              <= any_dacs_busy;
+            p_debug_out(2)              <= p2p_busy;
+            p_debug_out(3)              <= or_reduce(dacs_pulse_axis_tvalids);
+            p_debug_out(4)              <= or_reduce(dacs_pulse_axis_tdatas(0));
+            p_debug_out(5)              <= or_reduce(dacs_pulse_axis_tdatas(1));
+            p_debug_out(6)              <= or_reduce(dacs_pulse_axis_tdatas(2));
+            p_debug_out(7)              <= or_reduce(dacs_pulse_axis_tdatas(3));
+            p_debug_out(8)              <= '1';
+            p_debug_out(9)              <= trigger_dacs_pulse;
+            
+        end if;
+    end process;
 
 
 end zc102;

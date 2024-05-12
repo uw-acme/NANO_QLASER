@@ -82,3 +82,24 @@ set_property IOSTANDARD  LVCMOS33 [get_ports "p_dc3_sclk"] ;# Bank  47 VCCO - VC
 #set_property IOSTANDARD  LVCMOS33 [get_ports "p_debug_out[1]"] ;# Bank  49 VCCO - VCC3V3   - IO_L11P_AD9P_49
 
 
+set_property PACKAGE_PIN J15      [get_ports "p_debug_out[0]"] ;# Bank  50 VCCO - VCC3V3   - IO_L12N_AD8N_50
+set_property IOSTANDARD  LVCMOS33 [get_ports "p_debug_out[0]"] ;# Bank  50 VCCO - VCC3V3   - IO_L12N_AD8N_50
+set_property PACKAGE_PIN J16      [get_ports "p_debug_out[1]"] ;# Bank  50 VCCO - VCC3V3   - IO_L12P_AD8P_50
+set_property IOSTANDARD  LVCMOS33 [get_ports "p_debug_out[1]"] ;# Bank  50 VCCO - VCC3V3   - IO_L12P_AD8P_50
+set_property PACKAGE_PIN G16      [get_ports "p_debug_out[2]"] ;# Bank  50 VCCO - VCC3V3   - IO_L11N_AD9N_50
+set_property IOSTANDARD  LVCMOS33 [get_ports "p_debug_out[2]"] ;# Bank  50 VCCO - VCC3V3   - IO_L11N_AD9N_50
+set_property PACKAGE_PIN H16      [get_ports "p_debug_out[3]"] ;# Bank  50 VCCO - VCC3V3   - IO_L11P_AD9P_50
+set_property IOSTANDARD  LVCMOS33 [get_ports "p_debug_out[3]"] ;# Bank  50 VCCO - VCC3V3   - IO_L11P_AD9P_50
+set_property PACKAGE_PIN H14      [get_ports "p_debug_out[4]"] ;# Bank  50 VCCO - VCC3V3   - IO_L10N_AD10N_50
+set_property IOSTANDARD  LVCMOS33 [get_ports "p_debug_out[4]"] ;# Bank  50 VCCO - VCC3V3   - IO_L10N_AD10N_50
+set_property PACKAGE_PIN J14      [get_ports "p_debug_out[5]"] ;# Bank  50 VCCO - VCC3V3   - IO_L10P_AD10P_50
+set_property IOSTANDARD  LVCMOS33 [get_ports "p_debug_out[5]"] ;# Bank  50 VCCO - VCC3V3   - IO_L10P_AD10P_50
+set_property PACKAGE_PIN G14      [get_ports "p_debug_out[6]"] ;# Bank  50 VCCO - VCC3V3   - IO_L9N_AD11N_50
+set_property IOSTANDARD  LVCMOS33 [get_ports "p_debug_out[6]"] ;# Bank  50 VCCO - VCC3V3   - IO_L9N_AD11N_50
+set_property PACKAGE_PIN G15      [get_ports "p_debug_out[7]"] ;# Bank  50 VCCO - VCC3V3   - IO_L9P_AD11P_50
+set_property IOSTANDARD  LVCMOS33 [get_ports "p_debug_out[7]"] ;# Bank  50 VCCO - VCC3V3   - IO_L9P_AD11P_50
+set_property PACKAGE_PIN G13      [get_ports "p_debug_out[8]"] ;# Bank  50 VCCO - VCC3V3   - IO_L8N_HDGC_50
+set_property IOSTANDARD  LVCMOS33 [get_ports "p_debug_out[8]"] ;# Bank  50 VCCO - VCC3V3   - IO_L8N_HDGC_50
+set_property PACKAGE_PIN H13      [get_ports "p_debug_out[9]"] ;# Bank  50 VCCO - VCC3V3   - IO_L8P_HDGC_50
+set_property IOSTANDARD  LVCMOS33 [get_ports "p_debug_out[9]"] ;# Bank  50 VCCO - VCC3V3   - IO_L8P_HDGC_50
+
