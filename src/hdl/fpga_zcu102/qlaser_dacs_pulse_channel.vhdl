@@ -216,14 +216,14 @@ begin
             sm_wavedata_dv      <= '0';
             sm_busy             <= '0';
             reg_wave_length     <= "0000010000";
-            reg_scale_gain      <= (others=>'0');  
+            reg_scale_gain      <= X"8000";  
             count               <= (others=>'0');          
 
         elsif rising_edge(clk) then
             -- Default 
             sm_wavedata     <= (others=>'0');
             sm_wavedata_dv  <= '0';
-            reg_scale_gain  <= unsigned(reg_test(31 downto 16));
+            reg_wave_length  <= unsigned(reg_test(C_BITS_ADDR_LENGTH - 1 downto 0));
 
             
 
@@ -240,7 +240,7 @@ begin
                     v_ram_waveform_doutb_multiplied := std_logic_vector(unsigned(count) * reg_scale_gain);
                     sm_wavedata                     <= v_ram_waveform_doutb_multiplied(30 downto 15); 
                     sm_wavedata_dv                  <= '1';
-                    if (count = reg_wave_length - 1) then
+                    if (count >= reg_wave_length - 1) then
                         sm_state <= S_WAVE_DOWN;
                     end if;
 
