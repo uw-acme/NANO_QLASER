@@ -184,13 +184,14 @@ begin
         -- CPU interface
         cpu_wr          => cpu_wr                   , -- in  std_logic;
         cpu_sel         => cpu_sel                  , -- in  std_logic;
-        cpu_addr        => cpu_addr( 9 downto 0)    , -- in  std_logic_vector(11 downto 0);
+        cpu_addr        => cpu_addr( 11 downto 0)    , -- in  std_logic_vector(11 downto 0);
         cpu_wdata       => cpu_wdata                , -- in  std_logic_vector(31 downto 0);
 
         cpu_rdata       => cpu_rdata                , -- out std_logic_vector(31 downto 0);
         cpu_rdata_dv    => cpu_rdata_dv             , -- out std_logic; 
 
                    
+        done_seq => '0',
         -- AXI-Stream interface
         axis_tready     => axis_tready              , -- in  std_logic;          -- Clock (50 MHz max)
         axis_tdata      => axis_tdata               , -- out std_logic_vector(15 downto 0);
