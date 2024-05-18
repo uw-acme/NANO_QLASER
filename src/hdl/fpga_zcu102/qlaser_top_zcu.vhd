@@ -139,6 +139,13 @@ signal p2p_spi_sclk             : std_logic;    -- Clock (50 MHz?)
 signal p2p_spi_mosi             : std_logic;    -- Master out, Slave in. (Data to DAC)
 signal p2p_spi_cs_n             : std_logic;    -- Active low chip select (sync_n)
 
+signal p2pmodBusyD1: std_logic;
+signal p2pmodBusyD2: std_logic;
+signal p2pmodBusyD3: std_logic;
+signal p2pmodBusyD4: std_logic;
+
+signal p2p_active : STD_LOGIC;
+
 signal gpio_btns                : std_logic_vector( 4 downto 0); 
 
 -- JESD interface for FMC_0 connections to PS block
@@ -164,7 +171,7 @@ begin
     cif_reset <= not(ps_resetn0);
 
     -- Combine p_btn trigger (from pad) with misc block trigger and ps_gpout(0) to create internal trigger
-    trigger_dacs_pulse      <= (p_btn_c or misc_trigger or ps_gpout(0)) and not(p2p_busy);
+    trigger_dacs_pulse      <= (p_btn_c or misc_trigger or ps_gpout(0)) and not(p2p_active);
     ps_enable_dacs_pulse    <= ps_gpout(1);
     any_dacs_busy           <= dacs_dc_busy(0) or dacs_dc_busy(1) or dacs_dc_busy(2) or dacs_dc_busy(3) or dacs_pulse_busy;
 
@@ -411,11 +418,29 @@ begin
     ---------------------------------------------------------------------------------
     pr_dbg_mux : process (clk)
     begin
+        if reset = '1' then
+            p2pmodBusyD1 <= '0';
+            p2pmodBusyD2 <= '0';
+            p2pmodBusyD3 <= '0';
+            p2pmodBusyD4 <= '0';
+        elsif rising_edge(clk) then
+            -- First delay stage
+            p2pmodBusyD1 <= p2p_busy;
+            -- Second delay stage
+            p2pmodBusyD2 <= p2pmodBusyD1;
+            -- Third delay stage
+            p2pmodBusyD3 <= p2pmodBusyD2;
+            -- Fourth delay stage
+            p2pmodBusyD4 <= p2pmodBusyD3;
+        end if;
+        
+        p2p_active <= p2p_busy or p2pmodBusyD4;
+
         if rising_edge(clk) then
 
             p_debug_out(0)              <= trigger_dacs_pulse;
             p_debug_out(1)              <= any_dacs_busy;
-            p_debug_out(2)              <= p2p_busy;
+            p_debug_out(2)              <= p2p_active;
             p_debug_out(3)              <= or_reduce(dacs_pulse_axis_tvalids);
             p_debug_out(4)              <= or_reduce(dacs_pulse_axis_tdatas(0));
             p_debug_out(5)              <= or_reduce(dacs_pulse_axis_tdatas(1));
@@ -426,6 +451,15 @@ begin
             
         end if;
     end process;
-
+    
+    -- your_instance_name : ila_0
+    -- PORT MAP (
+    --     clk => clk,
+    
+    --     probe0 => '1', 
+    --     probe1 => probe1, 
+    --     probe2 => '1',
+    --     probe3 => '1'
+    -- );
 
 end zc102;
