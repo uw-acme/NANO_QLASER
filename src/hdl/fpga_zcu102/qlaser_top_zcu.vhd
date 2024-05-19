@@ -102,7 +102,7 @@ signal ps_clk0                  : std_logic;
 signal ps_resetn0               : std_logic;
 signal ps_leds                  : std_logic_vector( 7 downto 0);
 signal ps_gpin                  : std_logic_vector( 7 downto 0);
-signal ps_gpout                 : std_logic_vector( 7 downto 0);
+-- signal ps_gpout                 : std_logic_vector( 7 downto 0);
 -- Connections to PS axi_cpuint IP block
 signal ps_clk_cpu               : std_logic;
 signal ps_cpu_addr              : std_logic_vector(17 downto 0);
@@ -171,8 +171,8 @@ begin
     cif_reset <= not(ps_resetn0);
 
     -- Combine p_btn trigger (from pad) with misc block trigger and ps_gpout(0) to create internal trigger
-    trigger_dacs_pulse      <= (p_btn_c or misc_trigger or ps_gpout(0)) and not(p2p_active);
-    ps_enable_dacs_pulse    <= ps_gpout(1);
+    trigger_dacs_pulse      <= (p_btn_c or misc_trigger) and not(p2p_active);
+    -- ps_enable_dacs_pulse    <= ; -- IS THIS IT? IS THIS WHAT HAS CAUSED ME SO MUCH PAIN?
     any_dacs_busy           <= dacs_dc_busy(0) or dacs_dc_busy(1) or dacs_dc_busy(2) or dacs_dc_busy(3) or dacs_pulse_busy;
 
     -- JESD outputs
@@ -191,7 +191,7 @@ begin
     ---------------------------------------------------------------------------------
     -- Processing system.  CPU, JESD interfaces, Console UART etc
     ---------------------------------------------------------------------------------
-    u_ps2 : entity work.design_1_wrapper
+    u_ps2 : entity work.ps1_wrapper
     port map(
         reset                   => p_reset              , -- in  std_logic
         -- Signals to/from axi_cpuint peripheral
@@ -423,6 +423,7 @@ begin
             p2pmodBusyD2 <= '0';
             p2pmodBusyD3 <= '0';
             p2pmodBusyD4 <= '0';
+            ps_enable_dacs_pulse <= '0';
         elsif rising_edge(clk) then
             -- First delay stage
             p2pmodBusyD1 <= p2p_busy;
@@ -448,6 +449,7 @@ begin
             p_debug_out(7)              <= or_reduce(dacs_pulse_axis_tdatas(3));
             p_debug_out(8)              <= '1';
             p_debug_out(9)              <= trigger_dacs_pulse;
+            ps_enable_dacs_pulse <= ps_enable_dacs_pulse or misc_trigger; -- TODO: actually enable properly
             
         end if;
     end process;

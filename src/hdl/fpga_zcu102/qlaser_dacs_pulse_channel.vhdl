@@ -622,7 +622,8 @@ begin
                 -- No data output.
                 ------------------------------------------------------------------------
                 when  S_IDLE    =>
-
+                    pc                  <= (others=>'0'); -- these two lines are a temporary fix, they should be corrected in the state transitions to idle, particularly on done_seq
+                    ram_pulse_addrb     <= (others=>'0');
                     if (start = '1') and (start_d1 = '0') then
                         sm_state    <= S_LOAD;
                         sm_busy     <= '1';

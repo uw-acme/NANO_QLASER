@@ -121,6 +121,12 @@ constant PMOD_ADDR_CTRL	: std_logic_vector(17 downto 0) 	:= ADR_BASE_SPARE & X"0
 -- constant ADR_REG_PULSE2PMOD_CTRL	: std_logic_vector(17 downto 0) 	:= ADR_BASE_SPARE & X"001C";   -- Control reg. Bit-0 =1 selects stream input
 -- constant ADR_REG_PULSE2PMOD_DAC0 	: std_logic_vector(17 downto 0) 	:= ADR_BASE_SPARE & X"0000";   -- Only DAC0 is used. We need full SPI bandwidth 
 
+
+-- constant ADR_BASE_PULSE         : std_logic_vector(17 downto 16) :=  "01";    -- RAMs for Pulse output start/stop times
+
+constant ADR_BASE_PULSE_DEFN : std_logic_vector(17 downto 0) := ADR_BASE_PULSE & X"0000";
+constant ADR_BASE_PULSE_WAVE : std_logic_vector(17 downto 0) := ADR_BASE_PULSE & X"2000";
+
 end package;
 
 package body qlaser_addr_zcu102_pkg is

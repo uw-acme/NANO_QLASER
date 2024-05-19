@@ -167,9 +167,9 @@ begin
         p_leds      => p_leds,
         p_debug_out => p_debug_out );
 
-    testad5628: ad5628 port map ( sclk_n => p_dc1_sclk,
-        sync_n => p_dc1_cs_n,
-        din    => p_dc1_mosi,
+    testad5628: ad5628 port map ( sclk_n => p_dc0_sclk,
+        sync_n => p_dc0_cs_n,
+        din    => p_dc0_mosi,
         vref   => vref,
         vout0  => vout0,
         vout1  => vout1,
@@ -218,10 +218,10 @@ begin
         p_reset <= '0';
 
 
-        
+        clk_delay(10000);
         
         cpu_print_msg("Simulation done");
-        clk_delay(150);
+        clk_delay(10);
 		
         sim_done    <= true;
         wait;

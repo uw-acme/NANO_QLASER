@@ -97,11 +97,12 @@ begin
         ----------------------------------------------------------------
         -- Write control register. Bit-0 = '0' for CPU bus access to PMOD DACs
         -- cpu_write(clk, to_integer(unsigned(ADR_REG_PULSE2PMOD_CTRL))    , X"00000000", rd, wr, addr, wdata);
+        cpu_write(clk, to_integer(unsigned(PMOD_ADDR_CTRL))    , X"00000000", rd, wr, addr, wdata);
         -- clk_delay(10, clk);
 
         cpu_write(clk, PMOD_ADDR_INTERNAL_REF    , X"00000001", rd, wr, addr, wdata);
         cpu_write(clk, PMOD_ADDR_POWER_ON    , X"00000001", rd, wr, addr, wdata);
-        cpu_write(clk, "00" & X"0080"    , X"00000001", rd, wr, addr, wdata); --caddrspiall
+        clk_delay(70, clk);
 
         -- Write DAC0 register
         cpu_write(clk, PMOD_ADDR_SPI0    , X"00000001", rd, wr, addr, wdata);
@@ -110,11 +111,57 @@ begin
         -- Write DAC0 register
         cpu_write(clk, PMOD_ADDR_SPI0    , X"00000010", rd, wr, addr, wdata);
         clk_delay(70, clk);
+        cpu_write(clk, PMOD_ADDR_SPI0    , X"00000100", rd, wr, addr, wdata);
+        clk_delay(70, clk);
 
+        -- select all, enable all
+        cpu_write(clk, ADR_REG_AC_CH_SEL    , X"FFFFFFFF", rd, wr, addr, wdata);
+        cpu_write(clk, ADR_REG_AC_CH_EN    , X"FFFFFFFF", rd, wr, addr, wdata);
+        
+
+        -- write sequence length
+        cpu_write(clk, ADR_REG_AC_SEQ_LEN, X"00000070", rd, wr, addr, wdata);
+
+        -- write pulse def
+        -- entry_pulse_defn(0, 40, 0, 0x0010, 0x8000, 0x100, 0x00010); 
+        cpu_write(clk, ADR_BASE_PULSE_DEFN, X"00000020", rd, wr, addr, wdata); -- start time
+        cpu_write(clk, ADR_BASE_PULSE_DEFN or "00" & X"0004", X"00040000", rd, wr, addr, wdata); -- wave length, wave addr
+        cpu_write(clk, ADR_BASE_PULSE_DEFN or "00" & X"0008", X"80000100", rd, wr, addr, wdata); -- scale addr, scale gain
+        cpu_write(clk, ADR_BASE_PULSE_DEFN or "00" & X"000C", X"00000002", rd, wr, addr, wdata); -- flat top
+
+        
+
+        -- write waveform
+        cpu_write(clk, ADR_BASE_PULSE_WAVE, X"00010002", rd, wr, addr, wdata); 
+        cpu_write(clk, ADR_BASE_PULSE_WAVE or "00" & X"0004", X"00040003", rd, wr, addr, wdata); 
+        cpu_write(clk, ADR_BASE_PULSE_WAVE or "00" & X"0008", X"00060005", rd, wr, addr, wdata); 
+        cpu_write(clk, ADR_BASE_PULSE_WAVE or "00" & X"000C", X"00080007", rd, wr, addr, wdata); 
+        
+        -- for i in 0 to 255 loop
+        --     -- cpu_addr(9 downto 0) <= std_logic_vector(to_unsigned(i, 10)); -- ram_pulse_addra
+        --     wait until rising_edge(clk);
+        --     -- cpu_wdata(15 downto 0) <= std_logic_vector(to_unsigned(i, 16));
+        --     -- cpu_wdata(31 downto 16) <= std_logic_vector(to_unsigned(i, 16));
+        --     cpu_write(clk, "01" & x"2" & "00" & std_logic_vector(to_unsigned(i, 10)), std_logic_vector(to_unsigned(i, 16)) & std_logic_vector(to_unsigned(i, 16)), rd, wr, addr, wdata); 
+
+            
+        --     wait until rising_edge(clk);
+
+        -- end loop;
+        -- wait until rising_edge(clk);
+
+        -- switch control
+        cpu_write(clk, to_integer(unsigned(PMOD_ADDR_CTRL))    , X"00000001", rd, wr, addr, wdata);
 
         -- trigger
-        cpu_write(clk, ADR_MISC_DEBUG_TRIGGER    , X"00000001", rd, wr, addr, wdata); --ADR_MISC_TRIGGER
-        clk_delay(70, clk);
+        cpu_write(clk, ADR_MISC_DEBUG_TRIGGER    , X"00000001", rd, wr, addr, wdata); -- set to enabled
+        clk_delay(10, clk);
+
+        cpu_write(clk, ADR_MISC_DEBUG_TRIGGER    , X"00000000", rd, wr, addr, wdata);
+        clk_delay(10, clk);
+
+        cpu_write(clk, ADR_MISC_DEBUG_TRIGGER    , X"00000001", rd, wr, addr, wdata); -- start run
+        clk_delay(10000, clk);
 
         ----------------------------------------------------------------
         -- ADD CUSTOM REGISTER COMMANDS ABOVE HERE
