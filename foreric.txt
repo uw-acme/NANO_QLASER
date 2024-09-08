@@ -1,0 +1,166 @@
+Use this branch to generate a bitfile for vitis. 
+
+Note that commit 6e0c007 https://github.com/uw-acme/NANO_QLASER/commit/6e0c0073caa1b71f062d0908fe019ad17d27f89e changed ps_enable_dacs_pulse to enable whenever the misc_trigger is high, so you'll need to trigger twice - first trigger enables, second actually triggers. This should be fixed, I did not have time for this. 
+
+If vitis is cokmplaining about file not found with custom ip, set the following makefiles to be 
+a.	/{vitis platform project name}/hw/drivers/axi_cpuint_v1_0/src/Makefile
+b.	/{vitis platform project name}/psu_cortexa53_0/standalone_domain/bsp/psu_cortexa53_0/libsrc/axi_cpuint_v1_0/src/Makefile
+c.	/{vitis platform project name}/zynqmp_fsbl/zynqmp_fsbl_bsp/psu_cortexa53_0/libsrc/axi_cpuint_v1_0/src/Makefile
+d.	/{vitis platform project name}/zynqmp_pmufw/zynqmp_pmufw_bsp/psu_pmu_0/libsrc/axi_cpuint_v1_0/src/Makefile
+
+COMPILER=
+ARCHIVER=
+CP=cp
+COMPILER_FLAGS=
+EXTRA_COMPILER_FLAGS=
+LIB=libxil.a
+
+RELEASEDIR=../../../lib
+INCLUDEDIR=../../../include
+INCLUDES=-I./. -I${INCLUDEDIR}
+
+INCLUDEFILES=*.h
+LIBSOURCES=$(wildcard *.c)
+OBJECTS = $(addsuffix .o, $(basename $(wildcard *.c)))
+ASSEMBLY_OBJECTS = $(addsuffix .o, $(basename $(wildcard *.S)))
+
+libs:
+	echo "axi_cpuint_v1_0..."
+	$(COMPILER) $(COMPILER_FLAGS) $(EXTRA_COMPILER_FLAGS) $(INCLUDES) $(LIBSOURCES)
+	$(ARCHIVER) -r ${RELEASEDIR}/${LIB} ${OBJECTS} ${ASSEMBLY_OBJECTS}
+	make clean
+
+include:
+	${CP} $(INCLUDEFILES) $(INCLUDEDIR)
+
+clean:
+	rm -rf ${OBJECTS} ${ASSEMBLY_OBJECTS}
+
+
+
+
+When running on the board, 
+
+'p' toggles a constant signal on pmod from low to high.
+
+'f' sets the pmod to use internal reference 
+
+'C' sets the pmod to listen to pulse generator 
+
+'s' Sets the pulse sequence length - I was using 10000
+
+'t' triggers - as above, currently first trigger enables and second trigger actually triggers.
+
+'w' writes pulses
+
+'W' reads the written pulses
+
+
+
+
+
+
+
+Below are some of my notes that you may or may not find useful 
+Entire clone process of NANO_QLASER: 
+1.	close, checkout tyler_zcu_102, cd tools/xillinx, vivado -mode tcl -source build_zcu.tcl
+2.	Create block diagram, add zynq block, run connection automation, add gpio, set to leds and switches, run connection automations, in sources right click and add wrapper to design, instantiate design inside of qlaser_top. 
+    a.	Add ip source as D:\Research\AXI_IF_CPU_IP\axi_cpuint_1.0
+    b.	Add axi_cpuint to block diagram, run connection automation, on unconnected ports right click and do connect to external. Rename all external ports to not have _0 ending. 
+3.	Manually add as src 
+    a.	"D:\Research\Take_7_axi_cpu\NANO_QLASER\src\hdl\fpga_zcu102\pulse2pmod.vhd" 
+    b.	"D:\Research\Take_7_axi_cpu\NANO_QLASER\src\hdl\fpga_zcu102\qlaser_cif.vhd"
+    c.	D:\Research\Take_7_axi_cpu\NANO_QLASER\tools\xilinx\axis_data_fifo_32Kx16b
+    i.	Which came from D:\Research\Take 2\PulseChannel\tools\xilinx-zcu\axis_data_fifo_32Kx16b 
+    d.	D:\Research\Take_7_axi_cpu\NANO_QLASER\src\hdl\fpga_zcu102\qlaser_pmod_pulse.vhd
+    e.	"D:\Research\Take 2\NANO_QLASER\tools\constraint_zcu\bram_pulse_definition\bram_pulse_definition.xci"
+4.	Generate bitstream, file export export hardware with bitstream, open vitis, new platform project from the generated xsa, new application project off of that platform, build and run as hardware
+    a.	Write bitstream error – check that no double use of ports in DRC output (delete p_leds_0 through 5)
+5.	Vitis doesn’t recognize .h files (file not found) with custom ip 
+    a.	/geoff_no_leds5/hw/drivers/axi_cpuint_v1_0/src/Makefile
+    b.	/geoff_no_leds5/psu_cortexa53_0/standalone_domain/bsp/psu_cortexa53_0/libsrc/axi_cpuint_v1_0/src/Makefile
+    c.	/geoff_no_leds5/zynqmp_fsbl/zynqmp_fsbl_bsp/psu_cortexa53_0/libsrc/axi_cpuint_v1_0/src/Makefile
+    d.	/geoff_no_leds5/zynqmp_pmufw/zynqmp_pmufw_bsp/psu_pmu_0/libsrc/axi_cpuint_v1_0/src/Makefile
+    e.	All set to MakefileHERE
+    f.	https://support.xilinx.com/s/question/0D52E00006hpOx5SAE/drivers-and-makefiles-problems-in-vitis-20202?language=en_US set LIBSOURCES=$(wildcard *.c)
+    g.	https://support.xilinx.com/s/article/75527?language=en_US official response
+    h.	https://support.xilinx.com/s/question/0D52E00006hpOx5SAE/drivers-and-makefiles-problems-in-vitis-20202?language=en_US vras top answer used as makefile template, changed libsources as above
+6.	Use tera term to read board stuff 
+    a.	Setup, serial port, port whichever one in device_manager is interface 0 under ports (currently com7), speed 115200, data 8 bit, parity none, stop bits 1 bit, flow control none, 0 0 transmit delay
+7.	Load onto sd card 
+    a.	Create boot.bin:
+    b.	Boot image for SD card – vitis, Xilinx menu, create boot image 
+    c.	change to zynq mp 
+    d.	Output format BIN
+    e.	First add Fsbl.elf from platform as bootloader 
+    f.	Add  :\ResearchTake2\VitisWorkspace\application_empty\_ide\bitstream\design_1_wrapper5_01.bit datafile 
+    g.	Add D:\ResearchTake2\VitisWorkspace\application_empty\Debug\application_empty.elf datafile
+    h.	Versioning: 
+        i.	D:/Research/Take_3_test/NANO_QLASER/src/hdl/fpga_zcu102/qlaser_version_pkg_zcu.vhd – has version number which can be read by CPU
+        ii.	D:/Research/Take_3_test/NANO_QLASER/tools/constraint_zcu/set_usercode_zcu.xdc – has version number set in bitfile.
+Versioning: 
+    1.	32'h3AC00008 – take_6_vhdl_controlling block design 2 removed leds from block design connected leds in qlaser_top removed all pmod stuff
+    2.	32'h3AC00009 - take_7 removed leds from block design connected leds in qlaser_top added axi_cpu block, adding pmod connection
+Entire clone process of pulsechannel: 
+    1.	clone, cd tools/build_src, run vivado -mode tcl -source build.tcl, 
+    2.	Open from generated .xpr file
+    3.	Close and reopen vivado and open project from main pain
+    4.	Tools compile simulation sources for modelsim 
+
+MakeFileHERE:
+COMPILER=
+ARCHIVER=
+CP=cp
+COMPILER_FLAGS=
+EXTRA_COMPILER_FLAGS=
+LIB=libxil.a
+
+RELEASEDIR=../../../lib
+INCLUDEDIR=../../../include
+INCLUDES=-I./. -I${INCLUDEDIR}
+
+INCLUDEFILES=*.h
+LIBSOURCES=$(wildcard *.c)
+OBJECTS = $(addsuffix .o, $(basename $(wildcard *.c)))
+ASSEMBLY_OBJECTS = $(addsuffix .o, $(basename $(wildcard *.S)))
+
+libs:
+	echo "axi_cpuint_v1_0..."
+	$(COMPILER) $(COMPILER_FLAGS) $(EXTRA_COMPILER_FLAGS) $(INCLUDES) $(LIBSOURCES)
+	$(ARCHIVER) -r ${RELEASEDIR}/${LIB} ${OBJECTS} ${ASSEMBLY_OBJECTS}
+	make clean
+
+include:
+	${CP} $(INCLUDEFILES) $(INCLUDEDIR)
+
+clean:
+	rm -rf ${OBJECTS} ${ASSEMBLY_OBJECTS}
+
+
+old version: 
+COMPILER=
+ARCHIVER=
+CP=cp
+COMPILER_FLAGS=
+EXTRA_COMPILER_FLAGS=
+LIB=libxil.a
+
+RELEASEDIR=../../../lib
+INCLUDEDIR=../../../include
+INCLUDES=-I./. -I${INCLUDEDIR}
+
+INCLUDEFILES=*.h
+LIBSOURCES=*.c
+OUTS = *.o
+
+libs:
+	echo "Compiling axi_cpuint..."
+	$(COMPILER) $(COMPILER_FLAGS) $(EXTRA_COMPILER_FLAGS) $(INCLUDES) $(LIBSOURCES)
+	$(ARCHIVER) -r ${RELEASEDIR}/${LIB} ${OUTS}
+	make clean
+
+include:
+	${CP} $(INCLUDEFILES) $(INCLUDEDIR)
+
+clean:
+	rm -rf ${OUTS}
