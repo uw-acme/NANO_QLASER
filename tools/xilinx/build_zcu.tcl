@@ -615,6 +615,11 @@ set_property -name "file_type" -value "VHDL" -objects $file_obj
 set_property  ip_repo_paths  "$origin_dir/../../tools/ip_repo/axi_cpubus" [current_project]
 update_ip_catalog -rebuild
 
+# Import Block Design
+import_files -norecurse "$origin_dir/../../tools/xilinx/blocks/bd_ps1/ps1/ps1.bd"
+make_wrapper -files [get_files "$origin_dir/../../tools/xilinx/blocks/bd_ps1/ps1/ps1.bd"] -top
+add_files -norecurse "$proj_dir/${_xil_proj_name_}.gen/sources_1/bd/ps1/hdl/ps1_wrapper.vhd"
+
 # Set 'sim_1' fileset file properties for local files
 # None
 
