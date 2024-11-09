@@ -7,29 +7,31 @@ use     ieee.std_logic_1164.all;
 use     ieee.numeric_std.all;
 
 use     work.qlaser_pkg.all;
---use     work.qlaser_dacs_pulse_channel_pkg.all;
+use     work.qlaser_dacs_pulse_channel_pkg.all;
 
 entity qlaser_dacs_pulse_channel is
 port (
     reset               : in  std_logic;
     clk                 : in  std_logic; 
 
-    enable              : in  std_logic;                        -- Set when DAC interface is running
-    start               : in  std_logic;                        -- Set when pulse generation sequence begins (trigger)
-    cnt_time            : in  std_logic_vector(23 downto 0);    -- Time since trigger.
+    enable              : in  std_logic;                                      -- Set when DAC interface is running
+    start               : in  std_logic;                                      -- Set when pulse generation sequence begins (trigger)
+    cnt_time            : in  std_logic_vector(23 downto 0);                  -- Time since trigger.
 
-    busy                : out std_logic;                        -- Status signal
-    err_wave            : out std_logic;
-    done_seq            : in  std_logic;                        -- Status signal to terminate sequence
-    -- TODO: Add another status signal to indicate any errors?
+    busy                : out std_logic;                                      -- Status signal
+    done_seq            : in  std_logic;                                      -- Status signal to terminate sequence
+
+    -- status signals to indicate any errors
+    erros               : out std_logic_vector(C_ERRORS_TOTAL - 1 downto 0);  -- Error signals
+    clear_errors        : in  std_logic;                                      -- Clear error signals
 
     -- CPU interface
-    cpu_addr            : in  std_logic_vector(11 downto 0);    -- Address input
-    cpu_wdata           : in  std_logic_vector(31 downto 0);    -- Data input
-    cpu_wr              : in  std_logic;                        -- Write enable 
-    cpu_sel             : in  std_logic;                        -- Block select
-    cpu_rdata           : out std_logic_vector(31 downto 0);    -- Data output
-    cpu_rdata_dv        : out std_logic;                        -- Acknowledge output
+    cpu_addr            : in  std_logic_vector(11 downto 0);                  -- Address input
+    cpu_wdata           : in  std_logic_vector(31 downto 0);                  -- Data input
+    cpu_wr              : in  std_logic;                                      -- Write enable 
+    cpu_sel             : in  std_logic;                                      -- Block select
+    cpu_rdata           : out std_logic_vector(31 downto 0);                  -- Data output
+    cpu_rdata_dv        : out std_logic;                                      -- Acknowledge output
      
     -- AXI-stream output
     axis_tready         : in  std_logic;                        -- axi_stream ready from downstream module
@@ -48,7 +50,7 @@ signal reg_test : std_logic_vector(31 downto 0);
 begin
 
     busy    <= '0';
-    err_wave <= '0';
+    erros   <= (others=>'0');
 
     -- AXI-Stream output.
     axis_tdata          <= (others=>'0');   -- axi stream output data
@@ -94,217 +96,12 @@ begin
         
     end process;
 
-end empty;
-
-----------------------------------------------------------------
--- Sawtooth architecture with a single 32-bit r/w register used for gain
-----------------------------------------------------------------
-architecture sawtooth of qlaser_dacs_pulse_channel is
-
-
--- Constants declearations
-constant C_RAM_SELECT       : integer   := 11;                                    -- Select bit for which RAM for CPU read/write
--- constant C_NUM_PULSE        : integer   := 16;                -- Number of output data values from pulse RAM (16x24-bit)
-
-constant C_START_TIME       : integer   := 24;                                    -- Start time for pulse generation
-constant C_BITS_ADDR_START  : integer   := 12;                                    -- Number of bits for starting address
-constant C_BITS_ADDR_LENGTH : integer   := 10;                                    -- Number of bits for length address used by an edge of a pulse
-constant C_BITS_GAIN_FACTOR : integer   := 16;                                    -- Number of bits in gain table
-constant C_BITS_TIME_FACTOR : integer   := 16;                                    -- Number of bits in time table
-constant C_BITS_TIME_INT    : integer   := 14;                                    -- Starting bit for time integer part of the time factor, counting from MSB
-constant C_BITS_TIME_FRAC   : integer   :=  5;                                    -- Starting bit for time fractional part of the time factor, counting from MSB
-constant C_BITS_ADDR_TOP    : integer   := 17;                                    -- Number of bits for the "flat top", the top of the pulse
-
-constant C_LENGTH_WAVEFORM  : integer   := 4096;                                  -- Number of output data values from waveform RAM (4kx16-bit)
-constant C_BITS_ADDR_WAVE   : integer   := 16;                                    -- Number of bits in address for waveform RAM
-
-constant C_BITS_ADDR_PULSE  : integer   := 10;                                    -- Number of bits in address for pulse definition RAM
-constant C_LEN_PULSE        : integer   := 2**C_BITS_ADDR_PULSE;                  -- Numbers of address for pulse definition RAM
-constant C_PC_INCR          : integer   := 4;                                     -- Width of pulse counter increment
-constant C_BITS_ADDR_FULL : integer := 20;                                        -- Number of bits for the untruncated address, should be C_BITS_ADDR_LENGTH + fractional bits of time factor
-
--- State variable type declaration for main state machine
-type t_sm_state  is (
-    S_WAVE_UP,  -- Output the rising edge of a waveform
-    S_WAVE_DOWN -- Output the falling edge of a waveform
-);
-signal sm_state             : t_sm_state;
-signal sm_wavedata          : std_logic_vector(15 downto 0);                      -- Waveform RAM data
-signal sm_wavedata_dv       : std_logic;                                          -- Signal to indicate that waveform RAM data is valid
-signal sm_busy              : std_logic;                                          -- Signal to indicate that s.m. is not idle
-
-
-
-signal count                :         unsigned(15 downto 0);                      -- current value of rise or fall, rises from 0 to count, falls from count to 0 
-signal reg_scale_gain       :         unsigned(C_BITS_TIME_FACTOR - 1 downto 0);  -- scale factor for the gain, amplitude
-signal reg_wave_length      :         unsigned(C_BITS_ADDR_LENGTH - 1 downto 0);  -- the length of the rise (max value of count)
-
-
-signal reg_test : std_logic_vector(31 downto 0);
-begin
-
-    -- busy    <= '0';
-    err_wave <= '0';
-
-    -- -- AXI-Stream output.
-    -- axis_tdata          <= (others=>'0');   -- axi stream output data
-    -- axis_tvalid         <= '0';             -- axi_stream output data valid
-    -- axis_tlast          <= '0';             -- axi_stream output last 
-    
-
-    ----------------------------------------------------------------
-    -- CPU Read/Write 
-    ----------------------------------------------------------------
-    pr_ram_rw  : process (reset, clk)
-    begin
-        if (reset = '1') then
-        
-            cpu_rdata           <= (others=>'0');
-            cpu_rdata_dv        <= '0'; 
-            reg_test            <= X"8000CCCC";
-            
-        elsif rising_edge(clk) then
-        
-            -------------------------------------------------
-            -- CPU write
-            -------------------------------------------------
-            if (cpu_wr = '1') and (cpu_sel = '1') then
-            
-                reg_test        <= cpu_wdata;
-
-            -------------------------------------------------
-            -- CPU read
-            -------------------------------------------------
-            elsif (cpu_wr = '0') and (cpu_sel = '1') then
-                
-                cpu_rdata_dv    <= '1';     
-                cpu_rdata       <= reg_test; 
-                    
-            else
-                cpu_rdata_dv    <= '0';
-                cpu_rdata       <= (others=>'0');
-            
-            end if;
-            
-        end if;
-        
-    end process;
-
-
-
-    ----------------------------------------------------------------
-    -- State machine: 
-    -- Compares cnt_time input against current output from pulse position RAM.
-    -- When values match iti incremnts the pulse postion RAM address to 
-    -- retrieve the next pulse position and also starts reading the 
-    -- entire waveform table, one value every clock cycle, until it reaches the end.
-    -- Once the pulse is complete it waits for the next cnt_time match.
-    -- Repeat until all pulse position RAM times have triggered a pulse output 
-    -- or until the maximum counter time has been reached.
-    ----------------------------------------------------------------
-    pr_sm : process (reset, clk)
-    -- Temp variables for waveform output
-    variable v_ram_waveform_doutb_multiplied : std_logic_vector(C_BITS_GAIN_FACTOR + 15 downto 0);
-    variable v_ram_waveform_addrb_scaled     : std_logic_vector(C_BITS_ADDR_START  + 15 downto 0);
-    variable v_ram_waveform_addrb_raw        :         unsigned(C_BITS_ADDR_START  -  1 downto 0);
-    begin
-        if (reset = '1') then
-
-            sm_state            <= S_WAVE_UP; 
-
-            sm_wavedata         <= (others=>'0');
-            sm_wavedata_dv      <= '0';
-            sm_busy             <= '0';
-            reg_wave_length     <= "0000010000";
-            reg_scale_gain      <= X"8000";  
-            count               <= (others=>'0');          
-
-        elsif rising_edge(clk) then
-            -- Default 
-            sm_wavedata     <= (others=>'0');
-            sm_wavedata_dv  <= '0';
-            reg_wave_length  <= unsigned(reg_test(C_BITS_ADDR_LENGTH - 1 downto 0));
-
-            
-
-            ------------------------------------------------------------------------
-            -- Main state machine
-            ------------------------------------------------------------------------
-            case sm_state is
-
-                ------------------------------------------------------------------------
-                -- Output the raising edge of a waveform
-                ------------------------------------------------------------------------
-                when  S_WAVE_UP =>
-                    count <= count + 1;
-                    v_ram_waveform_doutb_multiplied := std_logic_vector(unsigned(count) * reg_scale_gain);
-                    sm_wavedata                     <= v_ram_waveform_doutb_multiplied(30 downto 15); 
-                    sm_wavedata_dv                  <= '1';
-                    if (count >= reg_wave_length - 1) then
-                        sm_state <= S_WAVE_DOWN;
-                    end if;
-
-                ------------------------------------------------------------------------
-                -- Output the falling edge of a waveform
-                ------------------------------------------------------------------------
-                when S_WAVE_DOWN =>
-                    count <= count - 1;
-                    v_ram_waveform_doutb_multiplied := std_logic_vector(unsigned(count) * reg_scale_gain);
-                    sm_wavedata                     <= v_ram_waveform_doutb_multiplied(30 downto 15); 
-                    sm_wavedata_dv                  <= '1'; 
-                    if (count = 1) then 
-                        sm_state <= S_WAVE_UP;
-                    end if;
-
-                ------------------------------------------------------------------------
-                -- Default
-                ------------------------------------------------------------------------
-                when others =>
-                    sm_state                    <= S_WAVE_UP;
-
-            end case;
-        end if;
-    end process;
-
-
-    busy <= sm_busy;
-
-    -- AXI-Stream output.
-    -- TBD: This should come from a FIFO
-    -- TODO: the bits are not correct, should be top bits (C_BITS_GAIN_FACTOR + 16 downto C_BITS_GAIN_FACTOR), but for now just make it this way so modelsim can simulate
-    axis_tdata          <= sm_wavedata;         -- axi stream output data, this output should be multiplied by the gain factor, then take the top 16 bits
-    axis_tvalid         <= sm_wavedata_dv;      -- axi_stream output data valid
-
-    -- TBD : Generate in state machine?
-    axis_tlast          <= '0';                 -- axi_stream output last 
-
-end sawtooth;
+end empty;    
 
 ---------------------------------------------------------------------------
 -- Single channel pulse generator with two RAMs
 ---------------------------------------------------------------------------
 architecture channel of qlaser_dacs_pulse_channel is
--- Constants declearations
-constant C_RAM_SELECT       : integer   := 11;                                    -- Select bit for which RAM for CPU read/write
--- constant C_NUM_PULSE        : integer   := 16;                -- Number of output data values from pulse RAM (16x24-bit)
-
-constant C_START_TIME       : integer   := 24;                                    -- Start time for pulse generation
-constant C_BITS_ADDR_START  : integer   := 12;                                    -- Number of bits for starting address
-constant C_BITS_ADDR_LENGTH : integer   := 10;                                    -- Number of bits for length address used by an edge of a pulse
-constant C_BITS_GAIN_FACTOR : integer   := 16;                                    -- Number of bits in gain table
-constant C_BITS_TIME_FACTOR : integer   := 16;                                    -- Number of bits in time table
-constant C_BITS_TIME_INT    : integer   := 14;                                    -- Starting bit for time integer part of the time factor, counting from MSB
-constant C_BITS_TIME_FRAC   : integer   :=  5;                                    -- Starting bit for time fractional part of the time factor, counting from MSB
-constant C_BITS_ADDR_TOP    : integer   := 17;                                    -- Number of bits for the "flat top", the top of the pulse
-
-constant C_LENGTH_WAVEFORM  : integer   := 4096;                                  -- Number of output data values from waveform RAM (4kx16-bit)
-constant C_BITS_ADDR_WAVE   : integer   := 16;                                    -- Number of bits in address for waveform RAM
-
-constant C_BITS_ADDR_PULSE  : integer   := 10;                                    -- Number of bits in address for pulse definition RAM
-constant C_LEN_PULSE        : integer   := 2**C_BITS_ADDR_PULSE;                  -- Numbers of address for pulse definition RAM
-constant C_PC_INCR          : integer   := 4;                                     -- Width of pulse counter increment
-constant C_BITS_ADDR_FULL : integer := 20;                                        -- Number of bits for the untruncated address, should be C_BITS_ADDR_LENGTH + fractional bits of time factor
-
 
 -- Signal declarations for pulse RAM
 signal ram_pulse_we         : std_logic_vector( 0 downto 0);                      -- Write enable for pulse RAM
@@ -339,7 +136,7 @@ signal sm_wavedata_dv       : std_logic;                                        
 signal sm_busy              : std_logic;                                          -- Signal to indicate that s.m. is not idle
 signal cnt_wave_len         :         unsigned(C_BITS_ADDR_LENGTH - 1 downto 0);  -- Counter used for incremnet/decrement wave table addresses
 signal cnt_wave_top         :         unsigned(C_BITS_ADDR_TOP - 1 downto 0);     -- Counter for the flat top of the waveform
-signal cnt_addr             :         unsigned(C_BITS_ADDR_START - 1 downto 0);  -- Counter to keep track of address increments 
+signal cnt_addr             :         unsigned(C_BITS_ADDR_START - 1 downto 0);   -- Counter to keep track of address increments 
 signal wave_last_addr       : std_logic_vector(C_BITS_ADDR_FULL - 1 downto 0);    -- Last address of the waveform table
 
 -- Misc signals
@@ -371,13 +168,9 @@ signal sm_state_d1          : t_sm_state;
 signal start_d1             : std_logic;
 signal enable_d1            : std_logic;
 
--- error signal
-signal err_addr_of          : std_logic;
 
 
 begin
-
-    err_wave <= '0';
 
     ----------------------------------------------------------------
     -- Pulse Definition Block RAM.
@@ -584,6 +377,8 @@ begin
             pc                  <= (others=>'0');
             cnt_wave_len        <= (others=>'0');
             cnt_wave_top        <= (others=>'0');
+
+            erros               <= (others=>'0');
         elsif rising_edge(clk) then
             
 
@@ -596,7 +391,9 @@ begin
             sm_wavedata     <= (others=>'0');
             sm_wavedata_dv  <= '0';
 
-            
+            if clear_errors = '1' then
+                erros               <= (others=>'0');
+            end if;
 
             ------------------------------------------------------------------------
             -- Main state machine
@@ -622,8 +419,7 @@ begin
                 -- No data output.
                 ------------------------------------------------------------------------
                 when  S_IDLE    =>
-                    pc                  <= (others=>'0'); -- these two lines are a temporary fix, they should be corrected in the state transitions to idle, particularly on done_seq
-                    ram_pulse_addrb     <= (others=>'0');
+
                     if (start = '1') and (start_d1 = '0') then
                         sm_state    <= S_LOAD;
                         sm_busy     <= '1';
@@ -635,7 +431,7 @@ begin
                 -- Load four addresses from pulse definition RAM into four 32 bits regesters
                 ------------------------------------------------------------------------
                 when  S_LOAD    =>
-                    -- TODO: FromEric: does is needed here? or should be inside the if-else loops
+                    -- TODO: FromEric: needed here? or should be inside the if-else loops
                     -- Load the pulse channel RAM addresses and start the waveform output
                     sm_busy                         <= '1';
                     if (sm_state_d1 = S_WAVE_DOWN) then  -- output the last pulse definition address for one more clock cycle
@@ -648,31 +444,26 @@ begin
                     if (unsigned(ram_pulse_addrb) mod 4 = 0) then
                         ram_pulse_addrb  <= std_logic_vector(unsigned(pc) + 1);
                         sm_state            <= S_LOAD;
-                                                                                                                    -- first quarter of the pulse definition, no register is loaded
-                        
                     elsif (unsigned(ram_pulse_addrb) mod 4 = 1) then
                         ram_pulse_addrb  <= std_logic_vector(unsigned(pc) + 2);
                         sm_state            <= S_LOAD;
-                                                                                                                    -- second quarter of the pulse definition, the start time is loaded
-                        reg_pulse_time      <= ram_pulse_doutb;
-                        
-                        
+                                                                                                                   -- second quarter of the pulse definition, the start time is loaded
+                        reg_pulse_time      <= ram_pulse_doutb;    
                     elsif (unsigned(ram_pulse_addrb) mod 4 = 2) then
                         ram_pulse_addrb  <= std_logic_vector(unsigned(pc) + 3);
                         sm_state            <= S_LOAD;
-                                                                                                                    -- third quarter of the pulse definition, the length and start address of the wavetable are loaded
+                                                                                                                   -- third quarter of the pulse definition, the length and start address of the wavetable are loaded
                         reg_wave_start_addr <= ram_pulse_doutb(C_BITS_ADDR_START - 1 downto 0);
                         reg_wave_length     <= unsigned(ram_pulse_doutb(25 downto 16));                            -- TODO: make this a constant
-
                     elsif (unsigned(ram_pulse_addrb) mod 4 = 3) then
                         sm_state            <= S_WAIT;                                                             -- address is on the forth word of the entry, the loading process is complete. Moving onto the next state
-                                                                                                                    -- hold the last pulse definition address as it will be used in the next state
+                                                                                                                   -- hold the last pulse definition address as it will be used in the next state
                         pc                  <= std_logic_vector(unsigned(pc) + C_PC_INCR);                         -- incremnet the pulse counter and start waiting to output the wave
-                                                                                                                    -- forth quarter of the pulse definition, the scale factors are loaded
+                                                                                                                   -- forth quarter of the pulse definition, the scale factors are loaded
                         reg_scale_gain      <= unsigned(ram_pulse_doutb(31 downto 16));
                         reg_scale_time      <= unsigned(ram_pulse_doutb(15 downto 0));
-                        reg_wave_end_addr  <=  resize(unsigned(reg_wave_start_addr) + reg_wave_length, 20) sll 8;  -- get the supposed last value of the wavetable                        
 
+                        reg_wave_end_addr   <=  resize(unsigned(reg_wave_start_addr) + reg_wave_length - 1, 20) sll 8;  -- get the supposed last value of the wavetable
                     end if;
 
                 ------------------------------------------------------------------------
@@ -684,14 +475,45 @@ begin
                     reg_pulse_flattop               <= unsigned(ram_pulse_doutb(C_BITS_ADDR_TOP - 1 downto 0));
                     -- Start to output wave and increment pulse position RAM address
                     if (reg_pulse_time(C_START_TIME - 1 downto 0) = cnt_time) then
-                        sm_state            <= S_WAVE_UP;
+                        sm_state                <= S_WAVE_UP;
                         
-                        ram_waveform_addrb  <= reg_wave_start_addr & std_logic_vector(to_unsigned(0, 8));          -- set the wavetable's address to the starting address defined from the pulse ram
+                        ram_waveform_addrb      <= reg_wave_start_addr & std_logic_vector(to_unsigned(0, 8));          -- set the wavetable's address to the starting address defined from the pulse ram
                         -- cnt_addr            <= unsigned(reg_wave_start_addr);
                         -- reset the wave lenth counter
-                        cnt_wave_len        <= (others=>'0');
+                        cnt_wave_len            <= (others=>'0');
                     elsif (cnt_time = X"FFFFFF") or (done_seq = '1') then
-                        sm_state            <= S_IDLE;
+                        sm_state                <= S_IDLE;
+
+                    end if;
+                    
+                    ------------------------------------------------------------------------
+                    -- Error checking
+                    -- TODO: better to make a seperate process for error checking
+                    ------------------------------------------------------------------------
+                    if ((C_LENGTH_WAVEFORM - 1) - unsigned(reg_wave_start_addr) < reg_wave_length) then
+                        -- if the length is bigger than the wavetable, then the address will overflow
+                        erros(C_ERR_RAM_OF)     <= '1';
+                        sm_state                <= S_IDLE;
+                    end if;
+                    if (reg_wave_length <= 1) then
+                        -- Rise length size <= 1 (need to min. 2)
+                        erros(C_INVAL_LENGTH)   <= '1';
+                        sm_state                <= S_IDLE;
+                    end if;
+                    if (reg_scale_time(C_BITS_TIME_FACTOR - 1 downto BIT_FRAC) >= reg_wave_length) then
+                        -- Time step bigger than the size of the rise
+                        erros(C_ERR_BIG_STEP)   <= '1';
+                        sm_state                <= S_IDLE;
+                    end if;
+                    if (reg_scale_time(C_BITS_TIME_FACTOR - 1 downto BIT_FRAC) < 1) then
+                        -- Time step < 1
+                        erros(C_ERR_SMALL_TIME) <= '1';
+                        sm_state                <= S_IDLE;
+                    end if;
+                    if ((reg_scale_gain(C_BITS_TIME_FACTOR - 1 downto BIT_FRAC_GAIN) > 0) and (reg_scale_gain(BIT_FRAC_GAIN - 1 downto 0) > 0)) then
+                        -- Amplitude scale > 1, if interger bits are >= 1 and fractional bits still have value
+                        erros(C_ERR_BIG_GAIN)   <= '1';
+                        sm_state                <= S_IDLE;
                     end if;
 
 
@@ -700,14 +522,10 @@ begin
                 -- Hold the last address when complete
                 ------------------------------------------------------------------------
                 when  S_WAVE_UP =>
-                    -- Check if is end of rise of the waveform, next address >= end address. if so pad the address pointer to the end address and move to next state
-                    -- TODO: convert the numbers below to constaint. right now just make sure I'm not confused
-                    if (unsigned(ram_waveform_addrb) + reg_scale_time >= reg_wave_end_addr) then
-                        -- ram_waveform_addrb  <= std_logic_vector(reg_wave_end_addr);                                -- pad the address pointer to the end address
-                        if (sm_state_d1 = S_WAVE_UP) then
-                            ram_waveform_addrb  <= std_logic_vector(reg_wave_end_addr);                                -- pad the address pointer to the end address
-                        end if;
-                        wave_last_addr      <= std_logic_vector(unsigned(ram_waveform_addrb));                     -- hold the last address of the wavetable
+                    -- Check how far we are to the end of the end address. If is smaller than the scale time, then pad the address to the end address and move on to the next state
+                    if (reg_wave_end_addr - unsigned(ram_waveform_addrb) < reg_scale_time) then
+                        ram_waveform_addrb  <= std_logic_vector(reg_wave_end_addr);                                -- pad the address pointer to the end address
+                        wave_last_addr      <= std_logic_vector(unsigned(ram_waveform_addrb));                           -- hold the last address of the wavetable
                         -- skip the flat top state if the flat top value is zero
                         if (reg_pulse_flattop = 0) then
                             sm_state            <= S_WAVE_DOWN;
@@ -725,7 +543,6 @@ begin
                         ram_waveform_addrb  <= std_logic_vector(unsigned(ram_waveform_addrb) + reg_scale_time);
                         wave_last_addr      <= std_logic_vector(unsigned(ram_waveform_addrb) + reg_scale_time);    -- hold the last address of the wavetable
                     end if;
-                    
                     -- sm_wavedata         <= std_logic_vector(unsigned(ram_waveform_doutb) * reg_scale_gain)(31 downto 16); 
                     -- Modelsim Cannot synthesize this above line, so we *have to* seperate them into two lines
                     -- # ** Error: Prefix of slice name cannot be type conversion (STD_LOGIC_VECTOR) expression.
@@ -734,6 +551,7 @@ begin
                     if (sm_state_d1 = S_WAIT) then                                                                 -- data valid is delayed by one clock cycle
                         sm_wavedata_dv                  <= '0';
                     else
+                        -- TODO: invalidate the data if ram_waveform_addrb has "x"
                         sm_wavedata_dv                  <= '1';
                     end if;
                     
@@ -743,12 +561,12 @@ begin
                 ------------------------------------------------------------------------
                 when S_WAVE_FLAT =>
                     -- count the 17-bit flat top, if the counter reaches the flat top value, then go to the next state
-                    if (cnt_wave_top = reg_pulse_flattop) then
+                    if (cnt_wave_top = reg_pulse_flattop - 1) then
                         sm_state            <= S_WAVE_DOWN;
-                        
+                        ram_waveform_addrb  <= wave_last_addr;                                                     -- get the last address of the wavetable
                         cnt_wave_top        <= (others=>'0');                                                      -- reset the counter for the next transition
-                        
                     else
+                        ram_waveform_addrb  <= std_logic_vector(reg_wave_end_addr);                                -- pad the address pointer to the end address
                         cnt_wave_top        <= cnt_wave_top + 1;
                     end if;
                     v_ram_waveform_doutb_multiplied := std_logic_vector(unsigned(ram_waveform_doutb) * reg_scale_gain);
@@ -763,7 +581,7 @@ begin
                     
                 -- End of waveform?
                     -- TODO: convert the numbers below to constaint. right now just make sure I'm not confused
-                    if (unsigned(ram_waveform_addrb) - reg_scale_time < (resize(unsigned(reg_wave_start_addr), 20) sll 8)) or (unsigned(ram_waveform_addrb) = 0) then
+                    if (unsigned(ram_waveform_addrb) - reg_scale_time <= (resize(unsigned(reg_wave_start_addr), 20) sll 8)) or (unsigned(ram_waveform_addrb) = 0) then
                         ram_waveform_addrb  <= (others=>'0'); -- reset the address for the next waveform
                         cnt_addr            <= (others=>'0');
                         -- If the end of the pulse table is reached then go to idle, increment pulse address for the next waveform otherwise
@@ -780,13 +598,7 @@ begin
                     -- Output waveform from RAM with decremented address
                     else
                         cnt_wave_len        <= cnt_wave_len + 1;
-                        -- ram_waveform_addrb  <= std_logic_vector(unsigned(ram_waveform_addrb) - reg_scale_time);
-                        -- TODO: replace the above line with the following code if fall should be EXACTLY the same as rise
-                        if (sm_state_d1 = S_WAVE_FLAT) or (sm_state_d1 = S_WAVE_UP) then  -- previous state was either S_WAVE_UP or S_WAVE_FLAT, so the ram_waveform_addrb should be whatever it was in the S_WAVE_UP state
-                            ram_waveform_addrb  <= wave_last_addr;                                                 -- get the last address of the wavetable
-                        else
-                            ram_waveform_addrb  <= std_logic_vector(unsigned(ram_waveform_addrb) - reg_scale_time);
-                        end if;
+                        ram_waveform_addrb  <= std_logic_vector(unsigned(ram_waveform_addrb) - reg_scale_time);
                         cnt_addr            <= cnt_addr - 1;
                     end if;
                     v_ram_waveform_doutb_multiplied := std_logic_vector(unsigned(ram_waveform_doutb) * reg_scale_gain);
@@ -807,7 +619,7 @@ begin
 
     -- AXI-Stream output.
     -- TBD: This should come from a FIFO
-    -- TODO: the bits are not correct, should be top bits (C_BITS_GAIN_FACTOR + 16 downto C_BITS_GAIN_FACTOR), but for now just make it this way so modelsim can simulate
+    -- TODO: the bits may not correct, should be top bits (C_BITS_GAIN_FACTOR + 16 downto C_BITS_GAIN_FACTOR), but for now just make it this way so modelsim can simulate
     axis_tdata          <= sm_wavedata;         -- axi stream output data, this output should be multiplied by the gain factor, then take the top 16 bits
     axis_tvalid         <= sm_wavedata_dv;      -- axi_stream output data valid
 

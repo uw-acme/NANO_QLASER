@@ -63,7 +63,7 @@ When running on the board,
 
 Below are some of my notes that you may or may not find useful 
 Entire clone process of NANO_QLASER: 
-1.	close, checkout tyler_zcu_102, cd tools/xillinx, vivado -mode tcl -source build_zcu.tcl
+1.	close, checkout tyler_zcu_102, cd tools/xilinx, vivado -mode tcl -source build_zcu.tcl
 2.	Create block diagram, add zynq block, run connection automation, add gpio, set to leds and switches, run connection automations, in sources right click and add wrapper to design, instantiate design inside of qlaser_top. 
     a.	Add ip source as D:\Research\AXI_IF_CPU_IP\axi_cpuint_1.0
     b.	Add axi_cpuint to block diagram, run connection automation, on unconnected ports right click and do connect to external. Rename all external ports to not have _0 ending. 

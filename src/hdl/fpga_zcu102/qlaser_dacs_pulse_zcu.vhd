@@ -100,7 +100,7 @@ signal sm_busy              : std_logic;
 signal sm_cnt_time          : unsigned(23 downto 0);
 
 signal ch_busy              : std_logic_vector(31 downto 0);    -- Signal to indicate that a channel is not idle
-signal ch_errs_wave         : std_logic_vector(31 downto 0);    -- Error signal
+signal ch_errs_wave         : t_arr_ac_errors;                  -- Error signal
 signal ch_errs_jesd         : std_logic_vector(31 downto 0);    -- JESD not sync'ed
 signal busy_i               : std_logic;
 signal any_errs_jesd        : std_logic;
@@ -213,9 +213,11 @@ begin
                 start           => trigger              ,   -- in  std_logic;                        -- Set when pulse generation sequence begins
                 cnt_time        => std_logic_vector(sm_cnt_time) ,   -- in  std_logic_vector(23 downto 0);    -- Time since trigger.
                 busy            => ch_busy(I)           ,   -- out std_logic;                        -- Status signal
-                err_wave        => ch_errs_wave(I)      ,   -- out std_logic;                        -- Status signal
                 done_seq        => done_seq             ,   -- in std_logic;   
     
+                -- status signals to indicate any errors
+                erros           => ch_errs_wave(I)      ,   -- out std_logic;                        -- Status signal
+                clear_errors    => '0'                  ,   -- in std_logic;                         -- Clear error flags, always low for now as a reset would clear them.
                 -- CPU interface
                 cpu_addr        => cpu_ch_addr          ,   -- in  std_logic_vector(11 downto 0);    -- Address input
                 cpu_wdata       => cpu_ch_wdata         ,   -- in  std_logic_vector(31 downto 0);    -- Data input
@@ -243,10 +245,12 @@ begin
                 enable          => ch_enables(I)        ,   -- in  std_logic;                        -- Set to allow channel to run. Rising edge send 0 to DAC.
                 start           => trigger              ,   -- in  std_logic;                        -- Set when pulse generation sequence begins
                 cnt_time        => std_logic_vector(sm_cnt_time) ,   -- in  std_logic_vector(23 downto 0);    -- Time since trigger.
-                busy            => ch_busy(I)           ,   -- out std_logic;                        -- Status signal
-                err_wave        => ch_errs_wave(I)      ,   -- out std_logic;                        -- Status signal
+                busy            => ch_busy(I)           ,   -- out std_logic;
                 done_seq        => done_seq             ,   -- in std_logic;   
-    
+
+                -- status signals to indicate any errors
+                erros           => ch_errs_wave(I)      ,   -- out std_logic;                        -- Status signal
+                clear_errors    => '0'                  ,   -- in std_logic;                         -- Clear error flags, always low for now as a reset would clear them.
                 -- CPU interface
                 cpu_addr        => cpu_ch_addr          ,   -- in  std_logic_vector(11 downto 0);    -- Address input
                 cpu_wdata       => cpu_ch_wdata         ,   -- in  std_logic_vector(31 downto 0);    -- Data input

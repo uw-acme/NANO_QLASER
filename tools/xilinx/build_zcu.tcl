@@ -27,6 +27,7 @@
 #
 # 3. The following remote source files that were added to the original project:-
 #
+#    "E:/github/NANO_QLASER/src/hdl/fpga_zcu102/qlaser_dacs_pulse_channel_pkg.vhd"
 #    "E:/github/NANO_QLASER/src/hdl/fpga_zcu102/qlaser_dac_dc_pkg.vhd"
 #    "E:/github/NANO_QLASER/src/hdl/fpga_zcu102/qlaser_pkg.vhd"
 #    "E:/github/NANO_QLASER/src/hdl/fpga_zcu102/blink.vhd"
@@ -38,13 +39,17 @@
 #    "E:/github/NANO_QLASER/src/hdl/fpga_common/qlaser_cpuint_serial.vhd"
 #    "E:/github/NANO_QLASER/src/hdl/fpga_zcu102/qlaser_dac_pulse_pkg.vhd"
 #    "E:/github/NANO_QLASER/src/hdl/fpga_zcu102/qlaser_spi.vhd"
+#    "E:/github/NANO_QLASER/src/hdl/fpga_zcu102/qlaser_cif.vhd"
+#    "E:/github/NANO_QLASER/src/hdl/fpga_zcu102/pulse2pmod.vhd"
 #    "E:/github/NANO_QLASER/src/hdl/fpga_zcu102/qlaser_dacs_dc_zcu.vhd"
+#    "E:/github/NANO_QLASER/src/hdl/fpga_zcu102/qlaser_pmod_pulse.vhd"
 #    "E:/github/NANO_QLASER/src/hdl/fpga_zcu102/qlaser_dacs_pulse_zcu.vhd"
 #    "E:/github/NANO_QLASER/src/hdl/fpga_zcu102/qlaser_version_pkg_zcu.vhd"
 #    "E:/github/NANO_QLASER/src/hdl/fpga_zcu102/qlaser_misc.vhd"
 #    "E:/github/NANO_QLASER/src/hdl/fpga_zcu102/qlaser_top_zcu.vhd"
 #    "E:/github/NANO_QLASER/tools/constraint_zcu/fifo_data_to_stream/fifo_data_to_stream.xci"
 #    "E:/github/NANO_QLASER/tools/constraint_zcu/bram_waveform/bram_waveform.xci"
+#    "E:/github/NANO_QLASER/tools/constraint_zcu/axis_data_fifo_32Kx16b/axis_data_fifo_32Kx16b.xci"
 #    "E:/github/NANO_QLASER/tools/constraint_zcu/bram_pulseposition/bram_pulseposition.xci"
 #    "E:/github/NANO_QLASER/src/hdl/fpga_zcu102/qlaser_dacs_pulse_channel.vhdl"
 #    "E:/github/NANO_QLASER/tools/constraint_zcu/clkpll_zcu/clkpll_zcu.xci"
@@ -75,6 +80,7 @@
 proc checkRequiredFiles { origin_dir} {
   set status true
   set files [list \
+ "[file normalize "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_dacs_pulse_channel_pkg.vhd"]"\
  "[file normalize "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_dac_dc_pkg.vhd"]"\
  "[file normalize "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_pkg.vhd"]"\
  "[file normalize "$origin_dir/../../src/hdl/fpga_zcu102/blink.vhd"]"\
@@ -86,13 +92,18 @@ proc checkRequiredFiles { origin_dir} {
  "[file normalize "$origin_dir/../../src/hdl/fpga_common/qlaser_cpuint_serial.vhd"]"\
  "[file normalize "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_dac_pulse_pkg.vhd"]"\
  "[file normalize "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_spi.vhd"]"\
+ "[file normalize "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_cif.vhd"]"\
+ "[file normalize "$origin_dir/../../src/hdl/fpga_zcu102/pulse2pmod.vhd"]"\
  "[file normalize "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_dacs_dc_zcu.vhd"]"\
+ "[file normalize "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_pmod_pulse.vhd"]"\
  "[file normalize "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_dacs_pulse_zcu.vhd"]"\
  "[file normalize "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_version_pkg_zcu.vhd"]"\
  "[file normalize "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_misc.vhd"]"\
  "[file normalize "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_top_zcu.vhd"]"\
  "[file normalize "$origin_dir/../constraint_zcu/fifo_data_to_stream/fifo_data_to_stream.xci"]"\
  "[file normalize "$origin_dir/../constraint_zcu/bram_waveform/bram_waveform.xci"]"\
+ "[file normalize "$origin_dir/../constraint_zcu/bram_pulse_definition/bram_pulse_definition.xci"]"\
+ "[file normalize "$origin_dir/../constraint_zcu/axis_data_fifo_32Kx16b/axis_data_fifo_32Kx16b.xci"]"\
  "[file normalize "$origin_dir/../constraint_zcu/bram_pulseposition/bram_pulseposition.xci"]"\
  "[file normalize "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_dacs_pulse_channel.vhdl"]"\
  "[file normalize "$origin_dir/../constraint_zcu/clkpll_zcu/clkpll_zcu.xci"]"\
@@ -242,6 +253,7 @@ if {[string equal [get_filesets -quiet sources_1] ""]} {
 # Set 'sources_1' fileset object
 set obj [get_filesets sources_1]
 set files [list \
+[file normalize "${origin_dir}/../../src/hdl/fpga_zcu102/qlaser_dacs_pulse_channel_pkg.vhd"] \
  [file normalize "${origin_dir}/../../src/hdl/fpga_zcu102/qlaser_dac_dc_pkg.vhd"] \
  [file normalize "${origin_dir}/../../src/hdl/fpga_zcu102/qlaser_pkg.vhd"] \
  [file normalize "${origin_dir}/../../src/hdl/fpga_zcu102/blink.vhd"] \
@@ -253,19 +265,29 @@ set files [list \
  [file normalize "${origin_dir}/../../src/hdl/fpga_common/qlaser_cpuint_serial.vhd"] \
  [file normalize "${origin_dir}/../../src/hdl/fpga_zcu102/qlaser_dac_pulse_pkg.vhd"] \
  [file normalize "${origin_dir}/../../src/hdl/fpga_zcu102/qlaser_spi.vhd"] \
+ [file normalize "${origin_dir}/../../src/hdl/fpga_zcu102/qlaser_cif.vhd"] \
+ [file normalize "${origin_dir}/../../src/hdl/fpga_zcu102/pulse2pmod.vhd"] \
  [file normalize "${origin_dir}/../../src/hdl/fpga_zcu102/qlaser_dacs_dc_zcu.vhd"] \
+ [file normalize "${origin_dir}/../../src/hdl/fpga_zcu102/qlaser_pmod_pulse.vhd"] \
  [file normalize "${origin_dir}/../../src/hdl/fpga_zcu102/qlaser_dacs_pulse_zcu.vhd"] \
  [file normalize "${origin_dir}/../../src/hdl/fpga_zcu102/qlaser_version_pkg_zcu.vhd"] \
  [file normalize "${origin_dir}/../../src/hdl/fpga_zcu102/qlaser_misc.vhd"] \
  [file normalize "${origin_dir}/../../src/hdl/fpga_zcu102/qlaser_top_zcu.vhd"] \
  [file normalize "${origin_dir}/../constraint_zcu/fifo_data_to_stream/fifo_data_to_stream.xci"] \
  [file normalize "${origin_dir}/../constraint_zcu/bram_waveform/bram_waveform.xci"] \
+ [file normalize "${origin_dir}/../constraint_zcu/bram_pulse_definition/bram_pulse_definition.xci"] \
+ [file normalize "${origin_dir}/../constraint_zcu/axis_data_fifo_32Kx16b/axis_data_fifo_32Kx16b.xci"] \
  [file normalize "${origin_dir}/../constraint_zcu/bram_pulseposition/bram_pulseposition.xci"] \
  [file normalize "${origin_dir}/../../src/hdl/fpga_zcu102/qlaser_dacs_pulse_channel.vhdl"] \
 ]
 add_files -norecurse -fileset $obj $files
 
 # Set 'sources_1' fileset file properties for remote files
+set file "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_dacs_pulse_channel_pkg.vhd"
+set file [file normalize $file]
+set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
+set_property -name "file_type" -value "VHDL" -objects $file_obj
+
 set file "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_dac_dc_pkg.vhd"
 set file [file normalize $file]
 set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
@@ -321,7 +343,22 @@ set file [file normalize $file]
 set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
 set_property -name "file_type" -value "VHDL" -objects $file_obj
 
+set file "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_cif.vhd"
+set file [file normalize $file]
+set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
+set_property -name "file_type" -value "VHDL" -objects $file_obj
+
+set file "$origin_dir/../../src/hdl/fpga_zcu102/pulse2pmod.vhd"
+set file [file normalize $file]
+set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
+set_property -name "file_type" -value "VHDL" -objects $file_obj
+
 set file "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_dacs_dc_zcu.vhd"
+set file [file normalize $file]
+set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
+set_property -name "file_type" -value "VHDL" -objects $file_obj
+
+set file "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_pmod_pulse.vhd"
 set file [file normalize $file]
 set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
 set_property -name "file_type" -value "VHDL" -objects $file_obj
@@ -356,6 +393,24 @@ if { ![get_property "is_locked" $file_obj] } {
 }
 
 set file "$origin_dir/../constraint_zcu/bram_waveform/bram_waveform.xci"
+set file [file normalize $file]
+set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
+set_property -name "generate_files_for_reference" -value "0" -objects $file_obj
+set_property -name "registered_with_manager" -value "1" -objects $file_obj
+if { ![get_property "is_locked" $file_obj] } {
+  set_property -name "synth_checkpoint_mode" -value "Singular" -objects $file_obj
+}
+
+set file "$origin_dir/../constraint_zcu/bram_pulse_definition/bram_pulse_definition.xci"
+set file [file normalize $file]
+set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
+set_property -name "generate_files_for_reference" -value "0" -objects $file_obj
+set_property -name "registered_with_manager" -value "1" -objects $file_obj
+if { ![get_property "is_locked" $file_obj] } {
+  set_property -name "synth_checkpoint_mode" -value "Singular" -objects $file_obj
+}
+
+set file "$origin_dir/../constraint_zcu/axis_data_fifo_32Kx16b/axis_data_fifo_32Kx16b.xci"
 set file [file normalize $file]
 set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
 set_property -name "generate_files_for_reference" -value "0" -objects $file_obj
@@ -556,6 +611,9 @@ set file [file normalize $file]
 set file_obj [get_files -of_objects [get_filesets sim_1] [list "*$file"]]
 set_property -name "file_type" -value "VHDL" -objects $file_obj
 
+# set IP repo
+set_property  ip_repo_paths  "$origin_dir/../../tools/ip_repo/axi_cpubus" [current_project]
+update_ip_catalog -rebuild
 
 # Set 'sim_1' fileset file properties for local files
 # None

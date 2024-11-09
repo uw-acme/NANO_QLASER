@@ -33,8 +33,10 @@ constant ADR_BASE_MISC          : std_logic_vector( 3 downto 0) :=  X"2";    -- 
 -- Define the number of internal blocks that are addressed by the CPU
 --------------------------------------------------------------------------------
 constant C_NUM_BLOCKS           : integer   := 4; 
+constant C_ERRORS_TOTAL         : integer    := 8;                           -- Number of types of errors could be reported
 type t_arr_cpu_dout is array (0 to C_NUM_BLOCKS-1) of std_logic_vector(31 downto 0);
 type t_arr_dout_ac  is array (0 to C_NUM_CHAN_AC-1) of std_logic_vector(15 downto 0);
+type t_arr_ac_errors is array (0 to C_NUM_CHAN_AC-1) of std_logic_vector(C_ERRORS_TOTAL-1 downto 0);
 
 
 -------------------------------------------------------------------------------------------------------------------------- 
