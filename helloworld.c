@@ -36,7 +36,7 @@
 
 
 // Addresses reached through CPUINT
-#define ADR_BASE_CPUINT    XPAR_AXI_CPUINT_0_S00_AXI_BASEADDR   // from xparameters.h
+#define ADR_BASE_CPUINT    XPAR_AXI_CPUINT_S00_AXI_BASEADDR   // from xparameters.h
 
 // Main sub-block base addresses. ps_addr (17:16) are used to make four block selects.
 #define ADR_BASE_DACS_DC    (ADR_BASE_CPUINT + 0x00000)
@@ -1271,9 +1271,9 @@ int main()
    (void)xil_printf("---------------------------------------------------------------------\r\n");
    (void)xil_printf(" app_qlaser1 : version %s\r\n", g_strVersion);
    (void)xil_printf("---------------------------------------------------------------------\r\n");
-    nRdata = Xil_In32(ADR_MISC_VERSION);
-   (void)xil_printf("FPGA Version = 0x%08X\r\n", nRdata);
-    print("\n\r");
+//     nRdata = Xil_In32(ADR_MISC_VERSION);
+//    (void)xil_printf("FPGA Version = 0x%08X\r\n", nRdata);
+//     print("\n\r");
 
 	//----------------------------------------------------------------------
 	// Initialize the IIC driver so that it's ready to use

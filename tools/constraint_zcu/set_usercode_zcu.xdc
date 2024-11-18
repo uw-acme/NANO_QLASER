@@ -26,4 +26,4 @@
 #----------------------------------------------------------------------------------------
 # In VHDL package : constant C_QLASER_VERSION   : std_logic_vector(31 downto 0)
 #----------------------------------------------------------------------------------------
-set_property BITSTREAM.CONFIG.USERID 32'h3AC00009 [current_design]
+set_property BITSTREAM.CONFIG.USERID 32'h3AC00006 [current_design]

@@ -21,8 +21,9 @@
 #-- 0x1DC0_0003     : SD pins on 1.8V bank. Add SD_CD on MIO47
 #-- 0x1DC0_0004     : SD clock dropped from 100MHz to 20Mhz
 #-- 0x1DC0_0005     : Restore internal reference enable for pmod DACs
+#-- 0x1DC0_0006     : Add one Pulse Channel thru PMOD for AC testing
 #--
 #----------------------------------------------------------------------------------------
 # In VHDL package : constant C_QLASER_VERSION   : std_logic_vector(31 downto 0)
 #----------------------------------------------------------------------------------------
-set_property BITSTREAM.CONFIG.USERID 32'h1DC00005 [current_design]
+set_property BITSTREAM.CONFIG.USERID 32'h1DC00006 [current_design]
