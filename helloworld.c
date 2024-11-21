@@ -17,7 +17,7 @@
 #define IIC_1_DEVICE_ID		XPAR_XIICPS_1_DEVICE_ID
 
 
-#include "qlaser_fpga.h"
+// #include "qlaser_fpga.h"
 //#include "qlaser_fpga_zc102.h"          // Constant definitions. Register addresses etc.
 
 // Memory size on CPU bus

@@ -615,9 +615,9 @@ set_property -name "file_type" -value "VHDL" -objects $file_obj
 set_property  ip_repo_paths  "$origin_dir/../../tools/ip_repo/axi_cpubus" [current_project]
 update_ip_catalog -rebuild
 
-# Import Block Design
-import_files -norecurse "$origin_dir/../../tools/xilinx/blocks/bd_ps1/ps1/ps1.bd"
-make_wrapper -files [get_files "$origin_dir/../../tools/xilinx/blocks/bd_ps1/ps1/ps1.bd"] -top
+source "$origin_dir/../../tools/xilinx/ps1_zcu.tcl"
+regenerate_bd_layout
+make_wrapper -files [get_files "$proj_dir/${_xil_proj_name_}.srcs/sources_1/bd/ps1/ps1.bd"] -top
 add_files -norecurse "$proj_dir/${_xil_proj_name_}.gen/sources_1/bd/ps1/hdl/ps1_wrapper.vhd"
 
 # Set 'sim_1' fileset file properties for local files
@@ -947,5 +947,10 @@ move_dashboard_gadget -name {drc_1} -row 2 -col 0
 move_dashboard_gadget -name {timing_1} -row 0 -col 1
 move_dashboard_gadget -name {utilization_2} -row 1 -col 1
 move_dashboard_gadget -name {methodology_1} -row 2 -col 1
+
+puts "Attempt to build the project"
+
+# Launch runs, exit on failure
+launch_runs impl_1 -to_step write_bitstream
 
 exi
