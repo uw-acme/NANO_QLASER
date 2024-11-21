@@ -1,0 +1,343 @@
+--------------------------------------------------------------------------------------------
+HPC0
+--------------------------------------------------------------------------------------------
+J5_Pin  SchematicNetName            I/O_Standard    U1_Pin    
+--------------------------------------------------------------------------------------------
+A2      FMC_HPC0_DP1_M2C_P          -               J4  
+A3      FMC_HPC0_DP1_M2C_N          -               J3  
+A6      FMC_HPC0_DP2_M2C_P          -               F2  
+A7      FMC_HPC0_DP2_M2C_N          -               F1  
+A10     FMC_HPC0_DP3_M2C_P          -               K2  
+A11     FMC_HPC0_DP3_M2C_N          -               K1  
+A14     FMC_HPC0_DP4_M2C_P          -               L4  
+A15     FMC_HPC0_DP4_M2C_N          -               L3  
+A18     FMC_HPC0_DP5_M2C_P          -               P2  
+A19     FMC_HPC0_DP5_M2C_N          -               P1  
+A22     FMC_HPC0_DP1_C2M_P          -               H6  
+A23     FMC_HPC0_DP1_C2M_N          -               H5  
+A26     FMC_HPC0_DP2_C2M_P          -               F6  
+A27     FMC_HPC0_DP2_C2M_N          -               F5  
+A30     FMC_HPC0_DP3_C2M_P          -               K6  
+A31     FMC_HPC0_DP3_C2M_N          -               K5  
+A34     FMC_HPC0_DP4_C2M_P          -               M6  
+A35     FMC_HPC0_DP4_C2M_N          -               M5  
+A38     FMC_HPC0_DP5_C2M_P          -               P6  
+A39     FMC_HPC0_DP5_C2M_N          -               P5  
+
+--------------------------------------------------------------------------------------------
+B1      NC                          -               -
+B4      NC                          -               -
+B5      NC                          -               -
+B8      NC                          -               -
+B9      NC                          -               -
+B12     FMC_HPC0_DP7_M2C_P          -               M2
+B13     FMC_HPC0_DP7_M2C_N          -               M1
+B16     FMC_HPC0_DP6_M2C_P          -               T2
+B17     FMC_HPC0_DP6_M2C_N          -               T1
+B20     FMC_HPC0_GBTCLK1_M2C_P      -               L8      (1)
+B21     FMC_HPC0_GBTCLK1_M2C_N      -               L7      (1)
+B24     NC                          -               -
+B25     NC                          -               -
+B28     NC                          -               -
+B29     NC                          -               -
+B32     FMC_HPC0_DP7_C2M_P          -               N4
+B33     FMC_HPC0_DP7_C2M_N          -               N3
+B36     FMC_HPC0_DP6_C2M_P          -               R4
+B37     FMC_HPC0_DP6_C2M_N          -               R3
+B40     NC
+
+--------------------------------------------------------------------------------------------
+
+C2      FMC_HPC0_DP0_C2M_P          -               G4
+C3      FMC_HPC0_DP0_C2M_N          -               G3  
+C6      FMC_HPC0_DP0_M2C_P  *       -               H2  
+C7      FMC_HPC0_DP0_M2C_N  *       -               H1  
+C10     FMC_HPC0_LA06_P             LVCMOS18        AC2 
+C11     FMC_HPC0_LA06_N             LVCMOS18        AC1 
+C14     FMC_HPC0_LA10_P             LVCMOS18        W5  
+C15     FMC_HPC0_LA10_N             LVCMOS18        W4  
+C18     FMC_HPC0_LA14_P             LVCMOS18        AC7 
+C19     FMC_HPC0_LA14_N             LVCMOS18        AC6 
+C22     FMC_HPC0_LA18_CC_P          LVCMOS18        N9  
+C23     FMC_HPC0_LA18_CC_N          LVCMOS18        N8  
+C26     FMC_HPC0_LA27_P             LVCMOS18        M10 
+C27     FMC_HPC0_LA27_N             LVCMOS18        L10 
+C30     FMC_HPC0_IIC_SCL            -               -           (2)
+C31     FMC_HPC0_IIC_SDA            -               -           (2)
+C34     GND                         -               -   
+C35     VCC12_SW                    -               -   
+C37     VCC12_SW                    -               -   
+C39     UTIL_3V3                    -               -   
+
+--------------------------------------------------------------------------------------------
+
+D1      VADJ_FMC_PGOOD              -               -           J4.D1, U63.32 , U66.6 (5)
+D4      FMC_HPC0_GBTCLK0_M2C_P      -               G8
+D5      FMC_HPC0_GBTCLK0_M2C_N      -               G7
+D8      FMC_HPC0_LA01_CC_P          LVCMOS18        AB4
+D9      FMC_HPC0_LA01_CC_N          LVCMOS18        AC4
+D11     FMC_HPC0_LA05_P             LVCMOS18        AB3
+D12     FMC_HPC0_LA05_N             LVCMOS18        AC3
+D14     FMC_HPC0_LA09_P             LVCMOS18        W2
+D15     FMC_HPC0_LA09_N             LVCMOS18        W1
+D17     FMC_HPC0_LA13_P             LVCMOS18        AB8
+D18     FMC_HPC0_LA13_N             LVCMOS18        AC8
+D20     FMC_HPC0_LA17_CC_P          LVCMOS18        P11
+D21     FMC_HPC0_LA17_CC_N          LVCMOS18        N11
+D23     FMC_HPC0_LA23_P             LVCMOS18        L16
+D24     FMC_HPC0_LA23_N             LVCMOS18        K16
+D26     FMC_HPC0_LA26_P             LVCMOS18        L15
+D27     FMC_HPC0_LA26_N             LVCMOS18        K15
+D29     FMC_HPC0_TCK_BUF            -               -           (3)
+D30     FPGA_TDO_FMC_TDI_BUF        -               -           (4)
+D31     FMC_HPC0_TDO_HPC1_TDI       -               -           (3)(4)
+D32     UTIL_3V3_10A                -               -
+D33     FMC_HPC0_TMS_BUF            -               -           (3)
+D38     UTIL_3V3                    -               -
+D34     NC                          -               -
+D35     GND                         -               -
+D36     UTIL_3V3                    -               -
+D40     UTIL_3V3                    -               -
+--------------------------------------------------------------------------------------------
+E39     VADJ_FMC_BUS                -               -
+--------------------------------------------------------------------------------------------
+F1      FMC_HPC0_PG_M2C             -               -           P/U to 3.3V via R277
+F40     VADJ_FMC_BUS                -               -
+--------------------------------------------------------------------------------------------
+G2      FMC_HPC0_CLK1_M2C_P         LVDS            T8      
+G3      FMC_HPC0_CLK1_M2C_N         LVDS            R8      
+G6      FMC_HPC0_LA00_CC_P          LVCMOS18        Y4      
+G7      FMC_HPC0_LA00_CC_N          LVCMOS18        Y3      
+G9      FMC_HPC0_LA03_P             LVCMOS18        Y2      
+G10     FMC_HPC0_LA03_N             LVCMOS18        Y1      
+G12     FMC_HPC0_LA08_P             LVCMOS18        V4      
+G13     FMC_HPC0_LA08_N             LVCMOS18        V3      
+G15     FMC_HPC0_LA12_P             LVCMOS18        W7      
+G16     FMC_HPC0_LA12_N             LVCMOS18        W6      
+G18     FMC_HPC0_LA16_P             LVCMOS18        Y12     
+G19     FMC_HPC0_LA16_N             LVCMOS18        AA12    
+G21     FMC_HPC0_LA20_P             LVCMOS18        N13     
+G22     FMC_HPC0_LA20_N             LVCMOS18        M13     
+G24     FMC_HPC0_LA22_P             LVCMOS18        M15     
+G25     FMC_HPC0_LA22_N             LVCMOS18        M14     
+G27     FMC_HPC0_LA25_P             LVCMOS18        M11     
+G28     FMC_HPC0_LA25_N             LVCMOS18        L11     
+G30     FMC_HPC0_LA29_P             LVCMOS18        U9      
+G31     FMC_HPC0_LA29_N             LVCMOS18        U8      
+G33     FMC_HPC0_LA31_P             LVCMOS18        V8      
+G34     FMC_HPC0_LA31_N             LVCMOS18        V7      
+G36     FMC_HPC0_LA33_P             LVCMOS18        V12     
+G37     FMC_HPC0_LA33_N             LVCMOS18        V11     
+G39     VADJ_FMC_BUS                -               -       
+--------------------------------------------------------------------------------------------
+H1      NC                          -               -
+H2      FMC_HPC0_PRSNT_M2C_B        -               -       (6)
+H4      FMC_HPC0_CLK0_M2C_P         LVDS            AA7
+H5      FMC_HPC0_CLK0_M2C_N         LVDS            AA6
+H7      FMC_HPC0_LA02_P             LVCMOS18        V2
+H8      FMC_HPC0_LA02_N             LVCMOS18        V1
+H10     FMC_HPC0_LA04_P             LVCMOS18        AA2
+H11     FMC_HPC0_LA04_N             LVCMOS18        AA1
+H13     FMC_HPC0_LA07_P             LVCMOS18        U5
+H14     FMC_HPC0_LA07_N             LVCMOS18        U4
+H16     FMC_HPC0_LA11_P             LVCMOS18        AB6
+H17     FMC_HPC0_LA11_N             LVCMOS18        AB5
+H19     FMC_HPC0_LA15_P             LVCMOS18        Y10
+H20     FMC_HPC0_LA15_N             LVCMOS18        Y9
+H22     FMC_HPC0_LA19_P             LVCMOS18        L13
+H23     FMC_HPC0_LA19_N             LVCMOS18        K13
+H25     FMC_HPC0_LA21_P             LVCMOS18        P12
+H26     FMC_HPC0_LA21_N             LVCMOS18        N12
+H28     FMC_HPC0_LA24_P             LVCMOS18        L12
+H29     FMC_HPC0_LA24_N             LVCMOS18        K12
+H31     FMC_HPC0_LA28_P             LVCMOS18        T7
+H32     FMC_HPC0_LA28_N             LVCMOS18        T6
+H34     FMC_HPC0_LA30_P             LVCMOS18        V6
+H35     FMC_HPC0_LA30_N             LVCMOS18        U6
+H37     FMC_HPC0_LA32_P             LVCMOS18        U11
+H38     FMC_HPC0_LA32_N             LVCMOS18        T11
+H40     VADJ_FMC_BUS                -               -
+--------------------------------------------------------------------------------------------
+Section J 
+NC
+--------------------------------------------------------------------------------------------
+Section K 
+NC
+--------------------------------------------------------------------------------------------
+
+
+1. Series capacitor coupled to XCZU9EG U1 pin.
+2. Connected to I2C switch U135 pins 4 and 5.
+3. XCZU9EG U1 JTAG TCK, TMS, TDO pins R25, R24, T25 are buffered by U48 SN74AVC8T245.
+4. J5 HPC0 TDO-TDI connections to U27 HPC0 FMC JTAG bypass switch (N.C. normally-closed/bypassing J5 until an FMC card is plugged onto J5).
+5. Sourced from VADJ_FMC_BUS voltage regulator U63 MAX15301 pin 32 power good output signal.
+6. FMC_HPC0_PRSNT_M2C_B is the HPC FMC JTAG bypass switch U27.4 OE control signal is driven from I2C I/O expander U97.13.
+
+--------------------------------------------------------------------------------------------
+HPC1
+--------------------------------------------------------------------------------------------
+J4_Pin  SchematicNetName            I/O_Standard    U1_Pin    
+--------------------------------------------------------------------------------------------
+A2      FMC_HPC1_DP1_M2C_P          -               D33 
+A3      FMC_HPC1_DP1_M2C_N          -               D34 
+A6      FMC_HPC1_DP2_M2C_P          -               C31 
+A7      FMC_HPC1_DP2_M2C_N          -               C32 
+A10     FMC_HPC1_DP3_M2C_P          -               B33 
+A11     FMC_HPC1_DP3_M2C_N          -               B34 
+A14     FMC_HPC1_DP4_M2C_P          -               L31 
+A15     FMC_HPC1_DP4_M2C_N          -               L32 
+A18     FMC_HPC1_DP5_M2C_P          -               K33 
+A19     FMC_HPC1_DP5_M2C_N          -               K34 
+A22     FMC_HPC1_DP1_C2M_P          -               D29 
+A23     FMC_HPC1_DP1_C2M_N          -               D30 
+A26     FMC_HPC1_DP2_C2M_P          -               B29 
+A27     FMC_HPC1_DP2_C2M_N          -               B30 
+A30     FMC_HPC1_DP3_C2M_P          -               A31 
+A31     FMC_HPC1_DP3_C2M_N          -               A32 
+A34     FMC_HPC1_DP4_C2M_P          -               K29 
+A35     FMC_HPC1_DP4_C2M_N          -               K30 
+A38     FMC_HPC1_DP5_C2M_P          -               J31 
+A39     FMC_HPC1_DP5_C2M_N          -               J32 
+--------------------------------------------------------------------------------------------
+B1      NC                          -               -
+B4      NC                          -               -
+B5      NC                          -               -
+B8      NC                          -               -
+B9      NC                          -               -
+B12     FMC_HPC1_DP7_M2C_P          -               F33
+B13     FMC_HPC1_DP7_M2C_N          -               F34
+B16     FMC_HPC1_DP6_M2C_P          -               H33
+B17     FMC_HPC1_DP6_M2C_N          -               H34
+B20     FMC_HPC1_GBTCLK1_M2C_P(1)   -               E27
+B21     FMC_HPC1_GBTCLK1_M2C_N(1)   -               E28
+B24     NC                          -               -
+B25     NC                          -               -
+B28     NC                          -               -
+B29     NC                          -               -
+B32     FMC_HPC1_DP7_C2M_P          -               G31
+B33     FMC_HPC1_DP7_C2M_N          -               G32
+B36     FMC_HPC1_DP6_C2M_P          -               H29
+B37     FMC_HPC1_DP6_C2M_N          -               H30
+B40     NC                          -               -
+--------------------------------------------------------------------------------------------
+C2      FMC_HPC1_DP0_C2M_P          -               F29 
+C3      FMC_HPC1_DP0_C2M_N          -               F30 
+C6      FMC_HPC1_DP0_M2C_P          -               E31 
+C7      FMC_HPC1_DP0_M2C_N          -               E32 
+C10     FMC_HPC1_LA06_P             LVCMOS18        AH2 
+C11     FMC_HPC1_LA06_N             LVCMOS18        AJ2 
+C14     FMC_HPC1_LA10_P             LVCMOS18        AH4 
+C15     FMC_HPC1_LA10_N             LVCMOS18        AJ4 
+C18     FMC_HPC1_LA14_P             LVCMOS18        AH7 
+C19     FMC_HPC1_LA14_N             LVCMOS18        AH6 
+C22     FMC_HPC1_LA18_CC_P          LVCMOS18        Y8  
+C23     FMC_HPC1_LA18_CC_N          LVCMOS18        Y7  
+C26     FMC_HPC1_LA27_P             LVCMOS18        U10 
+C27     FMC_HPC1_LA27_N             LVCMOS18        T10 
+C30     FMC_HPC1_IIC_SCL(2)                             
+C31     FMC_HPC1_IIC_SDA(2)                             
+C34     GND                                             
+C35     VCC12_SW                                        
+C37     VCC12_SW                                        
+C39     UTIL_3V3                                        
+--------------------------------------------------------------------------------------------
+D1      VADJ_FMC_PGOOD              -               -       (5) J5.D1, U63.32, U66.6
+D4      FMC_HPC1_GBTCLK0_M2C_P      -               G27     (1) 
+D5      FMC_HPC1_GBTCLK0_M2C_N      -               G28     (1) 
+D8      FMC_HPC1_LA01_CC_P          LVCMOS18        AJ6
+D9      FMC_HPC1_LA01_CC_N          LVCMOS18        AJ5
+D11     FMC_HPC1_LA05_P             LVCMOS18        AG3
+D12     FMC_HPC1_LA05_N             LVCMOS18        AH3
+D14     FMC_HPC1_LA09_P             LVCMOS18        AE2
+D15     FMC_HPC1_LA09_N             LVCMOS18        AE1
+D17     FMC_HPC1_LA13_P             LVCMOS18        AG8
+D18     FMC_HPC1_LA13_N             LVCMOS18        AH8
+D20     FMC_HPC1_LA17_CC_P          LVCMOS18        Y5
+D21     FMC_HPC1_LA17_CC_N          LVCMOS18        AA5
+D23     FMC_HPC1_LA23_P             LVCMOS18        AE12
+D24     FMC_HPC1_LA23_N             LVCMOS18        AF12
+D26     FMC_HPC1_LA26_P             LVCMOS18        T12
+D27     FMC_HPC1_LA26_N             LVCMOS18        R12
+D29     FMC_HPC1_TCK_BUF            -               -       (3)
+D30     FPGA_TDO_FMC_TDI_BUF        -               -       (4)
+D31     FMC_HPC1_TDO_HPC1_TDI       -               -       (3)(4)
+D32     UTIL_3V3_10A                -               -
+D33     FMC_HPC1_TMS_BUF            -               -       (3)
+D34     NC                          -               -
+D35     GND
+D36     UTIL_3V3
+D38     UTIL_3V3
+D40     UTIL_3V3
+
+Notes:
+1. Series capacitor coupled to XCZU9EG U1 pin.
+2. Connected to I2C switch U135 pins 6 and 7.
+3. XCZU9EG U1 JTAG TCK, TMS, TDO pins R25, R24, T25 are buffered by U48 SN74AVC8T245.
+4. J5 HPC0 TDO-TDI connections to U27 HPC0 FMC JTAG bypass switch (N.C. normally-closed/bypassing J5 until an FMC card
+is plugged onto J5).
+5. Sourced from VADJ_FMC_BUS voltage regulator U63 MAX15301 pin 32 power good output signal.
+
+--------------------------------------------------------------------------------------------
+G2      FMC_HPC1_CLK1_M2C_P     LVDS        P10     
+G3      FMC_HPC1_CLK1_M2C_N     LVDS        P9      
+G6      FMC_HPC1_LA00_CC_P      LVCMOS18    AE5     
+G7      FMC_HPC1_LA00_CC_N      LVCMOS18    AF5     
+G9      FMC_HPC1_LA03_P         LVCMOS18    AH1     
+G10     FMC_HPC1_LA03_N         LVCMOS18    AJ1     
+G12     FMC_HPC1_LA08_P         LVCMOS18    AE3     
+G13     FMC_HPC1_LA08_N         LVCMOS18    AF3     
+G15     FMC_HPC1_LA12_P         LVCMOS18    AD7     
+G16     FMC_HPC1_LA12_N         LVCMOS18    AD6     
+G18     FMC_HPC1_LA16_P         LVCMOS18    AG10    
+G19     FMC_HPC1_LA16_N         LVCMOS18    AG9     
+G21     FMC_HPC1_LA20_P         LVCMOS18    AB11    
+G22     FMC_HPC1_LA20_N         LVCMOS18    AB10    
+G24     FMC_HPC1_LA22_P         LVCMOS18    AF11    
+G25     FMC_HPC1_LA22_N         LVCMOS18    AG11    
+G27     FMC_HPC1_LA25_P         LVCMOS18    AE10    
+G28     FMC_HPC1_LA25_N         LVCMOS18    AF10    
+G30     FMC_HPC1_LA29_P         LVCMOS18    W12     
+G31     FMC_HPC1_LA29_N         LVCMOS18    W11     
+G33     FMC_HPC1_LA31_P         -           NC      
+G34     FMC_HPC1_LA31_N         -           NC      
+G36     FMC_HPC1_LA33_P         -           NC      
+G37     FMC_HPC1_LA33_N         -           NC      
+G39     VADJ_FMC_BUS            -           -       
+--------------------------------------------------------------------------------------------
+H1      NC                      -           -
+H2      FMC_HPC1_PRSNT_M2C_B    -           -       (1)
+H4      FMC_HPC1_CLK0_M2C_P     LVDS        AE7
+H5      FMC_HPC1_CLK0_M2C_N     LVDS        AF7
+H7      FMC_HPC1_LA02_P         LVCMOS18    AD2
+H8      FMC_HPC1_LA02_N         LVCMOS18    AD1
+H10     FMC_HPC1_LA04_P         LVCMOS18    AF2
+H11     FMC_HPC1_LA04_N         LVCMOS18    AF1
+H13     FMC_HPC1_LA07_P         LVCMOS18    AD4
+H14     FMC_HPC1_LA07_N         LVCMOS18    AE4
+H16     FMC_HPC1_LA11_P         LVCMOS18    AE8
+H17     FMC_HPC1_LA11_N         LVCMOS18    AF8
+H19     FMC_HPC1_LA15_P         LVCMOS18    AD10
+H20     FMC_HPC1_LA15_N         LVCMOS18    AE9
+H22     FMC_HPC1_LA19_P         LVCMOS18    AA11
+H23     FMC_HPC1_LA19_N         LVCMOS18    AA10
+H25     FMC_HPC1_LA21_P         LVCMOS18    AC12
+H26     FMC_HPC1_LA21_N         LVCMOS18    AC11
+H28     FMC_HPC1_LA24_P         LVCMOS18    AH12
+H29     FMC_HPC1_LA24_N         LVCMOS18    AH11
+H31     FMC_HPC1_LA28_P         LVCMOS18    T13
+H32     FMC_HPC1_LA28_N         LVCMOS18    R13
+H34     FMC_HPC1_LA30_P         -           NC
+H35     FMC_HPC1_LA30_N         -           NC
+H37     FMC_HPC1_LA32_P         -           NC
+H38     FMC_HPC1_LA32_N         -           NC
+
+1. FMC_HPC0_PRSNT_M2C_B is the HPC FMC JTAG bypass switch U27.4 OE control signal is driven from I2C I/O expander U97.13
+
+--------------------------------------------------------------------------------------------
+Section J 
+NC
+--------------------------------------------------------------------------------------------
+Section K 
+NC
+--------------------------------------------------------------------------------------------
+

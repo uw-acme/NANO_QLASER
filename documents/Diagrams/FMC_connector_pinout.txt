@@ -1,0 +1,87 @@
+AV57.1	Pin	FMC216 Signal	Dir	I/O Stndrd	Notes
+					
+CLK0_M2C_P	H4	LLMK_DCLKOUT_2_P	Out	LVDS	D-Clock
+CLK0_M2C_N	H5	LLMK_DCLKOUT_2_N	Out	LVDS	D-Clock
+CLK1_M2C_P	G2	LLMK_SDCLKOUT_3_P	Out	LVDS	S-Clock
+CLK1_M2C_N	G3	LLMK_SDCLKOUT_3_P	Out	LVDS	S-Clock
+GBTCLK0_M2C_P	D4	LMK_SDCLK11_M2C_TO_FPGA_P	Out	LVDS	S-Clock
+GBTCLK0_M2C_P	D5	LMK_SDCLK11_M2C_TO_FPGA_N	Out	LVDS	S-Clock
+GBTCLK1_M2C_P	B20	LMK_DCLK10_M2C_TO_FPGA_P	Out	LVDS	DCLKOUT10_P is routed to the FPGA GBTCLK1_M2C_P
+GBTCLK1_M2C_P	B21	LMK_DCLK10_M2C_TO_FPGA_N	Out	LVDS	DCLKOUT10_N is routed to the FPGA GBTCLK1_M2C_N
+DP0_C2M_P	C2	DP0_C2M_P	In	CML	DAC0_LANE0_P
+DP0_C2M_N	C3	DP0_C2M_N	In	CML	DAC0_LANE0_N
+DP1_C2M_P	A22	DP1_C2M_P	In	CML	DAC1_LANE0_P
+DP1_C2M_N	A23	DP1_C2M_N	In	CML	DAC1_LANE0_N
+DP2_C2M_P	A26	DP2_C2M_P	In	CML	DAC2_LANE0_P
+DP2_C2M_N	A27	DP2_C2M_N	In	CML	DAC2_LANE0_N DAC0_LANE2_N (FMC208 only)
+DP3_C2M_P	A30	DP3_C2M_P	In	CML	DAC3_LANE0_P DAC1_LANE2_P (FMC208 only)
+DP3_C2M_N	A31	DP3_C2M_N	In	CML	DAC3_LANE0_N DAC1_LANE2_N (FMC208 only)
+DP4_C2M_P	A34	DP4_C2M_P	In	CML	DAC0_LANE1_P
+DP4_C2M_N	A35	DP4_C2M_N	In	CML	DAC0_LANE1_N
+DP5_C2M_P	A38	DP5_C2M_P	In	CML	DAC1_LANE1_P
+DP5_C2M_N	A39	DP5_C2M_N	In	CML	DAC1_LANE1_N
+DP6_C2M_P	B36	DP6_C2M_P	In	CML	DAC2_LANE1_P DAC0_LANE3_P (FMC208 only)
+DP6_C2M_N	B37	DP6_C2M_N	In	CML	DAC2_LANE1_N DAC0_LANE3_N (FMC208 only)
+DP7_C2M_P	B32	DP7_C2M_P	In	CML	DAC3_LANE1_P DAC1_LANE3_P (FMC208 only)
+DP7_C2M_N	B33	DP7_C2M_N	In	CML	DAC3_LANE1_N DAC1_LANE3_N (FMC208 only)
+LA00_P_CC	G6	BUF_EXT_TRIG_TO_FPGA_P	Out	LVDS	From external trigger to FPGA
+LA00_N_CC	G7	BUF_EXT_TRIG_TO_FPGA_N	Out	LVDS	From external trigger to FPGA
+LA01_P_CC	D8	FPGA_SYNC_OUT_P	In	LVDS	From FPGA to clock tree trigger
+LA01_N_CC	D9	FPGA_SYNC_OUT_N	In	LVDS	From FPGA to clock tree trigger
+LA02_P	H7	DAC0_SYNC_P	Out	LVDS	Synchronization request to FPGA
+LA02_N	H8	DAC0_SYNC_N	Out	LVDS	Synchronization request to FPGA
+LA03_P	G9	DAC1_SYNC_P	Out	LVDS	Synchronization request to FPGA
+LA03_N	G10	DAC1_SYNC_N	Out	LVDS	Synchronization request to FPGA
+LA04_P	H10	DAC3_SYNC_P	Out	LVDS	Synchronization request to FPGA
+LA04_N	H11	DAC3_SYNC_N	Out	LVDS	Synchronization request to FPGA
+LA05_P	D11	DAC2_SYNC_P	Out	LVDS	Synchronization request to FPGA
+LA05_N	D12	DAC2_SYNC_N	Out	LVDS	Synchronization request to FPGA
+LA06_P	C10	FMC_CPLD_CTRL0_VADJ	I/O	LVCMOS	CPLD Control Signal
+LA06_N	C11	FMC_CPLD_CTRL1_VADJ	I/O	LVCMOS	CPLD Control Signal
+LA07_P	H13	FMC_CPLD_CTRL2_VADJ	I/O	LVCMOS	CPLD Control Signal
+LA07_N	H14	FMC_CPLD_CTRL3_VADJ	I/O	LVCMOS	CPLD Control Signal
+LA08_P	G12	TRIGGER_OUT	In	LVCMOS	External Trigger output from FPGA
+LA08_N	G13	FPGA_SYNC_OUT_TO_LMK	In	LVCMOS	"SYNC from FPGA, connects to SYNC/SYSREF_REQ of LMK"
+GA0	C34	GA0_MOD_IN_3.3	In	LVCMOS	Card Global Address 0 from mezzanine connector
+GA1	D35	GA1_MOD_IN_3.3	In	LVCMOS	Card Global Address 1 from mezzanine connector
+GA0	C34	GA0_CC_OUT_3.3	Out	LVCMOS	Card Global Address 0 from CPLD to carrier connector
+GA1	D35	GA1_CC_OUT_3.3	Out	LVCMOS	Card Global Address 1 from CPLD to carrier connector
+TSRT_L	D34	TRST_L	Input	LVTTL	"JTAG Reset in, (also passed through)"
+TCK	D29	TCK	In	LVTTL	"JTAG Clock in, (also passed through)"
+TMS	D33	TMS	In	LVTTL	JTAG Test Mode Select (also passed through)
+TDI	D30	TDI	In	LVTTL	JTAG Data in (also passed through)
+TDO	D31	TDO	Out	LVTTL	JTAG Data Out (also passed through)
+PRSNT_M2C_L	H2	PRSNT_M2C_L	Out	Ground	Tied to GND (FM216 is present)
+PRSNT_M2C_L	H2	PRSNT_M2C_CC_L	In	LVCMOS	Indicates that a stacked card is present (from carrier connector to CPLD)
+PG_M2C	F1	PG_M2C	Out	Open	Drain Indicate FMC216 power good status to carrier (4.7K pullup to 3.3V)
+PG_C2M	D1	PG_C2M	Out	CMOS	Indicates that Carrier power is OK
+I2C_SCL	C30	I2C_SCL	In	CMOS	I2C Bus Clock (also passed through)
+I2C_SDA	C31	I2C_SDA	I/O	Open	Drain I2C Bus Data (also passed through)
+RES0	B40	RES0	n/a	n/a	Passed thru no connection
+CLK_DIR	B1	CLK_DIR	Out	CMOS*	"Driven by mezzanine, *pop option to tie high or low"
+					
+					
+Remapped					
+					
+CLK2_BIDR_P	H4	CLK0_M2C_P	I/O	LVDS	remapped signal for stacked operation
+CLK2_BIDR_N	H5	CLK0_M2C_N	I/O	LVDS	remapped signal for stacked operation
+CLK3_BIDR_P	G2	CLK1_M2C_P	I/O	LVDS	remapped signal for stacked operation
+CLK3_BIDR_N	G3	CLK1_M2C_N	I/O	LVDS	remapped signal for stacked operation
+HA17_P_CC	G6	LA00_P_CC	I/O	LVDS	remapped signal for stacked operation
+HA17_N_CC	G7	LA00_N_CC	I/O	LVDS	remapped signal for stacked operation
+HA18_P	D8	LA01_P_CC	I/O	LVDS	remapped signal for stacked operation
+HA18_N	D9	LA01_N_CC	I/O	LVDS	remapped signal for stacked operation
+HA10_P	H7	LA02_P	I/O	LVDS	remapped signal for stacked operation
+HA10_N	H8	LA02_N	I/O	LVDS	remapped signal for stacked operation
+HA11_P	G9	LA03_P	I/O	LVDS	remapped signal for stacked operation
+HA11_N	G10	LA03_N	I/O	LVDS	remapped signal for stacked operation
+HA12_P	H10	LA04_P	I/O	LVDS	remapped signal for stacked operation
+HA12_N	H11	LA04_N	I/O	LVDS	remapped signal for stacked operation
+HA13_P	D11	LA05_P	I/O	LVDS	remapped signal for stacked operation
+HA13_N	D12	LA05_N	I/O	LVDS	remapped signal for stacked operation
+HA14_P	C10	LA06_P	I/O	LVDS	remapped signal for stacked operation
+HA14_N	C11	LA06_N	I/O	LVDS	remapped signal for stacked operation
+HA15_P	H13	LA07_P	I/O	LVDS	remapped signal for stacked operation
+HA15_N	H14	LA07_N	I/O	LVDS	remapped signal for stacked operation
+HA16_P	G12	LA08_P	I/O	LVDS	remapped signal for stacked operation
+HA16_N	G13	LA08_N	I/O	LVDS	remapped signal for stacked operation
