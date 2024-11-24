@@ -413,7 +413,8 @@ architecture channel of qlaser_dacs_pulse_channel is
                     -- No data output.
                     ------------------------------------------------------------------------
                     when  S_IDLE    =>
-    
+                        pc                  <= (others=>'0');
+                        ram_pulse_addrb     <= (others=>'0');
                         if (start = '1') and (start_d1 = '0') then
                             sm_state    <= S_LOAD;
                             sm_busy     <= '1';

@@ -211,8 +211,9 @@ begin
         gpio_leds_tri_o         => ps_leds              , -- out std_logic_vector( 7 downto 0);
         gpio_pbtns_tri_i        => gpio_btns             -- in  std_logic_vector( 4 downto 0);
 
---        gpio_int_in_tri_i       => ps_gpin              , -- in  std_logic_vector( 7 downto 0);
---        gpio_int_out_tri_o      => ps_gpout               -- out std_logic_vector( 7 downto 0);
+    -- -- TODO: Eric: possibly add another gpio block to this interface so we can use it to write some test fw to debug the pulse channel
+    --    gpio_int_in_tri_i       => ps_gpin              , -- in  std_logic_vector( 7 downto 0);
+    --    gpio_int_out_tri_o      => ps_gpout               -- out std_logic_vector( 7 downto 0);
     );
     -- Instantiate Differential pads
 
@@ -407,9 +408,9 @@ begin
     p_leds(2)   <= pulse_stretched(1);  
     p_leds(3)   <= trigger_dacs_pulse;
     p_leds(4)   <= pulse_stretched(3);  
-    p_leds(5)   <= ps_resetn0 or or_reduce(dacs_pulse_axis_tdatas(1)) or ps_leds(0);  
-    p_leds(6)   <= reset or or_reduce(dacs_pulse_axis_tdatas(2)) or ps_leds(1);  
-    p_leds(7)   <= dacs_pulse_busy or or_reduce(dacs_pulse_axis_tdatas(3)) or ps_leds(2) or gpio_btns(4);  -- changed this one  
+    p_leds(5)   <= (not ps_resetn0) or or_reduce(dacs_pulse_axis_tdatas(1));-- or ps_leds(0);  
+    p_leds(6)   <= reset or or_reduce(dacs_pulse_axis_tdatas(2));-- or ps_leds(1);  
+    p_leds(7)   <= dacs_pulse_busy or or_reduce(dacs_pulse_axis_tdatas(3));-- or ps_leds(2) or gpio_btns(4);  -- changed this one  
     
     
  
@@ -449,7 +450,7 @@ begin
             p_debug_out(7)              <= or_reduce(dacs_pulse_axis_tdatas(3));
             p_debug_out(8)              <= '1';
             p_debug_out(9)              <= trigger_dacs_pulse;
-            ps_enable_dacs_pulse <= ps_enable_dacs_pulse or misc_trigger; -- TODO: actually enable properly
+            ps_enable_dacs_pulse        <= ps_enable_dacs_pulse or misc_trigger; -- TODO: actually enable properly
             
         end if;
     end process;
