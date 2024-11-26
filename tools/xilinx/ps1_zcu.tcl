@@ -192,6 +192,10 @@ proc create_root_design { parentCell } {
 
 
   # Create interface ports
+  set gpio_int_in [ create_bd_intf_port -mode Master -vlnv xilinx.com:interface:gpio_rtl:1.0 gpio_int_in ]
+
+  set gpio_int_out [ create_bd_intf_port -mode Master -vlnv xilinx.com:interface:gpio_rtl:1.0 gpio_int_out ]
+
   set gpio_leds [ create_bd_intf_port -mode Master -vlnv xilinx.com:interface:gpio_rtl:1.0 gpio_leds ]
 
   set gpio_pbtns [ create_bd_intf_port -mode Master -vlnv xilinx.com:interface:gpio_rtl:1.0 gpio_pbtns ]
@@ -212,6 +216,19 @@ proc create_root_design { parentCell } {
   # Create instance: axi_cpuint, and set properties
   set axi_cpuint [ create_bd_cell -type ip -vlnv xilinx.com:user:axi_cpuint:1.0 axi_cpuint ]
 
+  # Create instance: axi_gpio_dbg, and set properties
+  set axi_gpio_dbg [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_gpio:2.0 axi_gpio_dbg ]
+  set_property -dict [ list \
+   CONFIG.C_ALL_INPUTS_2 {0} \
+   CONFIG.C_ALL_OUTPUTS {0} \
+   CONFIG.C_ALL_OUTPUTS_2 {1} \
+   CONFIG.C_GPIO_WIDTH {32} \
+   CONFIG.C_IS_DUAL {1} \
+   CONFIG.GPIO2_BOARD_INTERFACE {Custom} \
+   CONFIG.GPIO_BOARD_INTERFACE {Custom} \
+   CONFIG.USE_BOARD_FLOW {true} \
+ ] $axi_gpio_dbg
+
   # Create instance: axi_gpio_led_btn, and set properties
   set axi_gpio_led_btn [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_gpio:2.0 axi_gpio_led_btn ]
   set_property -dict [ list \
@@ -228,7 +245,7 @@ proc create_root_design { parentCell } {
   # Create instance: axi_smc, and set properties
   set axi_smc [ create_bd_cell -type ip -vlnv xilinx.com:ip:smartconnect:1.0 axi_smc ]
   set_property -dict [ list \
-   CONFIG.NUM_MI {2} \
+   CONFIG.NUM_MI {3} \
    CONFIG.NUM_SI {1} \
  ] $axi_smc
 
@@ -995,12 +1012,15 @@ Port;FD4A0000;FD4AFFFF;0|FPD;DPDMA;FD4C0000;FD4CFFFF;0|FPD;DDR_XMPU5_CFG;FD05000
   # Create interface connections
   connect_bd_intf_net -intf_net axi_gpio_0_GPIO [get_bd_intf_ports gpio_leds] [get_bd_intf_pins axi_gpio_led_btn/GPIO]
   connect_bd_intf_net -intf_net axi_gpio_0_GPIO2 [get_bd_intf_ports gpio_pbtns] [get_bd_intf_pins axi_gpio_led_btn/GPIO2]
+  connect_bd_intf_net -intf_net axi_gpio_dbg_GPIO [get_bd_intf_ports gpio_int_in] [get_bd_intf_pins axi_gpio_dbg/GPIO]
+  connect_bd_intf_net -intf_net axi_gpio_dbg_GPIO2 [get_bd_intf_ports gpio_int_out] [get_bd_intf_pins axi_gpio_dbg/GPIO2]
   connect_bd_intf_net -intf_net axi_smc_M00_AXI [get_bd_intf_pins axi_gpio_led_btn/S_AXI] [get_bd_intf_pins axi_smc/M00_AXI]
   connect_bd_intf_net -intf_net axi_smc_M01_AXI [get_bd_intf_pins axi_cpuint/S00_AXI] [get_bd_intf_pins axi_smc/M01_AXI]
+  connect_bd_intf_net -intf_net axi_smc_M02_AXI [get_bd_intf_pins axi_gpio_dbg/S_AXI] [get_bd_intf_pins axi_smc/M02_AXI]
   connect_bd_intf_net -intf_net zynq_ultra_ps_e_0_M_AXI_HPM0_FPD [get_bd_intf_pins axi_smc/S00_AXI] [get_bd_intf_pins zynq_ultra_ps_e_0/M_AXI_HPM0_FPD]
 
   # Create port connections
-  connect_bd_net -net Net [get_bd_pins axi_cpuint/s00_axi_aresetn] [get_bd_pins axi_gpio_led_btn/s_axi_aresetn] [get_bd_pins proc_sys_reset_0/peripheral_aresetn]
+  connect_bd_net -net Net [get_bd_pins axi_cpuint/s00_axi_aresetn] [get_bd_pins axi_gpio_dbg/s_axi_aresetn] [get_bd_pins axi_gpio_led_btn/s_axi_aresetn] [get_bd_pins proc_sys_reset_0/peripheral_aresetn]
   connect_bd_net -net axi_cpuint_0_clk_cpu [get_bd_ports clk_cpu] [get_bd_pins axi_cpuint/clk_cpu]
   connect_bd_net -net axi_cpuint_0_cpu_addr [get_bd_ports cpu_addr] [get_bd_pins axi_cpuint/cpu_addr]
   connect_bd_net -net axi_cpuint_0_cpu_rd [get_bd_ports cpu_rd] [get_bd_pins axi_cpuint/cpu_rd]
@@ -1009,11 +1029,12 @@ Port;FD4A0000;FD4AFFFF;0|FPD;DPDMA;FD4C0000;FD4CFFFF;0|FPD;DDR_XMPU5_CFG;FD05000
   connect_bd_net -net cpu_rdata_0_1 [get_bd_ports cpu_rdata] [get_bd_pins axi_cpuint/cpu_rdata]
   connect_bd_net -net cpu_rdata_dv_0_1 [get_bd_ports cpu_rdata_dv] [get_bd_pins axi_cpuint/cpu_rdata_dv]
   connect_bd_net -net ext_reset_in_0_1 [get_bd_ports reset] [get_bd_pins proc_sys_reset_0/ext_reset_in]
-  connect_bd_net -net zynq_ultra_ps_e_0_pl_clk0 [get_bd_ports pl_clk0] [get_bd_pins axi_cpuint/s00_axi_aclk] [get_bd_pins axi_gpio_led_btn/s_axi_aclk] [get_bd_pins axi_smc/aclk] [get_bd_pins proc_sys_reset_0/slowest_sync_clk] [get_bd_pins zynq_ultra_ps_e_0/maxihpm0_fpd_aclk] [get_bd_pins zynq_ultra_ps_e_0/pl_clk0]
+  connect_bd_net -net zynq_ultra_ps_e_0_pl_clk0 [get_bd_ports pl_clk0] [get_bd_pins axi_cpuint/s00_axi_aclk] [get_bd_pins axi_gpio_dbg/s_axi_aclk] [get_bd_pins axi_gpio_led_btn/s_axi_aclk] [get_bd_pins axi_smc/aclk] [get_bd_pins proc_sys_reset_0/slowest_sync_clk] [get_bd_pins zynq_ultra_ps_e_0/maxihpm0_fpd_aclk] [get_bd_pins zynq_ultra_ps_e_0/pl_clk0]
   connect_bd_net -net zynq_ultra_ps_e_0_pl_resetn0 [get_bd_ports pl_resetn0] [get_bd_pins axi_smc/aresetn] [get_bd_pins zynq_ultra_ps_e_0/pl_resetn0]
 
   # Create address segments
   assign_bd_address -offset 0xA0040000 -range 0x00040000 -target_address_space [get_bd_addr_spaces zynq_ultra_ps_e_0/Data] [get_bd_addr_segs axi_cpuint/S00_AXI/S00_AXI_reg] -force
+  assign_bd_address -offset 0xA0010000 -range 0x00010000 -target_address_space [get_bd_addr_spaces zynq_ultra_ps_e_0/Data] [get_bd_addr_segs axi_gpio_dbg/S_AXI/Reg] -force
   assign_bd_address -offset 0xA0000000 -range 0x00010000 -target_address_space [get_bd_addr_spaces zynq_ultra_ps_e_0/Data] [get_bd_addr_segs axi_gpio_led_btn/S_AXI/Reg] -force
 
 

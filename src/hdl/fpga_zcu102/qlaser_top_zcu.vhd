@@ -101,8 +101,8 @@ signal misc_trigger         : std_logic;
 signal ps_clk0                  : std_logic;
 signal ps_resetn0               : std_logic;
 signal ps_leds                  : std_logic_vector( 7 downto 0);
-signal ps_gpin                  : std_logic_vector( 7 downto 0);
--- signal ps_gpout                 : std_logic_vector( 7 downto 0);
+signal ps_gpin                  : std_logic_vector(31 downto 0);
+signal ps_gpout                 : std_logic_vector(31 downto 0);
 -- Connections to PS axi_cpuint IP block
 signal ps_clk_cpu               : std_logic;
 signal ps_cpu_addr              : std_logic_vector(17 downto 0);
@@ -209,11 +209,11 @@ begin
         
         
         gpio_leds_tri_o         => ps_leds              , -- out std_logic_vector( 7 downto 0);
-        gpio_pbtns_tri_i        => gpio_btns             -- in  std_logic_vector( 4 downto 0);
+        gpio_pbtns_tri_i        => gpio_btns            ,-- in  std_logic_vector( 4 downto 0);
 
-    -- -- TODO: Eric: possibly add another gpio block to this interface so we can use it to write some test fw to debug the pulse channel
-    --    gpio_int_in_tri_i       => ps_gpin              , -- in  std_logic_vector( 7 downto 0);
-    --    gpio_int_out_tri_o      => ps_gpout               -- out std_logic_vector( 7 downto 0);
+     -- TODO: Eric: possibly add another gpio block to this interface so we can use it to write some test fw to debug the pulse channel
+        gpio_int_in_tri_i       => ps_gpin              , -- in  std_logic_vector( 31 downto 0);
+        gpio_int_out_tri_o      => ps_gpout               -- out std_logic_vector( 31 downto 0);
     );
     -- Instantiate Differential pads
 
@@ -406,13 +406,19 @@ begin
     p_leds(0)   <= misc_flash or gpio_btns(0);          -- 
     p_leds(1)   <= pulse_stretched(0);  -- trigger, dac busy, etc.
     p_leds(2)   <= pulse_stretched(1);  
-    p_leds(3)   <= trigger_dacs_pulse;
+    p_leds(3)   <= pulse_stretched(3);
     p_leds(4)   <= pulse_stretched(3);  
-    p_leds(5)   <= (not ps_resetn0) or or_reduce(dacs_pulse_axis_tdatas(1));-- or ps_leds(0);  
-    p_leds(6)   <= reset or or_reduce(dacs_pulse_axis_tdatas(2));-- or ps_leds(1);  
-    p_leds(7)   <= dacs_pulse_busy or or_reduce(dacs_pulse_axis_tdatas(3));-- or ps_leds(2) or gpio_btns(4);  -- changed this one  
+    p_leds(5)   <= (not ps_resetn0) or ps_leds(0);  
+    p_leds(6)   <= reset or ps_leds(1);  
+    p_leds(7)   <= ps_leds(2) or gpio_btns(4); 
     
-    
+    -- Firmware Debug
+    -- Control signals to "qlaser_dacs_pulse"
+    ps_gpin(0)  <= trigger_dacs_pulse;
+    ps_gpin(1)  <= ps_enable_dacs_pulse;
+    -- Status signals from "qlaser_dacs_pulse"
+    ps_gpin(2)  <= dacs_pulse_ready;
+    ps_gpin(3)  <= dacs_pulse_error;
  
     ---------------------------------------------------------------------------------
     -- Debug output mux.
@@ -440,17 +446,18 @@ begin
 
         if rising_edge(clk) then
 
-            p_debug_out(0)              <= trigger_dacs_pulse;
-            p_debug_out(1)              <= any_dacs_busy;
-            p_debug_out(2)              <= p2p_active;
-            p_debug_out(3)              <= or_reduce(dacs_pulse_axis_tvalids);
-            p_debug_out(4)              <= or_reduce(dacs_pulse_axis_tdatas(0));
-            p_debug_out(5)              <= or_reduce(dacs_pulse_axis_tdatas(1));
-            p_debug_out(6)              <= or_reduce(dacs_pulse_axis_tdatas(2));
-            p_debug_out(7)              <= or_reduce(dacs_pulse_axis_tdatas(3));
-            p_debug_out(8)              <= '1';
-            p_debug_out(9)              <= trigger_dacs_pulse;
-            ps_enable_dacs_pulse        <= ps_enable_dacs_pulse or misc_trigger; -- TODO: actually enable properly
+            p_debug_out(0)              <= dacs_pulse_busy;
+            p_debug_out(1)              <= dacs_pulse_ready;
+            p_debug_out(2)              <= any_dacs_busy;
+            p_debug_out(3)              <= p2p_active;
+            p_debug_out(4)              <= p2p_busy;
+            p_debug_out(5)              <= or_reduce(dacs_pulse_axis_tvalids);
+            p_debug_out(6)              <= or_reduce(dacs_pulse_axis_tdatas(0));
+            p_debug_out(7)              <= or_reduce(dacs_pulse_axis_tdatas(1));
+            p_debug_out(8)              <= or_reduce(dacs_pulse_axis_tdatas(2));
+            p_debug_out(9)              <= or_reduce(dacs_pulse_axis_tdatas(3));
+            -- TODO: actually enable properly, currently need trigger to be on twice to work
+            ps_enable_dacs_pulse        <= ps_enable_dacs_pulse or misc_trigger; 
             
         end if;
     end process;
