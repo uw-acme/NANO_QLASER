@@ -171,8 +171,8 @@ begin
     cif_reset <= not(ps_resetn0);
 
     -- Combine p_btn trigger (from pad) with misc block trigger and ps_gpout(0) to create internal trigger
-    trigger_dacs_pulse      <= (p_btn_c or misc_trigger) and not(p2p_active);
-    -- ps_enable_dacs_pulse    <= ; -- IS THIS IT? IS THIS WHAT HAS CAUSED ME SO MUCH PAIN?
+    trigger_dacs_pulse      <= (p_btn_c or misc_trigger or ps_gpout(0)) and not(p2p_active);
+    ps_enable_dacs_pulse    <= ps_gpout(1); -- or ps_leds(1);  -- TODO: currently using the (shuold be tested working) LED GPIO to enable the pulse generation - make sure ps gpio can work so there could be dedicated gpio for this
     any_dacs_busy           <= dacs_dc_busy(0) or dacs_dc_busy(1) or dacs_dc_busy(2) or dacs_dc_busy(3) or dacs_pulse_busy;
 
     -- JESD outputs
@@ -211,7 +211,7 @@ begin
         gpio_leds_tri_o         => ps_leds              , -- out std_logic_vector( 7 downto 0);
         gpio_pbtns_tri_i        => gpio_btns            ,-- in  std_logic_vector( 4 downto 0);
 
-     -- TODO: Eric: possibly add another gpio block to this interface so we can use it to write some test fw to debug the pulse channel
+     -- another gpio block to this interface so we can use it to write some test fw to debug the pulse channel
         gpio_int_in_tri_i       => ps_gpin              , -- in  std_logic_vector( 31 downto 0);
         gpio_int_out_tri_o      => ps_gpout               -- out std_logic_vector( 31 downto 0);
     );
@@ -398,27 +398,38 @@ begin
 
  
     -- Input to pulse stretcher in the misc block which can be used to make signals visible on the LEDs
-    pulse(0)    <= trigger_dacs_pulse or dacs_dc_busy(0) or dacs_dc_busy(1) or dacs_dc_busy(2) or dacs_dc_busy(3) or dacs_pulse_busy;
-    pulse(1)    <= p2p_busy;
-    pulse(2)    <= tick_sec;
-    pulse(3)    <= trigger_dacs_pulse;
+    pulse(0)              <= trigger_dacs_pulse or dacs_dc_busy(0) or dacs_dc_busy(1) or dacs_dc_busy(2) or dacs_dc_busy(3) or dacs_pulse_busy;
+    pulse(1)              <= p2p_busy;
+    pulse(2)              <= tick_sec;
+    pulse(3)              <= trigger_dacs_pulse;
 
-    p_leds(0)   <= misc_flash or gpio_btns(0);          -- 
-    p_leds(1)   <= pulse_stretched(0);  -- trigger, dac busy, etc.
-    p_leds(2)   <= pulse_stretched(1);  
-    p_leds(3)   <= pulse_stretched(3);
-    p_leds(4)   <= pulse_stretched(3);  
-    p_leds(5)   <= (not ps_resetn0) or ps_leds(0);  
-    p_leds(6)   <= reset or ps_leds(1);  
-    p_leds(7)   <= ps_leds(2) or gpio_btns(4); 
+    p_leds(0)             <= misc_flash or gpio_btns(0);          -- 
+    p_leds(1)             <= pulse_stretched(0);  -- trigger, dac busy, etc.
+    p_leds(2)             <= pulse_stretched(1);  
+    p_leds(3)             <= pulse_stretched(3);
+    p_leds(4)             <= pulse_stretched(3);  
+    p_leds(5)             <= (not ps_resetn0) or ps_leds(0) or ps_enable_dacs_pulse;  
+    p_leds(6)             <= reset or ps_leds(1) or trigger_dacs_pulse;  
+    p_leds(7)             <= ps_leds(2) or p2p_active;
     
     -- Firmware Debug
     -- Control signals to "qlaser_dacs_pulse"
-    ps_gpin(0)  <= trigger_dacs_pulse;
-    ps_gpin(1)  <= ps_enable_dacs_pulse;
+    ps_gpin(0)            <= trigger_dacs_pulse;
+    ps_gpin(1)            <= ps_enable_dacs_pulse;
     -- Status signals from "qlaser_dacs_pulse"
-    ps_gpin(2)  <= dacs_pulse_ready;
-    ps_gpin(3)  <= dacs_pulse_error;
+    ps_gpin(2)            <= dacs_pulse_ready;
+    ps_gpin(3)            <= dacs_pulse_error;
+    ps_gpin(4)            <= dacs_pulse_busy;
+    -- Misc
+    ps_gpin(5)            <= clk;
+    ps_gpin(6)            <= misc_trigger;
+    -- Status signals from pulse2pmod
+    ps_gpin(7)            <= p2p_busy;
+
+    -- Pulse value
+    ps_gpin(15)           <= dacs_pulse_axis_tvalids(0);
+    ps_gpin(31 downto 16) <= dacs_pulse_axis_tdatas(0);
+
  
     ---------------------------------------------------------------------------------
     -- Debug output mux.
@@ -430,7 +441,6 @@ begin
             p2pmodBusyD2 <= '0';
             p2pmodBusyD3 <= '0';
             p2pmodBusyD4 <= '0';
-            ps_enable_dacs_pulse <= '0';
         elsif rising_edge(clk) then
             -- First delay stage
             p2pmodBusyD1 <= p2p_busy;
@@ -446,19 +456,16 @@ begin
 
         if rising_edge(clk) then
 
-            p_debug_out(0)              <= dacs_pulse_busy;
-            p_debug_out(1)              <= dacs_pulse_ready;
-            p_debug_out(2)              <= any_dacs_busy;
-            p_debug_out(3)              <= p2p_active;
-            p_debug_out(4)              <= p2p_busy;
+            p_debug_out(0)              <= p2p_spi_sclk;
+            p_debug_out(1)              <= p2p_spi_mosi;
+            p_debug_out(2)              <= p2p_spi_cs_n;
+            p_debug_out(3)              <= ps_enable_dacs_pulse;
+            p_debug_out(4)              <= any_dacs_busy;
             p_debug_out(5)              <= or_reduce(dacs_pulse_axis_tvalids);
             p_debug_out(6)              <= or_reduce(dacs_pulse_axis_tdatas(0));
             p_debug_out(7)              <= or_reduce(dacs_pulse_axis_tdatas(1));
             p_debug_out(8)              <= or_reduce(dacs_pulse_axis_tdatas(2));
             p_debug_out(9)              <= or_reduce(dacs_pulse_axis_tdatas(3));
-            -- TODO: actually enable properly, currently need trigger to be on twice to work
-            ps_enable_dacs_pulse        <= ps_enable_dacs_pulse or misc_trigger; 
-            
         end if;
     end process;
     

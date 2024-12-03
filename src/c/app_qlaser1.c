@@ -1054,8 +1054,8 @@ int iic_read_clk_reg(int nReg)
 
 
 //---------------------------------------------------------
-// Bit 0 ‘0’ Disables output amplifiers for DAC Channels 0,1,2, and 3
-//       ‘1’ Enables output amplifiers for DAC Channels 0,1,2, and 3
+// Bit 0 ï¿½0ï¿½ Disables output amplifiers for DAC Channels 0,1,2, and 3
+//       ï¿½1ï¿½ Enables output amplifiers for DAC Channels 0,1,2, and 3
 // Bit 1, channels 7-4
 // Bit 2, channels 11-8
 // Bit 3, channels 15-12

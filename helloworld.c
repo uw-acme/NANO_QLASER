@@ -26,8 +26,8 @@
 #define PDEF_NUM_ENTRY     (SIZERAM_PULSE_DEFN/4)
 
 #define ADR_BASE_GPIO_INT  XPAR_AXI_GPIO_INT_BASEADDR
-#define ADR_GPIO_OUT       (ADR_BASE_GPIO_INT + 0x0)
-#define ADR_GPIO_IN        (ADR_BASE_GPIO_INT + 0x8)
+#define ADR_GPIO_IN        (ADR_BASE_GPIO_INT + 0x0)
+#define ADR_GPIO_OUT       (ADR_BASE_GPIO_INT + 0x8)
 
 // LED and Button GPIO interfaces
 #define ADR_BASE_GPIO_LED_BTN   XPAR_AXI_GPIO_LED_BTN_BASEADDR  // 'XPAR' addresses are from xparameter.h (vitis generated file)
@@ -1513,9 +1513,11 @@ int main()
                         //---------------------------------------------------------
                         case 'g':
                             //gpo_toggle(nValue, ADR_MISC_LEDS);
-                           (void)xil_printf ("Set ADR_MISC_LEDS = to %X\r\n", nValue);
-                           (void)xil_printf ("ADR_MISC_LEDS = %08X\r\n", ADR_MISC_LEDS);
-                            Xil_Out32(ADR_MISC_LEDS, nValue);
+//                           (void)xil_printf ("Set ADR_MISC_LEDS = to %X\r\n", nValue);
+//                           (void)xil_printf ("ADR_MISC_LEDS = %08X\r\n", ADR_MISC_LEDS);
+//                            Xil_Out32(ADR_MISC_LEDS, nValue);
+                        	(void)xil_printf ("Sending 0x%08X to GPIO LED\r\n", nValue);
+                        	Xil_Out32(ADR_GPIO_LED, nValue);
                         break;
 
                     	//----------------------------------------------------------------------
@@ -1722,6 +1724,11 @@ int main()
                         case 'C':
 							Xil_Out32(PMOD_ADDR_CTRL, 0x1);
 //							Xil_Out32(C_ADDR_INTERNAL_REF, nRdata);
+
+							nRdata = Xil_In32(ADR_GPIO_IN);
+
+							Xil_Out32(ADR_GPIO_OUT, set_bit(nRdata, 1));
+
 						break;
 
                         case 't':
@@ -1744,8 +1751,9 @@ int main()
                         	Xil_Out32(ADR_PULSE_REG_CHEN, 0xFFFFFFFF);
 
                         	//	load_pulse_defn(1);
-							entry_pulse_defn(0, 200,    0,     0x0200, 0x8000, 0x0100, 0x0080);
-							entry_pulse_defn(1, 0x1000, 1000,  0x0100, 0x8000, 0x0100, 0x0120);
+							entry_pulse_defn(0, 200,    0,     0x0200, 0x8000, 0x0100, 0x0100);
+							entry_pulse_defn(1, 10000,    0,     0x0200, 0x8000, 0x0100, 0x0010);
+//							entry_pulse_defn(1, 0x1000, 1000,  0x0100, 0x8000, 0x0100, 0x0);
 							//	void entry_pulse_defn(int nEntry, int nStartTime, int nWaveAddr, int nWaveLen, int nScaleGain, int nScaleAddr, int nFlattop)
 //							nWdata = nStartTime & 0x00FFFFFF;
 //							nWaddr = ADR_BASE_PULSE_DEFN + 4*4*nEntry;
@@ -1829,8 +1837,10 @@ int main()
 
 						break;
 
+						// read virtual pins
                         case 'r':
-
+                        	nRdata = Xil_In32(ADR_GPIO_IN);
+                        	(void)xil_printf ("Debug GPIO Value: 0x%08X\r\n", nRdata);
 						break;
 
 
