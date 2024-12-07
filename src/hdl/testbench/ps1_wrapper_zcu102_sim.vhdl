@@ -15,6 +15,9 @@ use     work.qlaser_addr_zcu102_pkg.all;
 use     work.std_iopak.all;
 
 entity ps1_wrapper is
+    generic (
+        SEQ_LENGTH      : integer := 10000  -- Number of sequence steps, not actually used 
+    );
 port (
     clk_cpu             : out std_logic;
     cpu_addr            : out std_logic_vector(17 downto 0);
@@ -80,10 +83,11 @@ begin
     -- 
     -------------------------------------------------------------
     pr_main : process
-    variable v_ndata32  : integer := 0;
-    variable v_ndata16  : integer := 0;
-
-    variable seq_length : integer := 10000;
+     -- variables for loading the waveform RAM
+     variable v_ndata32        : integer     := 0;
+     variable v_ndata16        : integer     := 0;
+     variable v_ndata32_upper  : integer     := 0;
+     variable v_ndata32_lower  : integer     := 0;
     begin
 
         wr          <= '0';
@@ -133,45 +137,69 @@ begin
 
         -- write pulse def
         -- entry_pulse_defn(0, 40, 0, 0x0010, 0x8000, 0x100, 0x00010); 
-        cpu_write(clk, ADR_BASE_PULSE_DEFN, X"00000020", rd, wr, addr, wdata); -- start time
+        cpu_write(clk, ADR_BASE_PULSE_DEFN,                   X"00000064", rd, wr, addr, wdata); -- start time
         cpu_write(clk, ADR_BASE_PULSE_DEFN or "00" & X"0004", X"00040000", rd, wr, addr, wdata); -- wave length, wave addr
         cpu_write(clk, ADR_BASE_PULSE_DEFN or "00" & X"0008", X"80000100", rd, wr, addr, wdata); -- scale addr, scale gain
         cpu_write(clk, ADR_BASE_PULSE_DEFN or "00" & X"000C", X"00000002", rd, wr, addr, wdata); -- flat top
-
+        wait until rising_edge(clk);
         
 
-        -- write waveform
-        cpu_write(clk, ADR_BASE_PULSE_WAVE, X"00010002", rd, wr, addr, wdata); 
-        cpu_write(clk, ADR_BASE_PULSE_WAVE or "00" & X"0004", X"00040003", rd, wr, addr, wdata); 
-        cpu_write(clk, ADR_BASE_PULSE_WAVE or "00" & X"0008", X"00060005", rd, wr, addr, wdata); 
-        cpu_write(clk, ADR_BASE_PULSE_WAVE or "00" & X"000C", X"00080007", rd, wr, addr, wdata); 
+        -- -- write waveform
+        -- cpu_write(clk, ADR_BASE_PULSE_WAVE, X"00010002", rd, wr, addr, wdata); 
+        -- cpu_write(clk, ADR_BASE_PULSE_WAVE or "00" & X"0004", X"00040003", rd, wr, addr, wdata); 
+        -- cpu_write(clk, ADR_BASE_PULSE_WAVE or "00" & X"0008", X"00060005", rd, wr, addr, wdata); 
+        -- cpu_write(clk, ADR_BASE_PULSE_WAVE or "00" & X"000C", X"00080007", rd, wr, addr, wdata); 
         
         -- for i in 0 to 255 loop
         --     -- cpu_addr(9 downto 0) <= std_logic_vector(to_unsigned(i, 10)); -- ram_pulse_addra
         --     wait until rising_edge(clk);
         --     -- cpu_wdata(15 downto 0) <= std_logic_vector(to_unsigned(i, 16));
         --     -- cpu_wdata(31 downto 16) <= std_logic_vector(to_unsigned(i, 16));
-        --     cpu_write(clk, "01" & x"2" & "00" & std_logic_vector(to_unsigned(i, 10)), std_logic_vector(to_unsigned(i, 16)) & std_logic_vector(to_unsigned(i, 16)), rd, wr, addr, wdata); 
+
+        --     cpu_write(
+        --         clk, 
+        --         "01" & x"2" & "00" & std_logic_vector(to_unsigned(i, 10)), 
+        --         std_logic_vector(to_unsigned(i, 16)) & std_logic_vector(to_unsigned(i, 16)), 
+        --         rd, 
+        --         wr, 
+        --         addr,
+        --         wdata
+        --     ); 
 
             
         --     wait until rising_edge(clk);
 
         -- end loop;
-        -- wait until rising_edge(clk);
+        -- Load a ramp waveform into the RAM
+        for NADDR in 0 to 2047 loop
+            v_ndata32_upper := NADDR * 2**16;
+            v_ndata32_lower := NADDR;
+            v_ndata32       := v_ndata32_upper + v_ndata32_lower;
+            cpu_write(
+                clk, 
+                -- (2048 + NADDR) , 
+                "01" & x"2" & "00" & std_logic_vector(to_unsigned(NADDR, 10)), 
+                std_logic_vector(to_unsigned(v_ndata32,32)), 
+                rd, 
+                wr, 
+                addr,
+                wdata
+            );
+            v_ndata16       := v_ndata16 + 2;
+            wait until rising_edge(clk);
+        end loop;
+
+        wait until rising_edge(clk);
 
         -- switch control
         cpu_write(clk, to_integer(unsigned(PMOD_ADDR_CTRL))    , X"00000001", rd, wr, addr, wdata);
 
         -- trigger
-        cpu_write(clk, ADR_MISC_DEBUG_TRIGGER    , X"00000001", rd, wr, addr, wdata); -- set to enabled
         gpio_int_o(1) <= '1';
         clk_delay(10, clk);
 
-        cpu_write(clk, ADR_MISC_DEBUG_TRIGGER    , X"00000000", rd, wr, addr, wdata);
-        clk_delay(10, clk);
-
-        cpu_write(clk, ADR_MISC_DEBUG_TRIGGER    , X"00000001", rd, wr, addr, wdata); -- start run
-        clk_delay(32768, clk);
+        gpio_int_o(0) <= '1'; -- start run
+        clk_delay(SEQ_LENGTH, clk);
 
         cpu_print_msg("Current debug value: " & to_string(gpio_int_in_tri_i));
 
@@ -190,7 +218,7 @@ begin
 
 
     -------------------------------------------------------------
-    -- Generate pl_clk0 clock. Halt when sim_done is true.
+    -- Generate pl_clk0 clock.
     -------------------------------------------------------------
     pr_clk : process
     begin
@@ -198,9 +226,6 @@ begin
         wait for (CLK_PER/2);
         clk  <= '1';
         wait for (CLK_PER-CLK_PER/2);
-        if (sim_done=true) then
-            wait; 
-        end if;
     end process;
 	
 	pl_clk0  <= clk;

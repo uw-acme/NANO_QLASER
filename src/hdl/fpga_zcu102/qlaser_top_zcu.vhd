@@ -310,7 +310,7 @@ begin
         
     );
     
-   
+    
     -----------------------------------------------------------------------------------
     ---- Pulse DAC interface
     -----------------------------------------------------------------------------------
@@ -512,17 +512,17 @@ begin
         end if;
     end process;
     
-   u_dbg : entity work.ila_0
-   PORT MAP (
-       clk => clk,
-       probe0 => pulse_errors(0), 
-       probe1 => ila_probe1, 
-       probe2 => ila_probe2, 
-       probe3 => ila_probe3, 
-       probe4 => ila_probe4, 
-       probe5 => ila_probe5, 
-       probe6 => ila_probe6,
-       probe7 => dacs_pulse_axis_tdatas(0)(11 downto 0)
-   );
+--    u_dbg : entity work.ila_0
+--    PORT MAP (
+--        clk => clk,
+--        probe0 => pulse_errors(0), 
+--        probe1 => ila_probe1, 
+--        probe2 => ila_probe2, 
+--        probe3 => ila_probe3, 
+--        probe4 => ila_probe4, 
+--        probe5 => ila_probe5, 
+--        probe6 => ila_probe6,
+--        probe7 => dacs_pulse_axis_tdatas(0)(11 downto 0)
+--    );
 
 end zc102;

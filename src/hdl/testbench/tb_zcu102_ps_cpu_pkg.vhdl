@@ -251,7 +251,7 @@ package body tb_zcu102_ps_cpu_pkg is
 
         -- Each entry is made up of four 32-bit RAM locations.
         -- Parameters are aligned to 8-bit boundaries
-        cpu_write(clk, ADR_RAM_PDEF+(4*num_entry  ) , C_ZEROS(31 downto 25) & slv_pulsetime,       cpu_rd, cpu_wr, cpu_addr, cpu_wdata);
+        cpu_write(clk, ADR_RAM_PDEF+(4*num_entry  ) , C_ZEROS(31 downto 24) & slv_pulsetime,       cpu_rd, cpu_wr, cpu_addr, cpu_wdata);
         cpu_write(clk, ADR_RAM_PDEF+(4*num_entry+1) , C_ZEROS(31 downto 26) & slv_wavesteps
                                                     & C_ZEROS(15 downto 12) & slv_wavestartaddr,   cpu_rd, cpu_wr, cpu_addr, cpu_wdata);
         cpu_write(clk, ADR_RAM_PDEF+(4*num_entry+2) , slv_timefactor        & slv_gainfactor,      cpu_rd, cpu_wr, cpu_addr, cpu_wdata);

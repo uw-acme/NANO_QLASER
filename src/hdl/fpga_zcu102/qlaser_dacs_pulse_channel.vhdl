@@ -678,16 +678,16 @@ architecture channel of qlaser_dacs_pulse_channel is
         debug_probe(30)           <= '1' when (sm_state = S_WAVE_FLAT) else '0';
         debug_probe(31)           <= '1' when (sm_state = S_WAVE_DOWN) else '0';
         
-        u_pulse_dbg : entity work.ila_pulse
-        PORT MAP (
-            clk => clk,
-            probe0 => debug_probe(0 downto 0), 
-            probe1 => debug_probe(1 downto 1), 
-            probe2 => debug_probe(2 downto 2), 
-            probe3 => debug_probe(3 downto 3), 
-            probe4 => debug_probe(15 downto 8), 
-            probe5 => debug_probe(23 downto 16), 
-            probe6 => debug_probe(31 downto 24),
-            probe7 => sm_wavedata(11 downto 0)
-        );
+        -- u_pulse_dbg : entity work.ila_pulse
+        -- PORT MAP (
+        --     clk => clk,
+        --     probe0 => debug_probe(0 downto 0), 
+        --     probe1 => debug_probe(1 downto 1), 
+        --     probe2 => debug_probe(2 downto 2), 
+        --     probe3 => debug_probe(3 downto 3), 
+        --     probe4 => debug_probe(15 downto 8), 
+        --     probe5 => debug_probe(23 downto 16), 
+        --     probe6 => debug_probe(31 downto 24),
+        --     probe7 => sm_wavedata(11 downto 0)
+        -- );
     end channel;

@@ -1,7 +1,8 @@
 // --------------------------------------------------------------------
 // Essential simulation arguments
 // --------------------------------------------------------------------
-// supporess certain warnings
+-work work
+// supporess certain warnings... kindaly review
 -suppress vcom-1135
 -coversub
 // generate a log file
@@ -48,7 +49,8 @@
 ../../src/hdl/fpga_zcu102/qlaser_top_zcu.vhd
 
 
-// ../../src/hdl/testbench/model_ad5628.vhdl
+// compile the DAC
+../../src/hdl/testbench/model_ad5628.vhdl
 
 // ../../src/hdl/testbench/tb_cpubus_dacs_pulse_channel.vhdl
-// ../../src/hdl/testbench/tb_qlaser_top_zcu.vhd
+../../src/hdl/testbench/tb_qlaser_top_zcu.vhd

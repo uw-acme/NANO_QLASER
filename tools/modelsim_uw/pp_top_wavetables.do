@@ -1,237 +1,25 @@
 onerror {resume}
 quietly WaveActivateNextPane {} 0
-add wave -noupdate /tb_qlaser_top/clk
-add wave -noupdate /tb_qlaser_top/p_reset
-add wave -noupdate /tb_qlaser_top/p_dc0_sclk
-add wave -noupdate /tb_qlaser_top/p_dc0_mosi
-add wave -noupdate /tb_qlaser_top/p_dc0_cs_n
-add wave -noupdate /tb_qlaser_top/p_dc1_sclk
-add wave -noupdate /tb_qlaser_top/p_dc1_mosi
-add wave -noupdate /tb_qlaser_top/p_dc1_cs_n
-add wave -noupdate /tb_qlaser_top/p_dc2_sclk
-add wave -noupdate /tb_qlaser_top/p_dc2_mosi
-add wave -noupdate /tb_qlaser_top/p_dc2_cs_n
-add wave -noupdate /tb_qlaser_top/p_dc3_sclk
-add wave -noupdate /tb_qlaser_top/p_dc3_mosi
-add wave -noupdate /tb_qlaser_top/p_dc3_cs_n
-add wave -noupdate /tb_qlaser_top/p_btn_e
-add wave -noupdate /tb_qlaser_top/p_btn_s
-add wave -noupdate /tb_qlaser_top/p_btn_n
-add wave -noupdate /tb_qlaser_top/p_btn_w
-add wave -noupdate /tb_qlaser_top/p_btn_c
-add wave -noupdate /tb_qlaser_top/p_leds
-add wave -noupdate /tb_qlaser_top/p_debug_out
-add wave -noupdate /tb_qlaser_top/sim_done
-add wave -noupdate /tb_qlaser_top/CLK_FREQ_MHZ
-add wave -noupdate /tb_qlaser_top/CLK_PER
-add wave -noupdate /tb_qlaser_top/ADR_RAM_PULSE
-add wave -noupdate /tb_qlaser_top/ADR_RAM_WAVE
-add wave -noupdate /tb_qlaser_top/vout0
-add wave -noupdate -divider qlaser_top
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/p_reset
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/p_dc0_sclk
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/p_dc0_mosi
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/p_dc0_cs_n
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/p_dc1_sclk
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/p_dc1_mosi
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/p_dc1_cs_n
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/p_dc2_sclk
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/p_dc2_mosi
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/p_dc2_cs_n
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/p_dc3_sclk
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/p_dc3_mosi
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/p_dc3_cs_n
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/p_btn_e
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/p_btn_s
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/p_btn_n
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/p_btn_w
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/p_btn_c
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/p_leds
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/p_debug_out
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/clk
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/reset
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/cif_reset
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/cpu_sels
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/cpu_wr
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/cpu_addr
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/cpu_din
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/cpu_debug
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/arr_cpu_dout
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/arr_cpu_dout_dv
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/misc_leds
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/misc_leds_en
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/misc_flash
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/tick_msec
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/tick_sec
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/misc_dbg_ctrl
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/misc_trigger
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/ps_clk0
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/ps_resetn0
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/ps_leds
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/ps_gpin
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/ps_clk_cpu
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/ps_cpu_addr
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/ps_cpu_wdata
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/ps_cpu_wr
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/ps_cpu_rd
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/cif_cpu_rdata
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/cif_cpu_rdata_dv
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/pulse
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/pulse_stretched
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/trigger_dacs_pulse
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/ps_enable_dacs_pulse
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/any_dacs_busy
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/dacs_dc_busy
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/dacs_pulse_ready
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/dacs_pulse_busy
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/dacs_pulse_error
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/dacs_pulse_error_latched
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/dacs_pulse_axis_treadys
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/dacs_pulse_axis_tdatas
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/dacs_pulse_axis_tvalids
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/dacs_pulse_axis_tlasts
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/jesd_syncs
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/p2p_busy
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/p2p_spi_sclk
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/p2p_spi_mosi
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/p2p_spi_cs_n
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/p2pmodBusyD4
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/p2p_active
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/gpio_btns
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/s_axis_tx_fmc0_tdata
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/s_axis_tx_fmc0_tready
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/tx0_aresetn
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/tx0_core_reset
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/tx0_reset_done
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/tx0_sof
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/tx0_somf
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/tx0_sync
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/tx0_sysref
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/ps_jesd_tx0outclk
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/ps_jesd_tx0n_out
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/ps_jesd_tx0p_out
-add wave -noupdate -divider Dacs_pulse
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/G_NCHANS
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/reset
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/clk
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/enable
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/trigger
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/jesd_syncs
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/ready
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/busy
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/error
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/error_latched
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/cpu_addr
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/cpu_wdata
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/cpu_wr
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/cpu_sel
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/cpu_rdata
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/cpu_rdata_dv
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/axis_treadys
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/axis_tdatas
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/axis_tvalids
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/axis_tlasts
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/reg_sequence_len
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/reg_ch_sels
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/reg_ch_en
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/ch_enables
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/reg_status
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/reg_status_jesd
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/sm_state
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/sm_busy
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/sm_cnt_time
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/ch_busy
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/ch_errs_wave
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/ch_errs_jesd
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/busy_i
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/any_errs_jesd
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/done_seq
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/cpu_ch_addr
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/cpu_ch_wdata
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/cpu_ch_wr
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/cpu_ch_sels
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/cpu_ch_rdatas
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/cpu_ch_rdata_dvs
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/reg_rdata
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/reg_rdata_dv
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/trigger_d1
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/enable_d1
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/errs_jesd_latched
-add wave -noupdate -divider ch0
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/axis_tdata
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/axis_tlast
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/axis_tready
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/axis_tvalid
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/busy
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/C_BITS_ADDR_FULL
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/C_BITS_ADDR_LENGTH
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/C_BITS_ADDR_PULSE
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/C_BITS_ADDR_START
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/C_BITS_ADDR_TOP
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/C_BITS_ADDR_WAVE
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/C_BITS_GAIN_FACTOR
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/C_BITS_TIME_FACTOR
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/C_BITS_TIME_FRAC
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/C_BITS_TIME_INT
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/C_LEN_PULSE
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/C_LENGTH_WAVEFORM
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/C_PC_INCR
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/C_RAM_SELECT
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/C_START_TIME
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/clk
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/cnt_addr
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/cnt_time
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/cnt_wave_len
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/cnt_wave_top
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/cpu_addr
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/cpu_rdata
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/cpu_rdata_dv
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/cpu_rdata_dv_e1
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/cpu_rdata_dv_e2
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/cpu_rdata_ramsel_d1
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/cpu_rdata_ramsel_d2
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/cpu_sel
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/cpu_wdata
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/cpu_wr
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/done_seq
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/enable
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/enable_d1
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/err_addr_of
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/err_wave
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/pc
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/ram_pulse_addra
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/ram_pulse_addrb
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/ram_pulse_dina
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/ram_pulse_douta
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/ram_pulse_doutb
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/ram_pulse_we
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/ram_waveform_addra
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/ram_waveform_addrb
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/ram_waveform_dina
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/ram_waveform_douta
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/ram_waveform_doutb
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/ram_waveform_wea
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/reg_pulse_flattop
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/reg_pulse_time
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/reg_scale_gain
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/reg_scale_time
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/reg_wave_end_addr
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/reg_wave_length
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/reg_wave_start_addr
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/reset
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/sm_busy
+add wave -noupdate -radix unsigned /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/axis_tlast
+add wave -noupdate -radix unsigned /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/axis_tready
+add wave -noupdate -radix unsigned /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/axis_tvalid
+add wave -noupdate -radix unsigned /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/busy
+add wave -noupdate -radix unsigned /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/clk
+add wave -noupdate -radix unsigned /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/cnt_time
+add wave -noupdate -radix unsigned /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/cpu_addr
+add wave -noupdate -radix unsigned /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/cpu_rdata
+add wave -noupdate -radix unsigned /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/cpu_rdata_dv
+add wave -noupdate -radix unsigned /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/cpu_wdata
+add wave -noupdate -radix unsigned /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/erros
+add wave -noupdate -format Analog-Step -height 74 -max 1031.0 -radix unsigned /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/axis_tdata
 add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/sm_state
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/sm_state_d1
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/sm_wavedata
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/sm_wavedata_dv
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/start
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/start_d1
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/wave_last_addr
+add wave -noupdate -radix unsigned /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/pc
+add wave -noupdate -radix unsigned /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/pulse_written
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 2} {470133589 fs} 0}
+WaveRestoreCursors {{Cursor 1} {0 ps} 0}
 quietly wave cursor active 1
-configure wave -namecolwidth 163
-configure wave -valuecolwidth 200
+configure wave -namecolwidth 150
+configure wave -valuecolwidth 100
 configure wave -justifyvalue left
 configure wave -signalnamewidth 1
 configure wave -snapdistance 10
@@ -242,6 +30,6 @@ configure wave -gridoffset 0
 configure wave -gridperiod 1
 configure wave -griddelta 40
 configure wave -timeline 0
-configure wave -timelineunits fs
+configure wave -timelineunits ns
 update
-WaveRestoreZoom {0 fs} {3240305351 fs}
+WaveRestoreZoom {0 ps} {344253 ns}

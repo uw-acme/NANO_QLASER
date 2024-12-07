@@ -19,6 +19,9 @@ use     work.qlaser_dacs_pulse_channel_pkg.all;
 
 
 entity tb_qlaser_top is
+    generic (
+        SIM_DURATION : integer := 32768
+    );
 end    tb_qlaser_top;
 
 architecture behave of tb_qlaser_top is 
@@ -49,21 +52,21 @@ architecture behave of tb_qlaser_top is
 --   end component;
 
 
-component ad5628 port (
-                                 sclk_n       : in  std_logic;
-                                 sync_n       : in  std_logic;
-                                 din          : in  std_logic;
-                                 vref         : in  real;
-                                 vout0        : out real;
-                                 vout1        : out real;
-                                 vout2        : out real;
-                                 vout3        : out real;
-                                 vout4        : out real;
-                                 vout5        : out real;
-                                 vout6        : out real;
-                                 vout7        : out real
-                             );
-end component;
+-- component ad5628 port (
+--                                  sclk_n       : in  std_logic;
+--                                  sync_n       : in  std_logic;
+--                                  din          : in  std_logic;
+--                                  vref         : in  real;
+--                                  vout0        : out real;
+--                                  vout1        : out real;
+--                                  vout2        : out real;
+--                                  vout3        : out real;
+--                                  vout4        : out real;
+--                                  vout5        : out real;
+--                                  vout6        : out real;
+--                                  vout7        : out real
+--                              );
+-- end component;
 
 
 signal clk: std_logic;  
@@ -146,7 +149,8 @@ begin
 	-- Unit Under Test
     -------------------------------------------------------------
 	u_qlaser_top : entity work.qlaser_top 
-    port map ( p_reset     => p_reset,
+    port map ( 
+        p_reset     => p_reset,
         p_dc0_sclk  => p_dc0_sclk,
         p_dc0_mosi  => p_dc0_mosi,
         p_dc0_cs_n  => p_dc0_cs_n,
@@ -165,9 +169,26 @@ begin
         p_btn_w     => p_btn_w,
         p_btn_c     => p_btn_c,
         p_leds      => p_leds,
-        p_debug_out => p_debug_out );
+        p_debug_out => p_debug_out 
+    );
 
-    testad5628: ad5628 port map ( sclk_n => p_dc0_sclk,
+    -- testad5628: ad5628 port map ( 
+    --     sclk_n => p_dc0_sclk,
+    --     sync_n => p_dc0_cs_n,
+    --     din    => p_dc0_mosi,
+    --     vref   => vref,
+    --     vout0  => vout0,
+    --     vout1  => vout1,
+    --     vout2  => vout2,
+    --     vout3  => vout3,
+    --     vout4  => vout4,
+    --     vout5  => vout5,
+    --     vout6  => vout6,
+    --     vout7  => vout7 );
+
+    u_pmoddac: entity work.ad5628 
+    port map ( 
+        sclk_n => p_dc0_sclk,
         sync_n => p_dc0_cs_n,
         din    => p_dc0_mosi,
         vref   => vref,
@@ -218,7 +239,7 @@ begin
         p_reset <= '0';
 
 
-        clk_delay(10000);
+        clk_delay(SIM_DURATION);
         
         cpu_print_msg("Simulation done");
         clk_delay(10);
