@@ -1843,6 +1843,11 @@ int main()
                         	(void)xil_printf ("Debug GPIO Value: 0x%08X\r\n", nRdata);
 						break;
 
+                        // write virtual pins
+                        case 'o':
+                        	Xil_Out32(ADR_GPIO_OUT, nValue);
+                        	(void)xil_printf ("Wrote GPIO Value: 0x%08X\r\n", nValue);
+
 
                     }
                     nDigit = 0;

@@ -12,6 +12,7 @@ use     ieee.numeric_std.all;
 use     work.qlaser_pkg.all;
 use     work.tb_zcu102_ps_cpu_pkg.all;
 use     work.qlaser_addr_zcu102_pkg.all;
+use     work.std_iopak.all;
 
 entity ps1_wrapper is
 port (
@@ -23,8 +24,8 @@ port (
     cpu_wdata           : out std_logic_vector(31 downto 0);
     cpu_wr              : out std_logic;
 
-    -- gpio_int_in_tri_i   : in  std_logic_vector( 7 downto 0);
-    -- gpio_int_out_tri_o  : out std_logic_vector( 7 downto 0);
+    gpio_int_in_tri_i   : in  std_logic_vector(31 downto 0);
+    gpio_int_out_tri_o  : out std_logic_vector(31 downto 0);
     gpio_leds_tri_o     : out std_logic_vector( 7 downto 0);
     gpio_pbtns_tri_i    : in  std_logic_vector( 4 downto 0);
 
@@ -51,6 +52,8 @@ signal wdata            : std_logic_vector(31 downto 0);
 signal rdata            : std_logic_vector(31 downto 0);
 signal rdata_dv         : std_logic;
 
+signal gpio_int_o       : std_logic_vector(31 downto 0);
+
 -- Halts simulation by stopping clock when set true
 signal sim_done         : boolean   := false; 
 
@@ -67,8 +70,10 @@ begin
     rdata               <= cpu_rdata;
     rdata_dv            <= cpu_rdata_dv;
     
-    -- gpio_int_out_tri_o  <= (others=>'0');   -- out std_logic_vector( 7 downto 0);
+    gpio_int_out_tri_o  <= gpio_int_o;   -- out std_logic_vector( 7 downto 0);
     gpio_leds_tri_o     <= (others=>'0');   -- out std_logic_vector( 7 downto 0);
+
+    
 
 
     -------------------------------------------------------------
@@ -77,12 +82,16 @@ begin
     pr_main : process
     variable v_ndata32  : integer := 0;
     variable v_ndata16  : integer := 0;
+
+    variable seq_length : integer := 10000;
     begin
 
         wr          <= '0';
         rd          <= '0';
 		wdata       <= (others=>'0');
 		addr  	    <= (others=>'0');
+
+        gpio_int_o  <= (others=>'0');
 
         cpu_print_msg("Simulation start");
 
@@ -120,7 +129,7 @@ begin
         
 
         -- write sequence length
-        cpu_write(clk, ADR_REG_AC_SEQ_LEN, X"00000070", rd, wr, addr, wdata);
+        cpu_write(clk, ADR_REG_AC_SEQ_LEN, X"00008000", rd, wr, addr, wdata);
 
         -- write pulse def
         -- entry_pulse_defn(0, 40, 0, 0x0010, 0x8000, 0x100, 0x00010); 
@@ -155,13 +164,16 @@ begin
 
         -- trigger
         cpu_write(clk, ADR_MISC_DEBUG_TRIGGER    , X"00000001", rd, wr, addr, wdata); -- set to enabled
+        gpio_int_o(1) <= '1';
         clk_delay(10, clk);
 
         cpu_write(clk, ADR_MISC_DEBUG_TRIGGER    , X"00000000", rd, wr, addr, wdata);
         clk_delay(10, clk);
 
         cpu_write(clk, ADR_MISC_DEBUG_TRIGGER    , X"00000001", rd, wr, addr, wdata); -- start run
-        clk_delay(10000, clk);
+        clk_delay(32768, clk);
+
+        cpu_print_msg("Current debug value: " & to_string(gpio_int_in_tri_i));
 
         ----------------------------------------------------------------
         -- ADD CUSTOM REGISTER COMMANDS ABOVE HERE

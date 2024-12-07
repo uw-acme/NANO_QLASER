@@ -92,6 +92,7 @@ constant SEL_SPARE          : integer :=  3;    -- Spare
 signal misc_leds            : std_logic_vector( 3 downto 0);
 signal misc_leds_en         : std_logic_vector( 3 downto 0);
 signal misc_flash           : std_logic;
+signal tick_usec            : std_logic;                        --  Timing intervals
 signal tick_msec            : std_logic;                        --  Timing intervals
 signal tick_sec             : std_logic;            
 signal misc_dbg_ctrl        : std_logic_vector( 3 downto 0);
@@ -124,6 +125,10 @@ signal dacs_pulse_ready         : std_logic;                        -- Status si
 signal dacs_pulse_busy          : std_logic;                        -- Running a waveform generation sequence.
 signal dacs_pulse_error         : std_logic;                        -- Instantanous JESD sync status.
 signal dacs_pulse_error_latched : std_logic;                        -- JESD lost sync after ready. Cleared by trigger
+
+-- Array of pulse errors
+signal pulse_errors             : t_arr_ac_errors;
+signal clr_errors               : std_logic_vector(31 downto 0);
                 
  -- Array of 32 AXI-Stream buses. Each with 16-bit data. Interface to JESD TX Interfaces
 signal dacs_pulse_axis_treadys  : std_logic_vector(31 downto 0);    -- axi_stream ready from downstream modules
@@ -134,10 +139,15 @@ signal dacs_pulse_axis_tlasts   : std_logic_vector(31 downto 0);    -- axi_strea
 signal jesd_syncs               : std_logic_vector(31 downto 0);    -- Inputs from each JESD TX interface
 
 -- Pulse to PMOD block outputs == PROTO USE ONLY ==
-signal p2p_busy                 : std_logic;    -- Set to '1' while SPI interface is busy
-signal p2p_spi_sclk             : std_logic;    -- Clock (50 MHz?)
-signal p2p_spi_mosi             : std_logic;    -- Master out, Slave in. (Data to DAC)
-signal p2p_spi_cs_n             : std_logic;    -- Active low chip select (sync_n)
+signal p2p0_busy                 : std_logic;    -- Set to '1' while SPI interface is busy
+signal p2p_spi0_sclk             : std_logic;    -- Clock (50 MHz?)
+signal p2p_spi0_mosi             : std_logic;    -- Master out, Slave in. (Data to DAC)
+signal p2p_spi0_cs_n             : std_logic;    -- Active low chip select (sync_n)
+
+signal p2p1_busy                 : std_logic;    -- Set to '1' while SPI interface is busy
+signal p2p_spi1_sclk             : std_logic;    -- Clock (50 MHz?)
+signal p2p_spi1_mosi             : std_logic;    -- Master out, Slave in. (Data to DAC)
+signal p2p_spi1_cs_n             : std_logic;    -- Active low chip select (sync_n)
 
 signal p2pmodBusyD1: std_logic;
 signal p2pmodBusyD2: std_logic;
@@ -163,6 +173,17 @@ signal ps_jesd_tx0n_out         : std_logic_vector( 1 downto 0);
 signal ps_jesd_tx0p_out         : std_logic_vector( 1 downto 0);
 
 
+-- ILA probes
+signal ila_probe0               : std_logic_vector( 0 to 0 );
+signal ila_probe1               : std_logic_vector( 0 to 0 );
+signal ila_probe2               : std_logic_vector( 0 to 0 );
+signal ila_probe3               : std_logic_vector( 0 to 0 );
+signal ila_probe4               : std_logic_vector( 0 to 0 );
+signal ila_probe5               : std_logic_vector( 0 to 0 );
+signal ila_probe6               : std_logic_vector( 0 to 0 );
+signal ila_probe7               : std_logic_vector( 0 to 0 );
+-- ... add more as needed
+
 
 begin
 
@@ -171,9 +192,12 @@ begin
     cif_reset <= not(ps_resetn0);
 
     -- Combine p_btn trigger (from pad) with misc block trigger and ps_gpout(0) to create internal trigger
-    trigger_dacs_pulse      <= (p_btn_c or misc_trigger or ps_gpout(0)) and not(p2p_active);
-    ps_enable_dacs_pulse    <= ps_gpout(1); -- or ps_leds(1);  -- TODO: currently using the (shuold be tested working) LED GPIO to enable the pulse generation - make sure ps gpio can work so there could be dedicated gpio for this
+    trigger_dacs_pulse      <= (p_btn_c or misc_trigger or ps_gpout(0)) and not(dacs_pulse_busy);
+    ps_enable_dacs_pulse    <= ps_gpout(1);
     any_dacs_busy           <= dacs_dc_busy(0) or dacs_dc_busy(1) or dacs_dc_busy(2) or dacs_dc_busy(3) or dacs_pulse_busy;
+
+    -- clear pulse errors
+    clr_errors(0)           <= ps_gpout(2);
 
     -- JESD outputs
 --    p_tx0n_out              <= ps_jesd_tx0n_out;
@@ -270,9 +294,9 @@ begin
         dc0_cs_n            => p_dc3_cs_n                   , -- out   std_logic;          -- Active low chip select (sync_n)
         --
         -- Interface SPI bus to 8-channel PMOD for DC channels 8-15
-        dc1_sclk            => p_dc1_sclk                   , -- out   std_logic;  
-        dc1_mosi            => p_dc1_mosi                   , -- out   std_logic;  
-        dc1_cs_n            => p_dc1_cs_n                   , -- out   std_logic;  
+        dc1_sclk            => p_dc2_sclk                   , -- out   std_logic;  
+        dc1_mosi            => p_dc2_mosi                   , -- out   std_logic;  
+        dc1_cs_n            => p_dc2_cs_n                   , -- out   std_logic;  
         
         -- Interface SPI bus to 8-channel PMOD for DC channels 16-23
         dc2_sclk            => open                         , -- out   std_logic;  
@@ -292,7 +316,7 @@ begin
     -----------------------------------------------------------------------------------
     u_dacs_pulse : entity work.qlaser_dacs_pulse
     generic map(
-        G_NCHANS            => 4                                  -- integer := 1
+        G_NCHANS            => 2                                  -- integer := 1
     )
     port map(
         clk                 => clk                              , -- in  std_logic; 
@@ -320,7 +344,11 @@ begin
         axis_treadys        => dacs_pulse_axis_treadys          , -- in  std_logic_vector(31 downto 0);    -- axi_stream ready from downstream modules
         axis_tdatas         => dacs_pulse_axis_tdatas           , -- out t_arr_slv32x16b;   -- axi stream output data array
         axis_tvalids        => dacs_pulse_axis_tvalids          , -- out std_logic_vector(31 downto 0);    -- axi_stream output data valid
-        axis_tlasts         => dacs_pulse_axis_tlasts             -- out std_logic_vector(31 downto 0)     -- axi_stream output set on last data  
+        axis_tlasts         => dacs_pulse_axis_tlasts           , -- out std_logic_vector(31 downto 0)     -- axi_stream output set on last data  
+
+        -- pulse errors
+        wave_errors        => pulse_errors                      , -- out t_arr_ac_errors
+        clr_errors         => clr_errors                          -- in  std_logic_vector(31 downto 0)
     );
     
     -- TODO : This will be driven by JESD interface status
@@ -333,12 +361,12 @@ begin
     -- Block containing an AXI-Stream FIFO and a stream-to-spi PMOD interface 
     -- Allows pulse data to drive a 'dc' DAC at a low speed.
     ----------------------- ------------------------------------------------------------
-    u_pulse2pmod : entity work.pulse2pmod
+    u_pulse2pmod0 : entity work.pulse2pmod
     port map(
         clk                 => clk                          ,  -- in  std_logic;
         reset               => reset                        ,  -- in  std_logic;
 
-        busy                => p2p_busy                     ,  -- out std_logic;    -- Set to '1' while SPI interface is busy
+        busy                => p2p0_busy                     ,  -- out std_logic;    -- Set to '1' while SPI interface is busy
 
         -- CPU interface
         cpu_addr            => cpu_addr( 5 downto 0)        ,  -- in  std_logic_vector( 5 downto 0);
@@ -355,14 +383,18 @@ begin
         s_axis_tlast        => dacs_pulse_axis_tlasts(0)    ,  -- in  std_logic;
                                         
         -- Interface SPI bus to 8-channel PMOD for DC channels 0-7
-        spi_sclk            => p2p_spi_sclk                 ,  -- out std_logic;
-        spi_mosi            => p2p_spi_mosi                 ,  -- out std_logic;
-        spi_cs_n            => p2p_spi_cs_n                    -- out std_logic 
+        spi_sclk            => p2p_spi0_sclk                 ,  -- out std_logic;
+        spi_mosi            => p2p_spi0_mosi                 ,  -- out std_logic;
+        spi_cs_n            => p2p_spi0_cs_n                    -- out std_logic 
     );
     
-    p_dc0_sclk      <= p2p_spi_sclk; 
-    p_dc0_mosi      <= p2p_spi_mosi; 
-    p_dc0_cs_n      <= p2p_spi_cs_n; 
+    p_dc0_sclk      <= p2p_spi0_sclk; 
+    p_dc0_mosi      <= p2p_spi0_mosi; 
+    p_dc0_cs_n      <= p2p_spi0_cs_n; 
+
+    p_dc1_sclk      <= p2p_spi1_sclk;
+    p_dc1_mosi      <= p2p_spi1_mosi;
+    p_dc1_cs_n      <= p2p_spi1_cs_n;
 
 
 
@@ -389,6 +421,7 @@ begin
         leds                => misc_leds                , -- out std_logic_vector( 3 downto 0);    -- LED output
         leds_en             => misc_leds_en             , -- out std_logic_vector( 3 downto 0);    -- CPU controlled LED enable 
         flash               => misc_flash               , -- out std_logic;    --     
+        tick_usec           => tick_usec                , -- out std_logic;                        -- Single cycle high every 1 usec. Used by SD interface debug registers
         tick_msec           => tick_msec                , -- out std_logic;                        -- Single cycle high every 1 msec. Used by SD interface debug registers
         tick_sec            => tick_sec                 , -- out std_logic;                        -- Single cycle high every N msec. 
 
@@ -399,7 +432,7 @@ begin
  
     -- Input to pulse stretcher in the misc block which can be used to make signals visible on the LEDs
     pulse(0)              <= trigger_dacs_pulse or dacs_dc_busy(0) or dacs_dc_busy(1) or dacs_dc_busy(2) or dacs_dc_busy(3) or dacs_pulse_busy;
-    pulse(1)              <= p2p_busy;
+    pulse(1)              <= p2p0_busy;
     pulse(2)              <= tick_sec;
     pulse(3)              <= trigger_dacs_pulse;
 
@@ -418,17 +451,27 @@ begin
     ps_gpin(1)            <= ps_enable_dacs_pulse;
     -- Status signals from "qlaser_dacs_pulse"
     ps_gpin(2)            <= dacs_pulse_ready;
-    ps_gpin(3)            <= dacs_pulse_error;
-    ps_gpin(4)            <= dacs_pulse_busy;
-    -- Misc
-    ps_gpin(5)            <= clk;
-    ps_gpin(6)            <= misc_trigger;
-    -- Status signals from pulse2pmod
-    ps_gpin(7)            <= p2p_busy;
+    ps_gpin(3)            <= dacs_pulse_busy;
 
-    -- Pulse value
-    ps_gpin(15)           <= dacs_pulse_axis_tvalids(0);
+    -- Misc
+    ps_gpin(4)            <= misc_trigger;
+    -- Status signals from pulse2pmod
+    ps_gpin(5)            <= dacs_pulse_axis_tlasts(0);
+    ps_gpin(6)            <= dacs_pulse_axis_treadys(0);
+    -- ps_gpin(7)            <= p2p0_busy;
+    ps_gpin(7)            <= dacs_pulse_axis_tvalids(0);
+
+    -- Pulse 0 errors
+    ps_gpin(15 downto 8)  <= pulse_errors(0);
     ps_gpin(31 downto 16) <= dacs_pulse_axis_tdatas(0);
+
+    -- ILA debug
+    ila_probe1(0)         <= dacs_pulse_axis_tlasts(0);
+    ila_probe2(0)         <= dacs_pulse_ready;
+    ila_probe3(0)         <= dacs_pulse_busy;
+    ila_probe4(0)         <= p2p0_busy;
+    ila_probe5(0)         <= p2p_spi0_mosi;
+    ila_probe6(0)         <= dacs_pulse_axis_tvalids(0);
 
  
     ---------------------------------------------------------------------------------
@@ -443,7 +486,7 @@ begin
             p2pmodBusyD4 <= '0';
         elsif rising_edge(clk) then
             -- First delay stage
-            p2pmodBusyD1 <= p2p_busy;
+            p2pmodBusyD1 <= p2p0_busy;
             -- Second delay stage
             p2pmodBusyD2 <= p2pmodBusyD1;
             -- Third delay stage
@@ -452,15 +495,15 @@ begin
             p2pmodBusyD4 <= p2pmodBusyD3;
         end if;
         
-        p2p_active <= p2p_busy or p2pmodBusyD4;
+        p2p_active <= p2p0_busy or p2pmodBusyD4;
 
         if rising_edge(clk) then
 
-            p_debug_out(0)              <= p2p_spi_sclk;
-            p_debug_out(1)              <= p2p_spi_mosi;
-            p_debug_out(2)              <= p2p_spi_cs_n;
+            p_debug_out(0)              <= p2p_spi0_sclk;
+            p_debug_out(1)              <= p2p_spi0_mosi;
+            p_debug_out(2)              <= p2p_spi0_cs_n;
             p_debug_out(3)              <= ps_enable_dacs_pulse;
-            p_debug_out(4)              <= any_dacs_busy;
+            p_debug_out(4)              <= trigger_dacs_pulse;
             p_debug_out(5)              <= or_reduce(dacs_pulse_axis_tvalids);
             p_debug_out(6)              <= or_reduce(dacs_pulse_axis_tdatas(0));
             p_debug_out(7)              <= or_reduce(dacs_pulse_axis_tdatas(1));
@@ -469,14 +512,17 @@ begin
         end if;
     end process;
     
-    -- your_instance_name : ila_0
-    -- PORT MAP (
-    --     clk => clk,
-    
-    --     probe0 => '1', 
-    --     probe1 => probe1, 
-    --     probe2 => '1',
-    --     probe3 => '1'
-    -- );
+   u_dbg : entity work.ila_0
+   PORT MAP (
+       clk => clk,
+       probe0 => pulse_errors(0), 
+       probe1 => ila_probe1, 
+       probe2 => ila_probe2, 
+       probe3 => ila_probe3, 
+       probe4 => ila_probe4, 
+       probe5 => ila_probe5, 
+       probe6 => ila_probe6,
+       probe7 => dacs_pulse_axis_tdatas(0)(11 downto 0)
+   );
 
 end zc102;

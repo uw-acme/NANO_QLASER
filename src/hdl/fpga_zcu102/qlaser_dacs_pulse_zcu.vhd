@@ -58,7 +58,11 @@ port (
     axis_treadys        : in  std_logic_vector(31 downto 0);    -- axi_stream ready from downstream modules
     axis_tdatas         : out t_arr_slv32x16b;   -- axi stream output data array
     axis_tvalids        : out std_logic_vector(31 downto 0);    -- axi_stream output data valid
-    axis_tlasts         : out std_logic_vector(31 downto 0)     -- axi_stream output set on last data  
+    axis_tlasts         : out std_logic_vector(31 downto 0);     -- axi_stream output set on last data  
+
+    -- Addtional error signals
+    wave_errors        : out t_arr_ac_errors;               -- Error signal
+    clr_errors         : in  std_logic_vector(31 downto 0)  -- Clear error flags
 );
 end entity;
 
@@ -140,6 +144,9 @@ begin
     reg_status      <= X"000000" & "000" & any_errs_jesd & "000" & busy_i;
     reg_status_jesd <= errs_jesd_latched;
 
+    -- Output waveform errors
+    wave_errors    <= ch_errs_wave;
+
 
     -------------------------------------------------------------------------------
     -- Invert current jesd sync to make errors
@@ -217,7 +224,7 @@ begin
     
                 -- status signals to indicate any errors
                 erros           => ch_errs_wave(I)      ,   -- out std_logic;                        -- Status signal
-                clear_errors    => '0'                  ,   -- in std_logic;                         -- Clear error flags, always low for now as a reset would clear them.
+                clear_errors    => clr_errors(I)        ,   -- in std_logic;                         -- Clear error flags, always low for now as a reset would clear them.
                 -- CPU interface
                 cpu_addr        => cpu_ch_addr          ,   -- in  std_logic_vector(11 downto 0);    -- Address input
                 cpu_wdata       => cpu_ch_wdata         ,   -- in  std_logic_vector(31 downto 0);    -- Data input
@@ -250,7 +257,7 @@ begin
 
                 -- status signals to indicate any errors
                 erros           => ch_errs_wave(I)      ,   -- out std_logic;                        -- Status signal
-                clear_errors    => '0'                  ,   -- in std_logic;                         -- Clear error flags, always low for now as a reset would clear them.
+                clear_errors    => clr_errors(I)        ,   -- in std_logic;                         -- Clear error flags, always low for now as a reset would clear them.
                 -- CPU interface
                 cpu_addr        => cpu_ch_addr          ,   -- in  std_logic_vector(11 downto 0);    -- Address input
                 cpu_wdata       => cpu_ch_wdata         ,   -- in  std_logic_vector(31 downto 0);    -- Data input
@@ -335,6 +342,7 @@ begin
                 when  S_RUN    =>
 
                     -- Increment time counter
+                    -- TODO: EricToGeoff/Sara - should pulse channel immediately go to idle after done_seq is set? even it is still runnnig?
                     if (sm_cnt_time < unsigned(reg_sequence_len)) then
                         sm_cnt_time    <= sm_cnt_time + 1;
 

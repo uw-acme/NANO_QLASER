@@ -106,6 +106,7 @@ architecture channel of qlaser_dacs_pulse_channel is
     -- Signal declarations for pulse RAM
     signal ram_pulse_we         : std_logic_vector( 0 downto 0);                      -- Write enable for pulse RAM
     signal ram_pulse_addra      : std_logic_vector( 9 downto 0);                      -- Address for pulse RAM
+    signal ram_pulse_addra_d1   : std_logic_vector( 9 downto 0);                      -- Address for pulse RAM, previous
     signal ram_pulse_dina       : std_logic_vector(31 downto 0);                      -- Data for pulse RAM
     signal ram_pulse_douta      : std_logic_vector(31 downto 0);                      -- Data out from pulse RAM
     signal ram_pulse_addrb      : std_logic_vector( 9 downto 0);                      -- Address for pulse RAM
@@ -134,6 +135,7 @@ architecture channel of qlaser_dacs_pulse_channel is
     signal sm_wavedata          : std_logic_vector(15 downto 0);                      -- Waveform RAM data
     signal sm_wavedata_dv       : std_logic;                                          -- Signal to indicate that waveform RAM data is valid
     signal sm_busy              : std_logic;                                          -- Signal to indicate that s.m. is not idle
+    signal sm_last              : std_logic;                                          -- Signal to indicate that the last waveform data is being output
     signal cnt_wave_top         :         unsigned(C_BITS_ADDR_TOP - 1 downto 0);     -- Counter for the flat top of the waveform
     signal wave_last_addr       : std_logic_vector(C_BITS_ADDR_FULL - 1 downto 0);    -- Last address of the waveform table
     
@@ -143,6 +145,7 @@ architecture channel of qlaser_dacs_pulse_channel is
     signal cpu_rdata_ramsel_d1  : std_logic;
     signal cpu_rdata_ramsel_d2  : std_logic;
     
+    signal pulse_written        : unsigned(C_BITS_ADDR_PULSE - 1 downto 0);          -- keep track of total number of pulses written
     signal pc                   : std_logic_vector(C_BITS_ADDR_PULSE - 1 downto 0);  -- pulse counter, used to count the number of pulses generated
     
     ----------------------------------------------------------------
@@ -166,7 +169,7 @@ architecture channel of qlaser_dacs_pulse_channel is
     signal start_d1             : std_logic;
     signal enable_d1            : std_logic;
     
-    
+    signal debug_probe          : std_logic_vector(31 downto 0);                      -- Debug probe
     
     begin
     
@@ -232,6 +235,8 @@ architecture channel of qlaser_dacs_pulse_channel is
                 ram_waveform_wea    <= (others=>'0');
                 ram_waveform_addra  <= (others=>'0');
                 ram_waveform_dina   <= (others=>'0');
+
+                pulse_written       <= (others=>'0');
     
                 cpu_rdata           <= (others=>'0');
                 cpu_rdata_dv        <= '0';
@@ -264,6 +269,11 @@ architecture channel of qlaser_dacs_pulse_channel is
                         ram_pulse_addra     <= cpu_addr(9 downto 0);
                         ram_pulse_dina      <= cpu_wdata;
                         ram_pulse_we(0)     <= '1';
+                        -- record the last non-zero pulse address. Assume pulse address is always incrementing
+                        if (unsigned(cpu_addr(9 downto 0)) > 0) then
+                            pulse_written <= unsigned(cpu_addr(9 downto 0));
+                        end if;
+
                         ram_waveform_wea    <= (others=>'0');
                         ram_waveform_addra  <= (others=>'0');
                         ram_waveform_dina   <= (others=>'0');
@@ -350,9 +360,9 @@ architecture channel of qlaser_dacs_pulse_channel is
         -- Temp variables for waveform output
         variable v_ram_waveform_doutb_multiplied : std_logic_vector(C_BITS_GAIN_FACTOR + 15 downto 0);
         begin
-            if (reset = '1') then
+            if (reset = '1') then  -- TODO: Eric: tread done_seq as a reset signal?
     
-                sm_state            <= S_IDLE;  -- TODO: Eric: Should this be S_RESET since we reset the JEDS interface as well?
+                sm_state            <= S_RESET;  -- TODO: Eric: Should this be S_RESET since we reset the JEDS interface as well?
                 ram_pulse_addrb     <= (others=>'0');
                 ram_waveform_addrb  <= (others=>'0');
                 wave_last_addr      <= (others=>'0');
@@ -360,6 +370,7 @@ architecture channel of qlaser_dacs_pulse_channel is
                 sm_wavedata         <= (others=>'0');
                 sm_wavedata_dv      <= '0';
                 sm_busy             <= '0';
+                sm_last             <= '0';
                 reg_wave_start_addr <= (others=>'0');
                 reg_wave_length     <= (others=>'0');
                 reg_scale_gain      <= (others=>'0');
@@ -413,8 +424,6 @@ architecture channel of qlaser_dacs_pulse_channel is
                     -- No data output.
                     ------------------------------------------------------------------------
                     when  S_IDLE    =>
-                        pc                  <= (others=>'0');
-                        ram_pulse_addrb     <= (others=>'0');
                         if (start = '1') and (start_d1 = '0') then
                             sm_state    <= S_LOAD;
                             sm_busy     <= '1';
@@ -433,7 +442,11 @@ architecture channel of qlaser_dacs_pulse_channel is
                             v_ram_waveform_doutb_multiplied := std_logic_vector(unsigned(ram_waveform_doutb) * reg_scale_gain);
                             sm_wavedata                     <= v_ram_waveform_doutb_multiplied(30 downto 15); 
                             sm_wavedata_dv                  <= '1';
+                        else
+                            sm_wavedata                     <= (others=>'0');
+                            sm_wavedata_dv                  <= '0';
                         end if;  
+
                         -- Pipline the pulse definition address
                         if (unsigned(ram_pulse_addrb) mod 4 = 0) then
                             ram_pulse_addrb  <= std_logic_vector(unsigned(pc) + 1);
@@ -459,7 +472,7 @@ architecture channel of qlaser_dacs_pulse_channel is
                             -- TODO: also output an error if time scale overflows, or either time or gain is in invalid range
                             reg_wave_end_addr   <=  resize(unsigned(reg_wave_start_addr) + reg_wave_length - 1, 20) sll 8;  -- get the supposed last value of the wavetable
                         end if;
-    
+
                     ------------------------------------------------------------------------
                     -- Wait for cnt_time, external input, to match pulse position RAM output
                     -- Return to idle state if max time is reached. Output waveform value zero. 
@@ -473,10 +486,20 @@ architecture channel of qlaser_dacs_pulse_channel is
                             
                             ram_waveform_addrb      <= reg_wave_start_addr & std_logic_vector(to_unsigned(0, 8));          -- set the wavetable's address to the starting address defined from the pulse ram
                         elsif (cnt_time = X"FFFFFF") or (done_seq = '1') then
+                            -- time is up or done_seq is set, finish the sequence
                             sm_state                <= S_IDLE;
-                            -- TODO: reset everything here
+                            -- reset everything
+                            pc                  <= (others=>'0');
+                            ram_pulse_addrb     <= (others=>'0');
+                            sm_wavedata         <= (others=>'0');
+                            sm_wavedata_dv      <= '0';
                         end if;
                         
+                        if unsigned(pc) >= pulse_written then
+                            sm_last             <= '1';
+                        else
+                            sm_last             <= '0';
+                        end if;
                         ------------------------------------------------------------------------
                         -- Error checking
                         -- TODO: better to make a seperate process for error checking
@@ -484,28 +507,23 @@ architecture channel of qlaser_dacs_pulse_channel is
                         if ((C_LENGTH_WAVEFORM - 1) - unsigned(reg_wave_start_addr) < reg_wave_length) then
                             -- if the length is bigger than the wavetable, then the address will overflow
                             erros(C_ERR_RAM_OF)     <= '1';
-                            sm_state                <= S_IDLE;
                         end if;
                         if (reg_wave_length <= 1) then
-                            -- Rise length size <= 1 (need to min. 2)
                             erros(C_INVAL_LENGTH)   <= '1';
-                            sm_state                <= S_IDLE;
                         end if;
                         if (reg_scale_time(C_BITS_TIME_FACTOR - 1 downto BIT_FRAC) >= reg_wave_length) then
                             -- Time step bigger than the size of the rise
                             erros(C_ERR_BIG_STEP)   <= '1';
-                            sm_state                <= S_IDLE;
                         end if;
                         if (reg_scale_time(C_BITS_TIME_FACTOR - 1 downto BIT_FRAC) < 1) then
                             -- Time step < 1
                             erros(C_ERR_SMALL_TIME) <= '1';
-                            sm_state                <= S_IDLE;
                         end if;
                         if ((reg_scale_gain(C_BITS_TIME_FACTOR - 1 downto BIT_FRAC_GAIN) > 0) and (reg_scale_gain(BIT_FRAC_GAIN - 1 downto 0) > 0)) then
                             -- Amplitude scale > 1, if interger bits are >= 1 and fractional bits still have value
                             erros(C_ERR_BIG_GAIN)   <= '1';
-                            sm_state                <= S_IDLE;
                         end if;
+                        -- TODO: error when pulse size > cnt_time - should it immediately go to idle when done_seq is set?
     
     
                     ------------------------------------------------------------------------
@@ -529,6 +547,13 @@ architecture channel of qlaser_dacs_pulse_channel is
                                 sm_state            <= S_WAVE_FLAT;
                                 cnt_wave_top        <= (others=>'0');
                             end if;
+                        elsif (done_seq = '1') then  -- force to go to idle if done_seq is set
+                            sm_state            <= S_IDLE;
+                            -- reset everything
+                            pc                  <= (others=>'0');
+                            ram_pulse_addrb     <= (others=>'0');
+                            sm_wavedata         <= (others=>'0');
+                            sm_wavedata_dv      <= '0';
                         else
                             ram_waveform_addrb  <= std_logic_vector(unsigned(ram_waveform_addrb) + reg_scale_time);
                             wave_last_addr      <= std_logic_vector(unsigned(ram_waveform_addrb) + reg_scale_time);    -- hold the last address of the wavetable
@@ -555,6 +580,13 @@ architecture channel of qlaser_dacs_pulse_channel is
                             sm_state            <= S_WAVE_DOWN;
                             ram_waveform_addrb  <= wave_last_addr;                                                     -- get the last address of the wavetable
                             cnt_wave_top        <= (others=>'0');                                                      -- reset the counter for the next transition
+                        elsif (done_seq = '1') then  -- force to go to idle if done_seq is set
+                            sm_state            <= S_IDLE;
+                            -- reset everything
+                            pc                  <= (others=>'0');
+                            ram_pulse_addrb     <= (others=>'0');
+                            sm_wavedata         <= (others=>'0');
+                            sm_wavedata_dv      <= '0';
                         else
                             ram_waveform_addrb  <= std_logic_vector(reg_wave_end_addr);                                -- pad the address pointer to the end address
                             cnt_wave_top        <= cnt_wave_top + 1;
@@ -578,10 +610,20 @@ architecture channel of qlaser_dacs_pulse_channel is
                                 ram_pulse_addrb     <= (others=>'0');
                                 pc                  <= (others=>'0');
                                 sm_state            <= S_IDLE;
-    
+                            elsif (done_seq = '1') then  -- force to go to idle if done_seq is set
+                                sm_state            <= S_IDLE;
+                                -- reset everything
+                                pc                  <= (others=>'0');
+                                ram_pulse_addrb     <= (others=>'0');
+                                sm_wavedata         <= (others=>'0');
+                                sm_wavedata_dv      <= '0';
                             else                                                                                       -- increment pulse address for the next waveform
                                 ram_pulse_addrb     <= pc;
-                                sm_state            <= S_LOAD;
+                                if sm_last = '1' then
+                                    sm_state            <= S_WAIT;
+                                else
+                                    sm_state            <= S_LOAD;
+                                end if;
                             end if;
                                 
                         -- Output waveform from RAM with decremented address
@@ -610,6 +652,42 @@ architecture channel of qlaser_dacs_pulse_channel is
         axis_tdata          <= sm_wavedata;         -- axi stream output data, this output should be multiplied by the gain factor, then take the top 16 bits
         axis_tvalid         <= sm_wavedata_dv;      -- axi_stream output data valid
     
-        -- TBD : Generate in state machine?
-        axis_tlast          <= '0';                 -- axi_stream output last 
+        -- last valid data outputted. indicated by direct transision from wave_down to wait.
+        axis_tlast          <= '1' when (sm_state_d1 = S_WAVE_DOWN) and (sm_state = S_WAIT) else '0';                 -- axi_stream output last 
+
+        ------------------------------------------------------------------------
+        -- ILA DEBUG
+        ------------------------------------------------------------------------
+        -- debug_probe(0)            <= sm_wavedata_dv;
+        -- debug_probe(1)            <= '0';
+        -- debug_probe(2)            <= '0';
+        -- debug_probe(3)            <= sm_last;
+
+        debug_probe(0)            <= done_seq;
+        debug_probe(1)            <= start;
+        debug_probe(2)            <= sm_last;
+        debug_probe(3)            <= sm_wavedata_dv;
+        debug_probe(15 downto 8)  <= std_logic_vector(pulse_written(7 downto 0));
+        debug_probe(23 downto 16) <= pc(7 downto 0);
+        debug_probe(24)           <= '1' when (sm_state = S_RESET)     else '0';
+        debug_probe(25)           <= '1' when (sm_state = S_IDLE)      else '0';
+        debug_probe(26)           <= '1' when (sm_state = S_WAIT)      else '0';
+        debug_probe(27)           <= '1' when (sm_state = S_LOAD)      else '0';
+        debug_probe(28)           <= '1' when (sm_state = S_HOLD)      else '0';
+        debug_probe(29)           <= '1' when (sm_state = S_WAVE_UP)   else '0';
+        debug_probe(30)           <= '1' when (sm_state = S_WAVE_FLAT) else '0';
+        debug_probe(31)           <= '1' when (sm_state = S_WAVE_DOWN) else '0';
+        
+        u_pulse_dbg : entity work.ila_pulse
+        PORT MAP (
+            clk => clk,
+            probe0 => debug_probe(0 downto 0), 
+            probe1 => debug_probe(1 downto 1), 
+            probe2 => debug_probe(2 downto 2), 
+            probe3 => debug_probe(3 downto 3), 
+            probe4 => debug_probe(15 downto 8), 
+            probe5 => debug_probe(23 downto 16), 
+            probe6 => debug_probe(31 downto 24),
+            probe7 => sm_wavedata(11 downto 0)
+        );
     end channel;

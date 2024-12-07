@@ -102,6 +102,8 @@ proc checkRequiredFiles { origin_dir} {
  "[file normalize "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_top_zcu.vhd"]"\
  "[file normalize "$origin_dir/../constraint_zcu/fifo_data_to_stream/fifo_data_to_stream.xci"]"\
  "[file normalize "$origin_dir/../constraint_zcu/bram_waveform/bram_waveform.xci"]"\
+ "[file normalize "$origin_dir/../constraint_zcu/ila_0/ila_0.xci"]"\
+ "[file normalize "$origin_dir/../constraint_zcu/ila_pulse/ila_pulse.xci"]"\
  "[file normalize "$origin_dir/../constraint_zcu/bram_pulse_definition/bram_pulse_definition.xci"]"\
  "[file normalize "$origin_dir/../constraint_zcu/axis_data_fifo_32Kx16b/axis_data_fifo_32Kx16b.xci"]"\
  "[file normalize "$origin_dir/../constraint_zcu/bram_pulseposition/bram_pulseposition.xci"]"\
@@ -275,6 +277,8 @@ set files [list \
  [file normalize "${origin_dir}/../../src/hdl/fpga_zcu102/qlaser_top_zcu.vhd"] \
  [file normalize "${origin_dir}/../constraint_zcu/fifo_data_to_stream/fifo_data_to_stream.xci"] \
  [file normalize "${origin_dir}/../constraint_zcu/bram_waveform/bram_waveform.xci"] \
+ [file normalize "${origin_dir}/../constraint_zcu/ila_0/ila_0.xci"] \
+ [file normalize "${origin_dir}/../constraint_zcu/ila_pulse/ila_pulse.xci"] \
  [file normalize "${origin_dir}/../constraint_zcu/bram_pulse_definition/bram_pulse_definition.xci"] \
  [file normalize "${origin_dir}/../constraint_zcu/axis_data_fifo_32Kx16b/axis_data_fifo_32Kx16b.xci"] \
  [file normalize "${origin_dir}/../constraint_zcu/bram_pulseposition/bram_pulseposition.xci"] \
@@ -411,6 +415,24 @@ if { ![get_property "is_locked" $file_obj] } {
 }
 
 set file "$origin_dir/../constraint_zcu/axis_data_fifo_32Kx16b/axis_data_fifo_32Kx16b.xci"
+set file [file normalize $file]
+set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
+set_property -name "generate_files_for_reference" -value "0" -objects $file_obj
+set_property -name "registered_with_manager" -value "1" -objects $file_obj
+if { ![get_property "is_locked" $file_obj] } {
+  set_property -name "synth_checkpoint_mode" -value "Singular" -objects $file_obj
+}
+
+set file "$origin_dir/../constraint_zcu/ila_0/ila_0.xci"
+set file [file normalize $file]
+set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
+set_property -name "generate_files_for_reference" -value "0" -objects $file_obj
+set_property -name "registered_with_manager" -value "1" -objects $file_obj
+if { ![get_property "is_locked" $file_obj] } {
+  set_property -name "synth_checkpoint_mode" -value "Singular" -objects $file_obj
+}
+
+set file "$origin_dir/../constraint_zcu/ila_pulse/ila_pulse.xci"
 set file [file normalize $file]
 set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
 set_property -name "generate_files_for_reference" -value "0" -objects $file_obj
@@ -951,6 +973,8 @@ move_dashboard_gadget -name {methodology_1} -row 2 -col 1
 puts "Attempt to build the project"
 
 # Launch runs, exit on failure
-launch_runs impl_1 -to_step write_bitstream
+launch_runs impl_1 -to_step write_bitstream -jobs 16
+wait_on_run impl_1
+write_hw_platform -fixed -include_bit -force -file $orig_proj_dir/qlaser_top.xsa
 
 exi
