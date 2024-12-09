@@ -72,12 +72,13 @@ architecture zc102 of qlaser_top is
 
 signal clk                  : std_logic;
 signal reset                : std_logic;
+signal resetn               : std_logic;
 signal cif_reset            : std_logic;
 
 -- CPU interface
 signal cpu_sels             : std_logic_vector(C_NUM_BLOCKS-1 downto 0);    -- CPU block selects 
 signal cpu_wr               : std_logic;
-signal cpu_addr             : std_logic_vector(13 downto 0);
+signal cpu_addr             : std_logic_vector(17 downto 0);
 signal cpu_din              : std_logic_vector(31 downto 0);
 signal cpu_debug            : std_logic_vector( 3 downto 0);
 
@@ -149,12 +150,22 @@ signal p2p_spi1_sclk             : std_logic;    -- Clock (50 MHz?)
 signal p2p_spi1_mosi             : std_logic;    -- Master out, Slave in. (Data to DAC)
 signal p2p_spi1_cs_n             : std_logic;    -- Active low chip select (sync_n)
 
+-- New block selects
+signal cpu_sel_p2p0         : std_logic; 
+signal cpu_sel_p2p1         : std_logic; 
+
+-- New readout signals
+signal p2p0_cpu_rdata       : std_logic_vector(31 downto 0);
+signal p2p0_cpu_rdata_dv    : std_logic; 
+signal p2p1_cpu_rdata       : std_logic_vector(31 downto 0);
+signal p2p1_cpu_rdata_dv    : std_logic; 
+
 signal p2pmodBusyD1: std_logic;
 signal p2pmodBusyD2: std_logic;
 signal p2pmodBusyD3: std_logic;
 signal p2pmodBusyD4: std_logic;
 
-signal p2p_active : STD_LOGIC;
+signal p2p_active  : STD_LOGIC;
 
 signal gpio_btns                : std_logic_vector( 4 downto 0); 
 
@@ -172,6 +183,18 @@ signal ps_jesd_tx0outclk        : std_logic;
 signal ps_jesd_tx0n_out         : std_logic_vector( 1 downto 0);
 signal ps_jesd_tx0p_out         : std_logic_vector( 1 downto 0);
 
+-- AXI_stream output from FIFO to PMOD
+signal fifo_axis_tvalid             : std_logic;
+signal fifo_axis_tready             : std_logic;
+signal fifo_axis_tdata              : std_logic_vector(15 downto 0);
+signal fifo_axis_tlast              : std_logic;
+
+signal fifo_almost_full             : std_logic;
+signal fifo_almost_empty            : std_logic;
+signal fifo_full                    : std_logic;
+signal fifo_empty                   : std_logic;
+
+signal pulse2pmod_busy              : std_logic;
 
 -- ILA probes
 signal ila_probe0               : std_logic_vector( 0 to 0 );
@@ -188,13 +211,18 @@ signal ila_probe7               : std_logic_vector( 0 to 0 );
 begin
 
     clk     <= ps_clk0;
-    reset   <= p_reset;
+    reset   <= p_reset or not(ps_resetn0);  -- added to allow reset from PS
+    resetn  <= not(reset);
     cif_reset <= not(ps_resetn0);
 
     -- Combine p_btn trigger (from pad) with misc block trigger and ps_gpout(0) to create internal trigger
-    trigger_dacs_pulse      <= (p_btn_c or misc_trigger or ps_gpout(0)) and not(dacs_pulse_busy);
+    trigger_dacs_pulse      <= (p_btn_c or misc_trigger or ps_gpout(0)) and not(p2p_active) and not(dacs_pulse_busy);  -- ensure ALL resources are available (TODO: Add second p2p active into it when we have it)
     ps_enable_dacs_pulse    <= ps_gpout(1);
     any_dacs_busy           <= dacs_dc_busy(0) or dacs_dc_busy(1) or dacs_dc_busy(2) or dacs_dc_busy(3) or dacs_pulse_busy;
+
+    -- Split 'SEL_SPARE' block select into two
+    cpu_sel_p2p0 <= cpu_sels(SEL_SPARE) and not cpu_addr(15); 
+    cpu_sel_p2p1 <= cpu_sels(SEL_SPARE) and     cpu_addr(15); 
 
     -- clear pulse errors
     clr_errors(0)           <= ps_gpout(2);
@@ -210,6 +238,16 @@ begin
     gpio_btns(2)            <= p_btn_n;
     gpio_btns(3)            <= p_btn_w;
     gpio_btns(4)            <= p_btn_c;
+
+
+    -- Pulse 2 PMOD SPI interface
+    p_dc0_sclk      <= p2p_spi0_sclk; 
+    p_dc0_mosi      <= p2p_spi0_mosi; 
+    p_dc0_cs_n      <= p2p_spi0_cs_n; 
+
+    p_dc1_sclk      <= p2p_spi1_sclk;
+    p_dc1_mosi      <= p2p_spi1_mosi;
+    p_dc1_cs_n      <= p2p_spi1_cs_n;
 
 
     ---------------------------------------------------------------------------------
@@ -260,7 +298,7 @@ begin
         ps_cpu_rdata_dv     => cif_cpu_rdata_dv     , -- out std_logic;
 
         -- to CPU peripherals
-        cpu_addr            => cpu_addr             , -- out std_logic_vector(15 downto 2);             -- Address input to core blocks (13:0)
+        cpu_addr            => cpu_addr(13 downto 0), -- out std_logic_vector(15 downto 2);             -- Address input to core blocks (13:0)
         cpu_wdata           => cpu_din              , -- out std_logic_vector(31 downto 0);             -- Data input
         cpu_wr              => cpu_wr               , -- out std_logic;                                 -- Write enable 
         cpu_sels            => cpu_sels             , -- out std_logic_vector(C_NUM_BLOCKS-1 downto 0); -- Block select
@@ -360,41 +398,93 @@ begin
     --
     -- Block containing an AXI-Stream FIFO and a stream-to-spi PMOD interface 
     -- Allows pulse data to drive a 'dc' DAC at a low speed.
-    ----------------------- ------------------------------------------------------------
-    u_pulse2pmod0 : entity work.pulse2pmod
+    -------------------------------------------------------------
+    -- AXI_Stream FIFO buffer between pulse generator and SPI interface
+    -------------------------------------------------------------
+    u_axi_fifo : entity work.axis_data_fifo_32Kx16b
     port map(
-        clk                 => clk                          ,  -- in  std_logic;
-        reset               => reset                        ,  -- in  std_logic;
+        s_axis_aresetn  => resetn       , -- in  std_logic;
+        s_axis_aclk     => clk              , -- in  std_logic;
 
-        busy                => p2p0_busy                     ,  -- out std_logic;    -- Set to '1' while SPI interface is busy
+        s_axis_tvalid   => dacs_pulse_axis_tvalids(0), -- in  std_logic;
+        s_axis_tready   => dacs_pulse_axis_treadys(0), -- out std_logic;
+        s_axis_tdata    => dacs_pulse_axis_tdatas(0), -- in  std_logic_vector(15 downto 0);
+        s_axis_tlast    => dacs_pulse_axis_tlasts(0), -- in  std_logic;
+
+        m_axis_tvalid   => fifo_axis_tvalid , -- out std_logic;
+        m_axis_tready   => fifo_axis_tready , -- in  std_logic;
+        m_axis_tdata    => fifo_axis_tdata  , -- out std_logic_vector(15 downto 0);
+        m_axis_tlast    => fifo_axis_tlast  , -- out std_logic;
+
+        almost_full     => fifo_almost_full , -- out std_logic 
+        almost_empty    => fifo_almost_empty  -- out std_logic 
+    );
+
+
+    -------------------------------------------------------------
+	-- PMOD interface
+    --  Block drives a SPI-bus interface to 8 channel DAC boards.
+    --  Intended for testing AC pulse generation.
+    --  SPI bus can be written by CPU or by AXI-Stream input.
+    --  A control register selects the data source
+    -------------------------------------------------------------
+	u_dac_pulse : entity work.qlaser_pmod_pulse
+	port map (
+        clk             => clk                      , -- in  std_logic;
+        reset           => reset                    , -- in  std_logic;
+
+        busy            => pulse2pmod_busy          , -- out std_logic;    -- Set to '1' while SPI interface is busy
 
         -- CPU interface
-        cpu_addr            => cpu_addr( 5 downto 0)        ,  -- in  std_logic_vector( 5 downto 0);
-        cpu_wdata           => cpu_din                      ,  -- in  std_logic_vector(31 downto 0);
-        cpu_wr              => cpu_wr                       ,  -- in  std_logic;
-        cpu_sel             => cpu_sels(SEL_SPARE)          ,  -- in  std_logic;
-        cpu_rdata           => arr_cpu_dout(SEL_SPARE)      ,  -- out std_logic_vector(31 downto 0);
-        cpu_rdata_dv        => arr_cpu_dout_dv(SEL_SPARE)   ,  -- out std_logic; 
+        cpu_addr        => cpu_addr( 5 downto 0)    , -- in  std_logic_vector( 5 downto 0);
+        cpu_wdata       => cpu_din(11 downto 0)     , -- in  std_logic_vector(11 downto 0);
+        cpu_wr          => cpu_wr                   , -- in  std_logic;
+        cpu_sel         => cpu_sels(SEL_SPARE)      , -- in  std_logic;
 
-        -- AXI-stream input to FIFO
-        s_axis_tready       => dacs_pulse_axis_treadys(0)   ,  -- out std_logic;
-        s_axis_tvalid       => dacs_pulse_axis_tvalids(0)   ,  -- in  std_logic;
-        s_axis_tdata        => dacs_pulse_axis_tdatas(0)    ,  -- in  std_logic_vector(15 downto 0);
-        s_axis_tlast        => dacs_pulse_axis_tlasts(0)    ,  -- in  std_logic;
-                                        
+        cpu_rdata       => arr_cpu_dout(SEL_SPARE)  , -- out std_logic_vector(31 downto 0);
+        cpu_rdata_dv    => arr_cpu_dout_dv(SEL_SPARE), -- out std_logic; 
+
+        -- AXI-Stream bus.  16-bit data.
+        axis_tready     => fifo_axis_tready         , -- out std_logic;    -- axi_stream ready from downstream modules
+        axis_tdata      => fifo_axis_tdata          , -- in  std_logic_vector(15 downto 0);   -- axi stream output data array
+        axis_tvalid     => fifo_axis_tvalid         , -- in  std_logic;    -- axi_stream output data valid
+        axis_tlast      => fifo_axis_tlast          , -- in  std_logic     -- axi_stream output set on last data  
+
         -- Interface SPI bus to 8-channel PMOD for DC channels 0-7
-        spi_sclk            => p2p_spi0_sclk                 ,  -- out std_logic;
-        spi_mosi            => p2p_spi0_mosi                 ,  -- out std_logic;
-        spi_cs_n            => p2p_spi0_cs_n                    -- out std_logic 
+        spi_sclk        => p2p_spi0_sclk            , --  out std_logic;          -- Clock (50 MHz?)
+        spi_mosi        => p2p_spi0_mosi            , --  out std_logic;          -- Master out, Slave in. (Data to DAC)
+        spi_cs_n        => p2p_spi0_cs_n              --  out std_logic           -- Active low chip select (sync_n)
     );
-    
-    p_dc0_sclk      <= p2p_spi0_sclk; 
-    p_dc0_mosi      <= p2p_spi0_mosi; 
-    p_dc0_cs_n      <= p2p_spi0_cs_n; 
 
-    p_dc1_sclk      <= p2p_spi1_sclk;
-    p_dc1_mosi      <= p2p_spi1_mosi;
-    p_dc1_cs_n      <= p2p_spi1_cs_n;
+    p2p0_busy <= pulse2pmod_busy and not(fifo_almost_empty);  -- Set to '1' while SPI interface is busy and FIFO is not empty (just in case...)
+
+    -- THIS MODULE IS FOR PROTOTYPE TESTING ONLY AND IS DEPRECATED!!!
+    -- u_pulse2pmod0 : entity work.pulse2pmod
+    -- port map(
+    --     clk                 => clk                          ,  -- in  std_logic;
+    --     reset               => reset                        ,  -- in  std_logic;
+
+    --     busy                => p2p0_busy                     ,  -- out std_logic;    -- Set to '1' while SPI interface is busy
+
+    --     -- CPU interface
+    --     cpu_addr            => cpu_addr( 5 downto 0)        ,  -- in  std_logic_vector( 5 downto 0);
+    --     cpu_wdata           => cpu_din                      ,  -- in  std_logic_vector(31 downto 0);
+    --     cpu_wr              => cpu_wr                       ,  -- in  std_logic;
+    --     cpu_sel             => cpu_sels(SEL_SPARE)          ,  -- in  std_logic;
+    --     cpu_rdata           => arr_cpu_dout(SEL_SPARE)      ,  -- out std_logic_vector(31 downto 0);
+    --     cpu_rdata_dv        => arr_cpu_dout_dv(SEL_SPARE)   ,  -- out std_logic; 
+
+    --     -- AXI-stream input to FIFO
+    --     s_axis_tready       => dacs_pulse_axis_treadys(0)   ,  -- out std_logic;
+    --     s_axis_tvalid       => dacs_pulse_axis_tvalids(0)   ,  -- in  std_logic;
+    --     s_axis_tdata        => dacs_pulse_axis_tdatas(0)    ,  -- in  std_logic_vector(15 downto 0);
+    --     s_axis_tlast        => dacs_pulse_axis_tlasts(0)    ,  -- in  std_logic;
+                                        
+    --     -- Interface SPI bus to 8-channel PMOD for DC channels 0-7
+    --     spi_sclk            => p2p_spi0_sclk                 ,  -- out std_logic;
+    --     spi_mosi            => p2p_spi0_mosi                 ,  -- out std_logic;
+    --     spi_cs_n            => p2p_spi0_cs_n                    -- out std_logic 
+    -- );
 
 
 
@@ -463,7 +553,9 @@ begin
 
     -- Pulse 0 errors
     ps_gpin(15 downto 8)  <= pulse_errors(0);
-    ps_gpin(31 downto 16) <= dacs_pulse_axis_tdatas(0);
+
+    ps_gpin(19)           <= fifo_axis_tvalid;
+    ps_gpin(31 downto 20) <= fifo_axis_tdata(11 downto 0);
 
     -- ILA debug
     ila_probe1(0)         <= dacs_pulse_axis_tlasts(0);

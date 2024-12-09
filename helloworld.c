@@ -334,16 +334,46 @@ void print_regs(int nValue)
 }
 
 //---------------------------------------------------------
-// Load pulse waveform table
+// Load a ramp into pulse waveform table
 //---------------------------------------------------------
 void load_pulse_wave(int nChannel, int nAddrStart, int nSize)
 {
-    xil_printf ("load_pulse_table(nChannel = %d, nAddrStart = 0x%04X, nSize = %d)\r\n", nChannel, nAddrStart, nSize);
+    if (nChannel == 99) {
+        // load to all channels
+        set_pulse_chsel(0xFFFFFFFF);
+    } else {
 
-    // Enable access to one selected channel
-    set_pulse_chsel(1 << nChannel);
+        xil_printf ("load_pulse_table(nChannel = %d, nAddrStart = 0x%04X, nSize = %d)\r\n", nChannel, nAddrStart, nSize);
 
-    //for loop to load a ramp up and down
+        // Enable access to one selected channel
+        set_pulse_chsel(1 << nChannel);
+    }
+
+    // TODO: size actually not used...
+    //for loop to load a ramp
+    u32 nWaddrBase  = ADR_BASE_PULSE_WAVE;
+    u32 nWaddr;
+    int nEntry;
+    for (nEntry = 0 ; nEntry < SIZERAM_PULSE_WAVE ; nEntry++)
+    {
+        nWaddr = nWaddrBase + 4*nEntry;
+        Xil_Out32(nWaddr, nEntry + nEntry * 65536);
+        //xil_printf("ch %2d: wave %4d: (0x%08X) = 0x%08X\r\n", nChannel, nEntry, nWaddr, nWdata);
+    }
+
+    for (nEntry = 100 ; nEntry < SIZERAM_PULSE_WAVE ; nEntry++)
+    {
+        nWaddr = nWaddrBase + 4*nEntry;
+        Xil_Out32(nWaddr, 2 * nEntry - 100 + (2 * nEntry - 100) * 65536);
+        //xil_printf("ch %2d: wave %4d: (0x%08X) = 0x%08X\r\n", nChannel, nEntry, nWaddr, nWdata);
+    }
+
+    for (nEntry = 500 ; nEntry < SIZERAM_PULSE_WAVE ; nEntry++)
+    {
+        nWaddr = nWaddrBase + 4*nEntry;
+        Xil_Out32(nWaddr, 8 * nEntry - 500 * 8 + (8 * nEntry - 500 * 8) * 65536);
+        //xil_printf("ch %2d: wave %4d: (0x%08X) = 0x%08X\r\n", nChannel, nEntry, nWaddr, nWdata);
+    }
 }
 
 //---------------------------------------------------------
@@ -1281,7 +1311,7 @@ int main()
 	//--
 	print("Ready>\r\n");
 
-    Xil_Out32(ADR_PULSE_REG_SEQ_LEN, 0xA0100000);
+    Xil_Out32(ADR_PULSE_REG_SEQ_LEN, 10000);
 	nRdata = Xil_In32(ADR_PULSE_REG_SEQ_LEN);
 	(void)xil_printf ("Seq length %x\r\n", nRdata);
 
@@ -1414,6 +1444,7 @@ int main()
 	int nScaleAddr = 0x0100;
 
 
+
     while (1)
     {
         nRdata = Xil_In32(ADR_GPIO_BTN);
@@ -1425,8 +1456,8 @@ int main()
         {
             cUartRx = (u8)XUartPs_ReadReg(STDIN_BASEADDRESS, XUARTPS_FIFO_OFFSET);
             outbyte(cUartRx);       // Echo the received char
-            outbyte(0x0D);          // CR
-            outbyte(0x0A);          // LF
+
+
 
             //---------------------------------------------------------------------
             // In COMMAND mode all non-digit characters are single-character commands
@@ -1445,11 +1476,13 @@ int main()
                         nValue = (nValue * 10) + (cUartRx - 0x30);
 
                     nDigit++;
-                   (void)xil_printf("Value = %d\r\n", nValue);
+//                   (void)xil_printf("Value = %d\r\n", nValue);
                 }
 
                 else       // All non-digit characters are single-character commands
                 {
+                	outbyte(0x0D);      // CR
+                	outbyte(0x0A);      // LF
                     switch (cUartRx)
                     {
                         //---------------------------------------------------------
@@ -1740,9 +1773,7 @@ int main()
 								Xil_Out32(ADR_MISC_TRIGGER, 0x0);
 								printf("off\n");
 							}
-                        	(void)xil_printf ("ADR_PULSE_REG_TIMER                = %08X\r\n", Xil_In32(ADR_PULSE_REG_TIMER  ));
-                        	(void)xil_printf ("ADR_PULSE_REG_TIMER                = %08X\r\n", Xil_In32(ADR_PULSE_REG_TIMER  ));
-                        	(void)xil_printf ("ADR_PULSE_REG_TIMER                = %08X\r\n", Xil_In32(ADR_PULSE_REG_TIMER  ));
+
 
 						break;
 
@@ -1751,8 +1782,10 @@ int main()
                         	Xil_Out32(ADR_PULSE_REG_CHEN, 0xFFFFFFFF);
 
                         	//	load_pulse_defn(1);
-							entry_pulse_defn(0, 200,    0,     0x0200, 0x8000, 0x0100, 0x0100);
-							entry_pulse_defn(1, 10000,    0,     0x0200, 0x8000, 0x0100, 0x0010);
+							entry_pulse_defn(0, 0x80,    0,     0x0200, 0x8000, 0x0100, 0x0100);
+							// entry_pulse_defn(1, 10000,    0,     0x0200, 0x8000, 0x0100, 0x0010);
+							entry_pulse_defn(1, 0x80 + 0x0200 + 0x0200 + 0x0100 + 0x3E8, 1000,  0x0100, 0x8000, 0x0100, 0x0);
+
 //							entry_pulse_defn(1, 0x1000, 1000,  0x0100, 0x8000, 0x0100, 0x0);
 							//	void entry_pulse_defn(int nEntry, int nStartTime, int nWaveAddr, int nWaveLen, int nScaleGain, int nScaleAddr, int nFlattop)
 //							nWdata = nStartTime & 0x00FFFFFF;
@@ -1775,32 +1808,7 @@ int main()
 //                        		load_pulse_defn(i);
 //                        	}
 
-
-//							load_pulse_defn(0); // put this back?
-							set_pulse_chsel(0xFFFFFFFF);
-							u32 nWaddrBase  = ADR_BASE_PULSE_WAVE;
-							u32 nWaddr;
-							int nEntry;
-							for (nEntry = 0 ; nEntry < SIZERAM_PULSE_WAVE ; nEntry++)
-							{
-								nWaddr = nWaddrBase + 4*nEntry;
-								Xil_Out32(nWaddr, nEntry + nEntry * 65536);
-								//xil_printf("ch %2d: wave %4d: (0x%08X) = 0x%08X\r\n", nChannel, nEntry, nWaddr, nWdata);
-							}
-
-							for (nEntry = 100 ; nEntry < SIZERAM_PULSE_WAVE ; nEntry++)
-							{
-								nWaddr = nWaddrBase + 4*nEntry;
-								Xil_Out32(nWaddr, 2 * nEntry - 100 + (2 * nEntry - 100) * 65536);
-								//xil_printf("ch %2d: wave %4d: (0x%08X) = 0x%08X\r\n", nChannel, nEntry, nWaddr, nWdata);
-							}
-
-							for (nEntry = 500 ; nEntry < SIZERAM_PULSE_WAVE ; nEntry++)
-							{
-								nWaddr = nWaddrBase + 4*nEntry;
-								Xil_Out32(nWaddr, 8 * nEntry - 500 * 8 + (8 * nEntry - 500 * 8) * 65536);
-								//xil_printf("ch %2d: wave %4d: (0x%08X) = 0x%08X\r\n", nChannel, nEntry, nWaddr, nWdata);
-							}
+							load_pulse_wave(99, 0, 0);
 						break;
 
                         case 'W':

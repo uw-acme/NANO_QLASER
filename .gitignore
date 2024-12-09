@@ -6,6 +6,6 @@ transcript
 prj/
 work/
 .Xil/
-
+*.gen/
 
 *.db

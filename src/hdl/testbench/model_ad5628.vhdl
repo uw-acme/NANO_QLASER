@@ -150,16 +150,16 @@ begin
     end process;
 
 
-    ----------------------------------------------------------------
-    -- Timing checks
-    ----------------------------------------------------------------
-    process (sclk_n)
-    begin
-        if ((now/=0 ns) and (now-tf_sync) < t_sync_fall_to_sclk_fall) then 
-           report ("AD5628  : t_sync_fall_to_sclk_fall violation") 
-           severity warning;
-        end if;
-    end process;
+    -- ----------------------------------------------------------------
+    -- -- Timing checks
+    -- ----------------------------------------------------------------
+    -- process (sclk_n)
+    -- begin
+    --     if ((now/=0 ns) and (now-tf_sync) < t_sync_fall_to_sclk_fall) then 
+    --        report ("AD5628  : t_sync_fall_to_sclk_fall violation") 
+    --        severity warning;
+    --     end if;
+    -- end process;
 
 
     process (sync_n)

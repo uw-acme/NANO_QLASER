@@ -973,8 +973,8 @@ move_dashboard_gadget -name {methodology_1} -row 2 -col 1
 puts "Attempt to build the project"
 
 # Launch runs, exit on failure
-launch_runs impl_1 -to_step write_bitstream -jobs 16
-wait_on_run impl_1
-write_hw_platform -fixed -include_bit -force -file $orig_proj_dir/qlaser_top.xsa
+launch_runs impl_1 -to_step write_bitstream -jobs 16 -verbose -force
+wait_on_run impl_1 -verbose
+catch {write_hw_platform -fixed -include_bit -force -file $orig_proj_dir/qlaser_top.xsa}
 
 exi

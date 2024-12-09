@@ -226,7 +226,7 @@ begin
     
     begin
         -- Reset 
-        p_reset       <= '1';
+        p_reset <= '1';
         p_btn_e <= '0';
         p_btn_s <= '0';
         p_btn_n <= '0';

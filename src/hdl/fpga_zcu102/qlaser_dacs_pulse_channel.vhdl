@@ -650,10 +650,11 @@ architecture channel of qlaser_dacs_pulse_channel is
         -- TBD: This should come from a FIFO
         -- TODO: the bits are not correct, should be top bits (C_BITS_GAIN_FACTOR + 16 downto C_BITS_GAIN_FACTOR), but for now just make it this way so modelsim can simulate
         axis_tdata          <= sm_wavedata;         -- axi stream output data, this output should be multiplied by the gain factor, then take the top 16 bits
-        axis_tvalid         <= sm_wavedata_dv;      -- axi_stream output data valid
+        -- axis_tvalid         <= sm_wavedata_dv;      -- axi_stream output data valid
+        axis_tvalid         <= '1' when not (sm_state = S_IDLE or sm_state = S_RESET) else '0';  -- always output valid data when not idle or reset so hopefully the fifo catch all.
     
         -- last valid data outputted. indicated by direct transision from wave_down to wait.
-        axis_tlast          <= '1' when (sm_state_d1 = S_WAVE_DOWN) and (sm_state = S_WAIT) else '0';                 -- axi_stream output last 
+        axis_tlast          <= '1' when (sm_state_d1 = S_WAVE_DOWN) and (sm_state = S_WAIT) else '0';  -- axi_stream output last 
 
         ------------------------------------------------------------------------
         -- ILA DEBUG

@@ -15,7 +15,7 @@
 ../sim_zcu/bram_pulseposition_sim_netlist.vhdl 
 ../sim_zcu/bram_pulse_definition_sim_netlist.vhdl 
 ../sim_zcu/bram_waveform_sim_netlist.vhdl 
-../../src/hdl/testbench/axis_data_fifo_32Kx16b_sim_netlist.vhdl
+../../qlaser_zcu102.gen/sources_1/ip/axis_data_fifo_32Kx16b/axis_data_fifo_32Kx16b_sim_netlist.vhdl
 
 // std developerskit
 ../../src/hdl/std_developerskit/iopakp.vhd

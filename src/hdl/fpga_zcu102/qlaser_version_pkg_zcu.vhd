@@ -6,6 +6,7 @@
 ----------------------------------------------------------------------------------------
 library ieee;
 use     ieee.std_logic_1164.all;
+use     ieee.numeric_std.all;
 
 package qlaser_version_pkg is
 
@@ -18,8 +19,6 @@ package qlaser_version_pkg is
 -- 0x2AC0_NNNN     : DC PMODs, AC ZMODs. 4 channel    NNN incremented each bitfile
 -- 0x3AC0_NNNN     : DC PMODs, JESD AC (16ch Abaco board)    NNN incremented each bitfile
 
--- 0xMMMM_NNNN     : Special debug versions. MMMM set each debug "flavor", and NNN incremented each bitfile. Used for internal debug only
-
 ----------------------------------------------------------------------------------------
 -- Usercode history
 ----------------------------------------------------------------------------------------
@@ -31,7 +30,7 @@ package qlaser_version_pkg is
 -- 0x3AC0_0006     : put existing working codes to the ZCU102 board
 ----------------------------------------------------------------------------------------
 constant C_QLASER_VERSION   : std_logic_vector(31 downto 0) := X"3AC00006";     -- HDL Version
--- constant C_QLASER_VERSION   : std_logic_vector(31 downto 0) := X"00060006";     -- Special HDL Version
+-- constant C_QLASER_VERSION   : std_logic_vector(31 downto 0) := std_logic_vector(to_unsigned(3445, 32));     -- Special HDL Version, just a random number
 
 end package qlaser_version_pkg;
 
