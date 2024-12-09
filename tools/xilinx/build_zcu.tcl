@@ -40,9 +40,9 @@
 #    "E:/github/NANO_QLASER/src/hdl/fpga_zcu102/qlaser_dac_pulse_pkg.vhd"
 #    "E:/github/NANO_QLASER/src/hdl/fpga_zcu102/qlaser_spi.vhd"
 #    "E:/github/NANO_QLASER/src/hdl/fpga_zcu102/qlaser_cif.vhd"
-#    "E:/github/NANO_QLASER/src/hdl/fpga_zcu102/pulse2pmod.vhd"
+#    "E:/github/NANO_QLASER/src/hdl/fpga_zcu102/qlaser_axis_cpu_sel.vhdl"
 #    "E:/github/NANO_QLASER/src/hdl/fpga_zcu102/qlaser_dacs_dc_zcu.vhd"
-#    "E:/github/NANO_QLASER/src/hdl/fpga_zcu102/qlaser_pmod_pulse.vhd"
+#    "E:/github/NANO_QLASER/src/hdl/fpga_zcu102/qlaser_2pmods_pulse.vhd"
 #    "E:/github/NANO_QLASER/src/hdl/fpga_zcu102/qlaser_dacs_pulse_zcu.vhd"
 #    "E:/github/NANO_QLASER/src/hdl/fpga_zcu102/qlaser_version_pkg_zcu.vhd"
 #    "E:/github/NANO_QLASER/src/hdl/fpga_zcu102/qlaser_misc.vhd"
@@ -93,9 +93,9 @@ proc checkRequiredFiles { origin_dir} {
  "[file normalize "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_dac_pulse_pkg.vhd"]"\
  "[file normalize "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_spi.vhd"]"\
  "[file normalize "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_cif.vhd"]"\
- "[file normalize "$origin_dir/../../src/hdl/fpga_zcu102/pulse2pmod.vhd"]"\
+ "[file normalize "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_axis_cpu_sel.vhdl"]"\
  "[file normalize "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_dacs_dc_zcu.vhd"]"\
- "[file normalize "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_pmod_pulse.vhd"]"\
+ "[file normalize "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_2pmods_pulse.vhd"]"\
  "[file normalize "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_dacs_pulse_zcu.vhd"]"\
  "[file normalize "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_version_pkg_zcu.vhd"]"\
  "[file normalize "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_misc.vhd"]"\
@@ -268,9 +268,9 @@ set files [list \
  [file normalize "${origin_dir}/../../src/hdl/fpga_zcu102/qlaser_dac_pulse_pkg.vhd"] \
  [file normalize "${origin_dir}/../../src/hdl/fpga_zcu102/qlaser_spi.vhd"] \
  [file normalize "${origin_dir}/../../src/hdl/fpga_zcu102/qlaser_cif.vhd"] \
- [file normalize "${origin_dir}/../../src/hdl/fpga_zcu102/pulse2pmod.vhd"] \
+ [file normalize "${origin_dir}/../../src/hdl/fpga_zcu102/qlaser_axis_cpu_sel.vhdl"] \
  [file normalize "${origin_dir}/../../src/hdl/fpga_zcu102/qlaser_dacs_dc_zcu.vhd"] \
- [file normalize "${origin_dir}/../../src/hdl/fpga_zcu102/qlaser_pmod_pulse.vhd"] \
+ [file normalize "${origin_dir}/../../src/hdl/fpga_zcu102/qlaser_2pmods_pulse.vhd"] \
  [file normalize "${origin_dir}/../../src/hdl/fpga_zcu102/qlaser_dacs_pulse_zcu.vhd"] \
  [file normalize "${origin_dir}/../../src/hdl/fpga_zcu102/qlaser_version_pkg_zcu.vhd"] \
  [file normalize "${origin_dir}/../../src/hdl/fpga_zcu102/qlaser_misc.vhd"] \
@@ -352,7 +352,7 @@ set file [file normalize $file]
 set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
 set_property -name "file_type" -value "VHDL" -objects $file_obj
 
-set file "$origin_dir/../../src/hdl/fpga_zcu102/pulse2pmod.vhd"
+set file "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_axis_cpu_sel.vhdl"
 set file [file normalize $file]
 set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
 set_property -name "file_type" -value "VHDL" -objects $file_obj
@@ -362,7 +362,7 @@ set file [file normalize $file]
 set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
 set_property -name "file_type" -value "VHDL" -objects $file_obj
 
-set file "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_pmod_pulse.vhd"
+set file "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_2pmods_pulse.vhd"
 set file [file normalize $file]
 set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
 set_property -name "file_type" -value "VHDL" -objects $file_obj

@@ -92,7 +92,7 @@ signal p_btn_c: std_logic;
 signal p_leds: std_logic_vector( 7 downto 0);
 signal p_debug_out: std_logic_vector( 9 downto 0) ;
 
-signal vref: real;
+signal vref0: real;
 signal vout0: real;
 signal vout1: real;
 signal vout2: real;
@@ -101,6 +101,16 @@ signal vout4: real;
 signal vout5: real;
 signal vout6: real;
 signal vout7: real;
+
+signal vref1: real;
+signal vout8: real;
+signal vout9: real;
+signal vout10: real;
+signal vout11: real;
+signal vout12: real;
+signal vout13: real;
+signal vout14: real;
+signal vout15: real;
 
 -- Halts simulation by stopping clock when set true
 signal sim_done                     : boolean   := false;
@@ -186,12 +196,12 @@ begin
     --     vout6  => vout6,
     --     vout7  => vout7 );
 
-    u_pmoddac: entity work.ad5628 
+    u_pmoddac0: entity work.ad5628 
     port map ( 
         sclk_n => p_dc0_sclk,
         sync_n => p_dc0_cs_n,
         din    => p_dc0_mosi,
-        vref   => vref,
+        vref   => vref0,
         vout0  => vout0,
         vout1  => vout1,
         vout2  => vout2,
@@ -200,6 +210,21 @@ begin
         vout5  => vout5,
         vout6  => vout6,
         vout7  => vout7 );
+
+    u_pmoddac1: entity work.ad5628
+    port map ( 
+        sclk_n => p_dc1_sclk,
+        sync_n => p_dc1_cs_n,
+        din    => p_dc1_mosi,
+        vref   => vref1,
+        vout0  => vout8,
+        vout1  => vout9,
+        vout2  => vout10,
+        vout3  => vout11,
+        vout4  => vout12,
+        vout5  => vout13,
+        vout6  => vout14,
+        vout7  => vout15 );
 	
 
     -------------------------------------------------------------
@@ -232,7 +257,8 @@ begin
         p_btn_n <= '0';
         p_btn_w <= '0';
         p_btn_c <= '0';
-        vref        <= 3.3;
+        vref0   <= 3.3;
+        vref1   <= 3.3;
         clk_delay(5);
         
         cpu_print_msg("Simulation start");

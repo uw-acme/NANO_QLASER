@@ -128,11 +128,17 @@ begin
         -- Write DAC0 register
         cpu_write(clk, PMOD_ADDR_SPI0    , X"00000001", rd, wr, addr, wdata);
         clk_delay(70, clk);
-
-        -- Write DAC0 register
         cpu_write(clk, PMOD_ADDR_SPI0    , X"00000010", rd, wr, addr, wdata);
         clk_delay(70, clk);
         cpu_write(clk, PMOD_ADDR_SPI0    , X"00000100", rd, wr, addr, wdata);
+        clk_delay(70, clk);
+
+        -- Write DAC1 register
+        cpu_write(clk, PMOD_ADDR_SPI1    , X"00000001", rd, wr, addr, wdata);
+        clk_delay(70, clk);
+        cpu_write(clk, PMOD_ADDR_SPI1    , X"00000010", rd, wr, addr, wdata);
+        clk_delay(70, clk);
+        cpu_write(clk, PMOD_ADDR_SPI1    , X"00000100", rd, wr, addr, wdata);
         clk_delay(70, clk);
 
         -- select all, enable all
@@ -154,29 +160,29 @@ begin
         
         clk_delay(10, clk);
         -- write waveform
-        -- Load a ramp waveform into the RAM
-        for NADDR in 0 to 2047 loop
-            v_ndata32_upper := NADDR * 2**16;
-            v_ndata32_lower := NADDR;
-            v_ndata32       := v_ndata32_upper + v_ndata32_lower;
-            cpu_write(
-                clk, 
-                -- (2048 + NADDR) , 
-                "01" & x"2" & std_logic_vector(to_unsigned(NADDR, C_WIDTH_PS_ADDR_BUS - 6)), 
-                std_logic_vector(to_unsigned(v_ndata32,32)), 
-                rd, 
-                wr, 
-                addr,
-                wdata
-            );
-            v_ndata16       := v_ndata16 + 2;
-            wait until rising_edge(clk);
-        end loop;
+        -- -- Load a ramp waveform into the RAM
+        -- for NADDR in 0 to 2047 loop
+        --     v_ndata32_upper := NADDR * 2**16;
+        --     v_ndata32_lower := NADDR;
+        --     v_ndata32       := v_ndata32_upper + v_ndata32_lower;
+        --     cpu_write(
+        --         clk, 
+        --         -- (2048 + NADDR) , 
+        --         "01" & x"2" & std_logic_vector(to_unsigned(NADDR, C_WIDTH_PS_ADDR_BUS - 6)), 
+        --         std_logic_vector(to_unsigned(v_ndata32,32)), 
+        --         rd, 
+        --         wr, 
+        --         addr,
+        --         wdata
+        --     );
+        --     v_ndata16       := v_ndata16 + 2;
+        --     wait until rising_edge(clk);
+        -- end loop;
 
-        -- cpu_write(clk, ADR_BASE_PULSE_WAVE                  , X"00010002", rd, wr, addr, wdata); 
-        -- cpu_write(clk, ADR_BASE_PULSE_WAVE or "00" & X"0004", X"00040003", rd, wr, addr, wdata); 
-        -- cpu_write(clk, ADR_BASE_PULSE_WAVE or "00" & X"0008", X"00060005", rd, wr, addr, wdata); 
-        -- cpu_write(clk, ADR_BASE_PULSE_WAVE or "00" & X"000C", X"00080007", rd, wr, addr, wdata); 
+        cpu_write(clk, ADR_BASE_PULSE_WAVE                  , X"00010002", rd, wr, addr, wdata); 
+        cpu_write(clk, ADR_BASE_PULSE_WAVE or "00" & X"0004", X"00040003", rd, wr, addr, wdata); 
+        cpu_write(clk, ADR_BASE_PULSE_WAVE or "00" & X"0008", X"00060005", rd, wr, addr, wdata); 
+        cpu_write(clk, ADR_BASE_PULSE_WAVE or "00" & X"000C", X"00080007", rd, wr, addr, wdata); 
         
         -- for i in 0 to 255 loop
         --     -- cpu_addr(9 downto 0) <= std_logic_vector(to_unsigned(i, 10)); -- ram_pulse_addra

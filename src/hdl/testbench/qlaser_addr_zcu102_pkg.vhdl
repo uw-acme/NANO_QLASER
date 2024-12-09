@@ -115,6 +115,7 @@ constant ADR_MISC_DEBUG_TRIGGER    : std_logic_vector(17 downto 0) := ADR_BASE_M
 -------------------------------------------------------------------------------------------------------------------------- 
 constant ADR_BASE_PULSE2PMOD    	: std_logic_vector(17 downto 16) 	:= ADR_BASE_SPARE;             -- p2p uses 'spare' address range 
 constant PMOD_ADDR_SPI0	: std_logic_vector(17 downto 0) 	:= ADR_BASE_SPARE & X"0000";   
+constant PMOD_ADDR_SPI1	: std_logic_vector(17 downto 0) 	:= ADR_BASE_SPARE & X"0001";   
 constant PMOD_ADDR_INTERNAL_REF	: std_logic_vector(17 downto 0) 	:= ADR_BASE_SPARE & X"00A0";   
 constant PMOD_ADDR_POWER_ON	: std_logic_vector(17 downto 0) 	:= ADR_BASE_SPARE & X"00C0";   
 constant PMOD_ADDR_CTRL	: std_logic_vector(17 downto 0) 	:= ADR_BASE_SPARE & X"00E0";   

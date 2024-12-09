@@ -1,11 +1,6 @@
 onerror {resume}
-quietly virtual signal -install /tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/u_dac_pulse { (context /tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/u_dac_pulse )( axis_tdata(0) & axis_tdata(1) & axis_tdata(2) & axis_tdata(3) & axis_tdata(4) & axis_tdata(5) & axis_tdata(6) & axis_tdata(7) & axis_tdata(8) & axis_tdata(9) & axis_tdata(10) & axis_tdata(11) )} spi_data
 quietly virtual signal -install /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch { /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/axis_tdata(11 downto 0)} axis_tdata_small
 quietly WaveActivateNextPane {} 0
-add wave -noupdate -radix unsigned /tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/s_axis_tdata
-add wave -noupdate -radix unsigned -childformat {{/tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/u_dac_pulse/spi_data(11) -radix unsigned} {/tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/u_dac_pulse/spi_data(10) -radix unsigned} {/tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/u_dac_pulse/spi_data(9) -radix unsigned} {/tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/u_dac_pulse/spi_data(8) -radix unsigned} {/tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/u_dac_pulse/spi_data(7) -radix unsigned} {/tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/u_dac_pulse/spi_data(6) -radix unsigned} {/tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/u_dac_pulse/spi_data(5) -radix unsigned} {/tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/u_dac_pulse/spi_data(4) -radix unsigned} {/tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/u_dac_pulse/spi_data(3) -radix unsigned} {/tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/u_dac_pulse/spi_data(2) -radix unsigned} {/tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/u_dac_pulse/spi_data(1) -radix unsigned} {/tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/u_dac_pulse/spi_data(0) -radix unsigned}} -subitemconfig {/tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/u_dac_pulse/axis_tdata(0) {-radix unsigned} /tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/u_dac_pulse/axis_tdata(1) {-radix unsigned} /tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/u_dac_pulse/axis_tdata(2) {-radix unsigned} /tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/u_dac_pulse/axis_tdata(3) {-radix unsigned} /tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/u_dac_pulse/axis_tdata(4) {-radix unsigned} /tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/u_dac_pulse/axis_tdata(5) {-radix unsigned} /tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/u_dac_pulse/axis_tdata(6) {-radix unsigned} /tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/u_dac_pulse/axis_tdata(7) {-radix unsigned} /tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/u_dac_pulse/axis_tdata(8) {-radix unsigned} /tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/u_dac_pulse/axis_tdata(9) {-radix unsigned} /tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/u_dac_pulse/axis_tdata(10) {-radix unsigned} /tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/u_dac_pulse/axis_tdata(11) {-radix unsigned}} /tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/u_dac_pulse/spi_data
-add wave -noupdate -radix unsigned -childformat {{/tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/fifo_axis_tdata(15) -radix unsigned} {/tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/fifo_axis_tdata(14) -radix unsigned} {/tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/fifo_axis_tdata(13) -radix unsigned} {/tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/fifo_axis_tdata(12) -radix unsigned} {/tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/fifo_axis_tdata(11) -radix unsigned} {/tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/fifo_axis_tdata(10) -radix unsigned} {/tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/fifo_axis_tdata(9) -radix unsigned} {/tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/fifo_axis_tdata(8) -radix unsigned} {/tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/fifo_axis_tdata(7) -radix unsigned} {/tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/fifo_axis_tdata(6) -radix unsigned} {/tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/fifo_axis_tdata(5) -radix unsigned} {/tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/fifo_axis_tdata(4) -radix unsigned} {/tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/fifo_axis_tdata(3) -radix unsigned} {/tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/fifo_axis_tdata(2) -radix unsigned} {/tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/fifo_axis_tdata(1) -radix unsigned} {/tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/fifo_axis_tdata(0) -radix unsigned}} -subitemconfig {/tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/fifo_axis_tdata(15) {-height 15 -radix unsigned} /tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/fifo_axis_tdata(14) {-height 15 -radix unsigned} /tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/fifo_axis_tdata(13) {-height 15 -radix unsigned} /tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/fifo_axis_tdata(12) {-height 15 -radix unsigned} /tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/fifo_axis_tdata(11) {-height 15 -radix unsigned} /tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/fifo_axis_tdata(10) {-height 15 -radix unsigned} /tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/fifo_axis_tdata(9) {-height 15 -radix unsigned} /tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/fifo_axis_tdata(8) {-height 15 -radix unsigned} /tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/fifo_axis_tdata(7) {-height 15 -radix unsigned} /tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/fifo_axis_tdata(6) {-height 15 -radix unsigned} /tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/fifo_axis_tdata(5) {-height 15 -radix unsigned} /tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/fifo_axis_tdata(4) {-height 15 -radix unsigned} /tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/fifo_axis_tdata(3) {-height 15 -radix unsigned} /tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/fifo_axis_tdata(2) {-height 15 -radix unsigned} /tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/fifo_axis_tdata(1) {-height 15 -radix unsigned} /tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/fifo_axis_tdata(0) {-height 15 -radix unsigned}} /tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/fifo_axis_tdata
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/fifo_axis_tvalid
 add wave -noupdate -radix unsigned /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/axis_tlast
 add wave -noupdate -radix unsigned /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/axis_tready
 add wave -noupdate -radix unsigned /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/axis_tvalid
@@ -24,13 +19,23 @@ add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch
 add wave -noupdate -radix unsigned /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/pc
 add wave -noupdate -radix unsigned /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/pulse_written
 add wave -noupdate /tb_qlaser_top/u_qlaser_top/trigger_dacs_pulse
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/fifo_almost_empty
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/fifo_almost_full
-add wave -noupdate -radix unsigned /tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/fifo_axis_tdata
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/fifo_axis_tready
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_pulse2pmod0/fifo_axis_tvalid
+add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_axi0_fifo/almost_full
+add wave -noupdate -radix unsigned /tb_qlaser_top/u_qlaser_top/u_axi0_fifo/m_axis_tdata
+add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_axi0_fifo/m_axis_tlast
+add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_axi0_fifo/m_axis_tready
+add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_axi0_fifo/m_axis_tvalid
+add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_axi0_fif1/almost_empty
+add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_axi0_fif1/almost_full
+add wave -noupdate -radix unsigned /tb_qlaser_top/u_qlaser_top/u_axi0_fif1/m_axis_tdata
+add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_axi0_fif1/m_axis_tlast
+add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_axi0_fif1/m_axis_tready
+add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_axi0_fif1/m_axis_tvalid
+add wave -noupdate -radix unsigned /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(1)/ch_full/u_ch/axis_tdata
+add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(1)/ch_full/u_ch/axis_tlast
+add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(1)/ch_full/u_ch/axis_tready
+add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(1)/ch_full/u_ch/axis_tvalid
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {0 ps} 0}
+WaveRestoreCursors {{Cursor 1} {68765000 ps} 0}
 quietly wave cursor active 1
 configure wave -namecolwidth 150
 configure wave -valuecolwidth 100

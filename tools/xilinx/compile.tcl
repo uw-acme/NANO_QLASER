@@ -15,5 +15,5 @@ wait_on_run synth_1
 launch_runs impl_1 -to_step write_bitstream -jobs 16
 wait_on_run impl_1
 puts "Done building bitstream... exporting hardware"
-write_hw_platform -fixed -include_bit -force -file $proj_dir/qlaser_top.xsa
+catch {write_hw_platform -fixed -include_bit -force -file $proj_dir/qlaser_top.xsa}
 # exi

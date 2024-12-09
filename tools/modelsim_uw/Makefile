@@ -1,6 +1,6 @@
 # Define the seed to run the simulation with
-# TOP = tb_qlaser_top
-TOP = qlaser_top
+TOP = tb_qlaser_top
+# TOP = qlaser_top
 
 
 all: compile sim

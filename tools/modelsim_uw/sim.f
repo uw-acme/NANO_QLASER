@@ -25,6 +25,7 @@
 // idk which ones from fpga_zcu102 are needed ... so I'll just compile all of them
 ../../src/hdl/fpga_zcu102/*pkg.vhd
 ../../src/hdl/fpga_zcu102/qlaser_version_pkg_zcu.vhd
+
 ../../src/hdl/testbench/tb_zcu102_ps_cpu_pkg.vhdl
 ../../src/hdl/testbench/qlaser_addr_zcu102_pkg.vhdl
 // ../../src/hdl/testbench/qlaser_addr_zcu102_pkg.vhdl
@@ -38,10 +39,13 @@
 ../../src/hdl/fpga_zcu102/qlaser_spi.vhd
 ../../src/hdl/fpga_zcu102/qlaser_dacs_dc_zcu.vhd
 
-../../src/hdl/fpga_zcu102/qlaser_pmod_pulse.vhd
-../../src/hdl/fpga_zcu102/pulse2pmod.vhd
+// ../../src/hdl/fpga_zcu102/qlaser_pmod_pulse.vhd
+// ../../src/hdl/fpga_zcu102/pulse2pmod.vhd
 ../../src/hdl/fpga_zcu102/blink.vhd
 ../../src/hdl/fpga_zcu102/qlaser_misc.vhd
+
+../../src/hdl/fpga_zcu102/qlaser_axis_cpu_sel.vhdl
+../../src/hdl/fpga_zcu102/qlaser_2pmods_pulse.vhd
 
 
 
