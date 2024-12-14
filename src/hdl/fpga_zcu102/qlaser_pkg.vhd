@@ -139,6 +139,15 @@ constant ADR_MISC_LEDS_EN       : std_logic_vector(15 downto 0) := ADR_BASE_MISC
 constant ADR_MISC_SW_IN         : std_logic_vector(15 downto 0) := ADR_BASE_MISC & X"003";   -- Read board switch settings (if present)
 constant ADR_MISC_DEBUG_CTRL    : std_logic_vector(15 downto 0) := ADR_BASE_MISC & X"004";   -- Select debug output from top level to pins
 
+--------------------------------------------------------------------------------------------------------------------------
+-- PS gpio select
+--------------------------------------------------------------------------------------------------------------------------
+constant C_GPIO_PS_TRIG         : integer := 0;                                              -- Trigger for PS GPIO
+constant C_GPIO_PS_EN           : integer := 1;                                              -- Enable PS GPIO
+constant C_GPIO_PS_ERR_CLR      : integer := 2;                                              -- Clear error flags
+constant C_GPIO_PS_DEBUG_SEL    : integer := 3;                                              -- Select if PS debug should output PMOD0 or PMOD1
+
+
 
 type t_arr_slv32x16b is array (0 to 31) of std_logic_vector(15 downto 0);
 type t_arr_slv32x32b is array (0 to 31) of std_logic_vector(31 downto 0);

@@ -220,8 +220,8 @@ begin
     cif_reset <= not(ps_resetn0);
 
     -- Combine p_btn trigger (from pad) with misc block trigger and ps_gpout(0) to create internal trigger
-    trigger_dacs_pulse      <= (p_btn_c or misc_trigger or ps_gpout(0)) and not(p2p0_active) and not(p2p1_active) and not(dacs_pulse_busy);  -- ensure ALL resources are available (TODO: Add second p2p active into it when we have it)
-    ps_enable_dacs_pulse    <= ps_gpout(1);
+    trigger_dacs_pulse      <= (p_btn_c or misc_trigger or ps_gpout(C_GPIO_PS_TRIG)) and not(p2p0_active) and not(p2p1_active) and not(dacs_pulse_busy);  -- ensure ALL resources are available 
+    ps_enable_dacs_pulse    <= ps_gpout(C_GPIO_PS_EN);
     any_dacs_busy           <= dacs_dc_busy(0) or dacs_dc_busy(1) or dacs_dc_busy(2) or dacs_dc_busy(3) or dacs_pulse_busy;
 
     -- Split 'SEL_SPARE' block select into two
@@ -229,7 +229,7 @@ begin
     cpu_sel_p2p1 <= cpu_sels(SEL_SPARE) and     cpu_addr(15); 
 
     -- clear pulse errors
-    clr_errors(0)           <= ps_gpout(2);
+    clr_errors(0)           <= ps_gpout(C_GPIO_PS_ERR_CLR);
 
     -- JESD outputs
 --    p_tx0n_out              <= ps_jesd_tx0n_out;
@@ -553,12 +553,12 @@ begin
     
     -- Debug signals
     ps_gpin(16)           <= ps_enable_dacs_pulse;
-    ps_gpin(17)           <= tick_msec;
+    ps_gpin(17)           <= tick_usec;
 
     -- FIFO-PMOD interface, use ps gpio pin ps_gpout(3) to select which pmod data to get
-    ps_gpin(18)           <= fifo_axis0_tready when ps_gpout(3) = '1' else fifo_axis0_tready;
-    ps_gpin(19)           <= fifo_axis1_tvalid when ps_gpout(3) = '1' else fifo_axis0_tvalid;
-    ps_gpin(31 downto 20) <= fifo_axis1_tdata(11 downto 0) when ps_gpout(3) = '1' else fifo_axis0_tdata(11 downto 0);
+    ps_gpin(18)           <= fifo_axis0_tready when ps_gpout(C_GPIO_PS_DEBUG_SEL) = '1' else fifo_axis0_tready;
+    ps_gpin(19)           <= fifo_axis1_tvalid when ps_gpout(C_GPIO_PS_DEBUG_SEL) = '1' else fifo_axis0_tvalid;
+    ps_gpin(31 downto 20) <= fifo_axis1_tdata(11 downto 0) when ps_gpout(C_GPIO_PS_DEBUG_SEL) = '1' else fifo_axis0_tdata(11 downto 0);
 
     ---------------------------------------------------------------------------------
     -- Debug output mux.
