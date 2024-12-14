@@ -211,17 +211,6 @@ signal fifo_almost_empty1            : std_logic;
 signal pulse2pmod0_busy              : std_logic;
 signal pulse2pmod1_busy              : std_logic;
 
--- ILA probes
-signal ila_probe0               : std_logic_vector( 0 to 0 );
-signal ila_probe1               : std_logic_vector( 0 to 0 );
-signal ila_probe2               : std_logic_vector( 0 to 0 );
-signal ila_probe3               : std_logic_vector( 0 to 0 );
-signal ila_probe4               : std_logic_vector( 0 to 0 );
-signal ila_probe5               : std_logic_vector( 0 to 0 );
-signal ila_probe6               : std_logic_vector( 0 to 0 );
-signal ila_probe7               : std_logic_vector( 0 to 0 );
--- ... add more as needed
-
 
 begin
 
@@ -544,46 +533,33 @@ begin
     pulse(2)              <= tick_sec;
     pulse(3)              <= trigger_dacs_pulse;
 
-    p_leds(0)             <= misc_flash or gpio_btns(0);          -- 
-    p_leds(1)             <= pulse_stretched(0);  -- trigger, dac busy, etc.
-    p_leds(2)             <= pulse_stretched(1);  
-    p_leds(3)             <= pulse_stretched(3);
-    p_leds(4)             <= pulse_stretched(3);  
-    p_leds(5)             <= (not ps_resetn0) or ps_leds(0) or ps_enable_dacs_pulse;  
+    p_leds(0)             <= misc_flash or gpio_btns(0);
+    p_leds(1)             <= '1' when unsigned(fifo_axis0_tdata) > 0 else '0';
+    p_leds(2)             <= '1' when unsigned(fifo_axis1_tdata) > 0 else '0';
+    p_leds(3)             <= p2p0_active;
+    p_leds(4)             <= p2p1_active;
+    p_leds(5)             <= (not ps_resetn0) or ps_leds(0) or dacs_pulse_busy;  
     p_leds(6)             <= reset or ps_leds(1) or trigger_dacs_pulse;  
-    p_leds(7)             <= ps_leds(2) or  p2p0_active;
+    p_leds(7)             <= ps_leds(2) or ps_enable_dacs_pulse;
     
-    -- Firmware Debug
-    -- Control signals to "qlaser_dacs_pulse"
-    ps_gpin(0)            <= trigger_dacs_pulse;
-    ps_gpin(1)            <= ps_enable_dacs_pulse;
-    -- Status signals from "qlaser_dacs_pulse"
-    ps_gpin(2)            <= dacs_pulse_ready;
-    ps_gpin(3)            <= dacs_pulse_busy;
 
-    -- Misc
-    ps_gpin(4)            <= misc_trigger;
-    -- Status signals from pulse2pmod
-    ps_gpin(5)            <= dacs_pulse_axis_tlasts(0);
-    ps_gpin(6)            <= dacs_pulse_axis_treadys(0);
-    -- ps_gpin(7)            <= p2p0_busy;
-    ps_gpin(7)            <= dacs_pulse_axis_tvalids(0);
-
+    ---------------------------------------------------------------------------------
+    -- Signals for PS GPIO block
+    ---------------------------------------------------------------------------------
     -- Pulse 0 errors
-    ps_gpin(15 downto 8)  <= pulse_errors(0);
+    ps_gpin( 7 downto 0)  <= pulse_errors(0);
+    -- Pulse 2 errors
+    ps_gpin(15 downto 8)  <= pulse_errors(1);
+    
+    -- Debug signals
+    ps_gpin(16)           <= ps_enable_dacs_pulse;
+    ps_gpin(17)           <= tick_msec;
 
-    ps_gpin(19)           <= fifo_axis0_tvalid;
-    ps_gpin(31 downto 20) <= fifo_axis0_tdata(11 downto 0);
+    -- FIFO-PMOD interface, use ps gpio pin ps_gpout(3) to select which pmod data to get
+    ps_gpin(18)           <= fifo_axis0_tready when ps_gpout(3) = '1' else fifo_axis0_tready;
+    ps_gpin(19)           <= fifo_axis1_tvalid when ps_gpout(3) = '1' else fifo_axis0_tvalid;
+    ps_gpin(31 downto 20) <= fifo_axis1_tdata(11 downto 0) when ps_gpout(3) = '1' else fifo_axis0_tdata(11 downto 0);
 
-    -- ILA debug
-    ila_probe1(0)         <= dacs_pulse_axis_tlasts(0);
-    ila_probe2(0)         <= dacs_pulse_ready;
-    ila_probe3(0)         <= dacs_pulse_busy;
-    ila_probe4(0)         <= p2p0_busy;
-    ila_probe5(0)         <= p2p_spi0_mosi;
-    ila_probe6(0)         <= dacs_pulse_axis_tvalids(0);
-
- 
     ---------------------------------------------------------------------------------
     -- Debug output mux.
     ---------------------------------------------------------------------------------
@@ -627,27 +603,14 @@ begin
             p_debug_out(0)              <= p2p_spi0_sclk;
             p_debug_out(1)              <= p2p_spi0_mosi;
             p_debug_out(2)              <= p2p_spi0_cs_n;
-            p_debug_out(3)              <= ps_enable_dacs_pulse;
-            p_debug_out(4)              <= trigger_dacs_pulse;
-            p_debug_out(5)              <= or_reduce(dacs_pulse_axis_tvalids);
-            p_debug_out(6)              <= or_reduce(dacs_pulse_axis_tdatas(0));
-            p_debug_out(7)              <= or_reduce(dacs_pulse_axis_tdatas(1));
-            p_debug_out(8)              <= or_reduce(dacs_pulse_axis_tdatas(2));
-            p_debug_out(9)              <= or_reduce(dacs_pulse_axis_tdatas(3));
+            p_debug_out(3)              <= p2p_spi1_sclk;
+            p_debug_out(4)              <= p2p_spi1_mosi;
+            p_debug_out(5)              <= p2p_spi1_cs_n;
+            p_debug_out(6)              <= fifo_almost_empty0;
+            p_debug_out(7)              <= fifo_almost_empty1;
+            p_debug_out(8)              <= tick_msec;
+            p_debug_out(9)              <= trigger_dacs_pulse;
         end if;
     end process;
-    
---    u_dbg : entity work.ila_0
---    PORT MAP (
---        clk => clk,
---        probe0 => pulse_errors(0), 
---        probe1 => ila_probe1, 
---        probe2 => ila_probe2, 
---        probe3 => ila_probe3, 
---        probe4 => ila_probe4, 
---        probe5 => ila_probe5, 
---        probe6 => ila_probe6,
---        probe7 => dacs_pulse_axis_tdatas(0)(11 downto 0)
---    );
 
 end zc102;
