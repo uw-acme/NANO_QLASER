@@ -105,6 +105,8 @@ set_property MARK_DEBUG true [get_nets {dacs_pulse_axis_tdatas[1][13]}]
 set_property MARK_DEBUG true [get_nets {dacs_pulse_axis_tdatas[1][14]}]
 
 
+connect_debug_port u_ila_0/probe1 [get_nets [list {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[0]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[1]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[2]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[3]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[4]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[5]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[6]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[7]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[8]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[9]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[10]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[11]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[12]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[13]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[14]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[15]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[16]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[17]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[18]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[19]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[20]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[21]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[22]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[23]}]]
+
 create_debug_core u_ila_0 ila
 set_property ALL_PROBE_SAME_MU true [get_debug_cores u_ila_0]
 set_property ALL_PROBE_SAME_MU_CNT 1 [get_debug_cores u_ila_0]
@@ -121,12 +123,12 @@ set_property port_width 3 [get_debug_ports u_ila_0/probe0]
 connect_debug_port u_ila_0/probe0 [get_nets [list {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[0]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[1]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]}]]
 create_debug_port u_ila_0 probe
 set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe1]
-set_property port_width 24 [get_debug_ports u_ila_0/probe1]
-connect_debug_port u_ila_0/probe1 [get_nets [list {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[0]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[1]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[2]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[3]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[4]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[5]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[6]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[7]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[8]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[9]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[10]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[11]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[12]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[13]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[14]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[15]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[16]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[17]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[18]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[19]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[20]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[21]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[22]} {u_dacs_pulse/g_ch[0].ch_full.u_ch/sm_state[2]_i_9_0[23]}]]
+set_property port_width 16 [get_debug_ports u_ila_0/probe1]
+connect_debug_port u_ila_0/probe1 [get_nets [list {fifo_axis1_tdata[0]} {fifo_axis1_tdata[1]} {fifo_axis1_tdata[2]} {fifo_axis1_tdata[3]} {fifo_axis1_tdata[4]} {fifo_axis1_tdata[5]} {fifo_axis1_tdata[6]} {fifo_axis1_tdata[7]} {fifo_axis1_tdata[8]} {fifo_axis1_tdata[9]} {fifo_axis1_tdata[10]} {fifo_axis1_tdata[11]} {fifo_axis1_tdata[12]} {fifo_axis1_tdata[13]} {fifo_axis1_tdata[14]} {fifo_axis1_tdata[15]}]]
 create_debug_port u_ila_0 probe
 set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe2]
-set_property port_width 4 [get_debug_ports u_ila_0/probe2]
-connect_debug_port u_ila_0/probe2 [get_nets [list {dacs_dc_busy[0]} {dacs_dc_busy[1]} {dacs_dc_busy[2]} {dacs_dc_busy[3]}]]
+set_property port_width 16 [get_debug_ports u_ila_0/probe2]
+connect_debug_port u_ila_0/probe2 [get_nets [list {dacs_pulse_axis_tdatas[1][0]} {dacs_pulse_axis_tdatas[1][1]} {dacs_pulse_axis_tdatas[1][2]} {dacs_pulse_axis_tdatas[1][3]} {dacs_pulse_axis_tdatas[1][4]} {dacs_pulse_axis_tdatas[1][5]} {dacs_pulse_axis_tdatas[1][6]} {dacs_pulse_axis_tdatas[1][7]} {dacs_pulse_axis_tdatas[1][8]} {dacs_pulse_axis_tdatas[1][9]} {dacs_pulse_axis_tdatas[1][10]} {dacs_pulse_axis_tdatas[1][11]} {dacs_pulse_axis_tdatas[1][12]} {dacs_pulse_axis_tdatas[1][13]} {dacs_pulse_axis_tdatas[1][14]} {dacs_pulse_axis_tdatas[1][15]}]]
 create_debug_port u_ila_0 probe
 set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe3]
 set_property port_width 16 [get_debug_ports u_ila_0/probe3]
@@ -134,71 +136,67 @@ connect_debug_port u_ila_0/probe3 [get_nets [list {dacs_pulse_axis_tdatas[0][0]}
 create_debug_port u_ila_0 probe
 set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe4]
 set_property port_width 16 [get_debug_ports u_ila_0/probe4]
-connect_debug_port u_ila_0/probe4 [get_nets [list {dacs_pulse_axis_tdatas[1][0]} {dacs_pulse_axis_tdatas[1][1]} {dacs_pulse_axis_tdatas[1][2]} {dacs_pulse_axis_tdatas[1][3]} {dacs_pulse_axis_tdatas[1][4]} {dacs_pulse_axis_tdatas[1][5]} {dacs_pulse_axis_tdatas[1][6]} {dacs_pulse_axis_tdatas[1][7]} {dacs_pulse_axis_tdatas[1][8]} {dacs_pulse_axis_tdatas[1][9]} {dacs_pulse_axis_tdatas[1][10]} {dacs_pulse_axis_tdatas[1][11]} {dacs_pulse_axis_tdatas[1][12]} {dacs_pulse_axis_tdatas[1][13]} {dacs_pulse_axis_tdatas[1][14]} {dacs_pulse_axis_tdatas[1][15]}]]
+connect_debug_port u_ila_0/probe4 [get_nets [list {fifo_axis0_tdata[0]} {fifo_axis0_tdata[1]} {fifo_axis0_tdata[2]} {fifo_axis0_tdata[3]} {fifo_axis0_tdata[4]} {fifo_axis0_tdata[5]} {fifo_axis0_tdata[6]} {fifo_axis0_tdata[7]} {fifo_axis0_tdata[8]} {fifo_axis0_tdata[9]} {fifo_axis0_tdata[10]} {fifo_axis0_tdata[11]} {fifo_axis0_tdata[12]} {fifo_axis0_tdata[13]} {fifo_axis0_tdata[14]} {fifo_axis0_tdata[15]}]]
 create_debug_port u_ila_0 probe
 set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe5]
-set_property port_width 32 [get_debug_ports u_ila_0/probe5]
-connect_debug_port u_ila_0/probe5 [get_nets [list {ps_gpout[0]} {ps_gpout[1]} {ps_gpout[2]} {ps_gpout[3]} {ps_gpout[4]} {ps_gpout[5]} {ps_gpout[6]} {ps_gpout[7]} {ps_gpout[8]} {ps_gpout[9]} {ps_gpout[10]} {ps_gpout[11]} {ps_gpout[12]} {ps_gpout[13]} {ps_gpout[14]} {ps_gpout[15]} {ps_gpout[16]} {ps_gpout[17]} {ps_gpout[18]} {ps_gpout[19]} {ps_gpout[20]} {ps_gpout[21]} {ps_gpout[22]} {ps_gpout[23]} {ps_gpout[24]} {ps_gpout[25]} {ps_gpout[26]} {ps_gpout[27]} {ps_gpout[28]} {ps_gpout[29]} {ps_gpout[30]} {ps_gpout[31]}]]
+set_property port_width 8 [get_debug_ports u_ila_0/probe5]
+connect_debug_port u_ila_0/probe5 [get_nets [list {pulse_errors[0][0]} {pulse_errors[0][1]} {pulse_errors[0][2]} {pulse_errors[0][3]} {pulse_errors[0][4]} {pulse_errors[0][5]} {pulse_errors[0][6]} {pulse_errors[0][7]}]]
 create_debug_port u_ila_0 probe
 set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe6]
 set_property port_width 8 [get_debug_ports u_ila_0/probe6]
 connect_debug_port u_ila_0/probe6 [get_nets [list {pulse_errors[1][0]} {pulse_errors[1][1]} {pulse_errors[1][2]} {pulse_errors[1][3]} {pulse_errors[1][4]} {pulse_errors[1][5]} {pulse_errors[1][6]} {pulse_errors[1][7]}]]
 create_debug_port u_ila_0 probe
 set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe7]
-set_property port_width 8 [get_debug_ports u_ila_0/probe7]
-connect_debug_port u_ila_0/probe7 [get_nets [list {pulse_errors[0][0]} {pulse_errors[0][1]} {pulse_errors[0][2]} {pulse_errors[0][3]} {pulse_errors[0][4]} {pulse_errors[0][5]} {pulse_errors[0][6]} {pulse_errors[0][7]}]]
+set_property port_width 4 [get_debug_ports u_ila_0/probe7]
+connect_debug_port u_ila_0/probe7 [get_nets [list {dacs_dc_busy[0]} {dacs_dc_busy[1]} {dacs_dc_busy[2]} {dacs_dc_busy[3]}]]
 create_debug_port u_ila_0 probe
 set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe8]
-set_property port_width 16 [get_debug_ports u_ila_0/probe8]
-connect_debug_port u_ila_0/probe8 [get_nets [list {fifo_axis1_tdata[0]} {fifo_axis1_tdata[1]} {fifo_axis1_tdata[2]} {fifo_axis1_tdata[3]} {fifo_axis1_tdata[4]} {fifo_axis1_tdata[5]} {fifo_axis1_tdata[6]} {fifo_axis1_tdata[7]} {fifo_axis1_tdata[8]} {fifo_axis1_tdata[9]} {fifo_axis1_tdata[10]} {fifo_axis1_tdata[11]} {fifo_axis1_tdata[12]} {fifo_axis1_tdata[13]} {fifo_axis1_tdata[14]} {fifo_axis1_tdata[15]}]]
+set_property port_width 32 [get_debug_ports u_ila_0/probe8]
+connect_debug_port u_ila_0/probe8 [get_nets [list {ps_gpout[0]} {ps_gpout[1]} {ps_gpout[2]} {ps_gpout[3]} {ps_gpout[4]} {ps_gpout[5]} {ps_gpout[6]} {ps_gpout[7]} {ps_gpout[8]} {ps_gpout[9]} {ps_gpout[10]} {ps_gpout[11]} {ps_gpout[12]} {ps_gpout[13]} {ps_gpout[14]} {ps_gpout[15]} {ps_gpout[16]} {ps_gpout[17]} {ps_gpout[18]} {ps_gpout[19]} {ps_gpout[20]} {ps_gpout[21]} {ps_gpout[22]} {ps_gpout[23]} {ps_gpout[24]} {ps_gpout[25]} {ps_gpout[26]} {ps_gpout[27]} {ps_gpout[28]} {ps_gpout[29]} {ps_gpout[30]} {ps_gpout[31]}]]
 create_debug_port u_ila_0 probe
 set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe9]
-set_property port_width 16 [get_debug_ports u_ila_0/probe9]
-connect_debug_port u_ila_0/probe9 [get_nets [list {fifo_axis0_tdata[0]} {fifo_axis0_tdata[1]} {fifo_axis0_tdata[2]} {fifo_axis0_tdata[3]} {fifo_axis0_tdata[4]} {fifo_axis0_tdata[5]} {fifo_axis0_tdata[6]} {fifo_axis0_tdata[7]} {fifo_axis0_tdata[8]} {fifo_axis0_tdata[9]} {fifo_axis0_tdata[10]} {fifo_axis0_tdata[11]} {fifo_axis0_tdata[12]} {fifo_axis0_tdata[13]} {fifo_axis0_tdata[14]} {fifo_axis0_tdata[15]}]]
+set_property port_width 1 [get_debug_ports u_ila_0/probe9]
+connect_debug_port u_ila_0/probe9 [get_nets [list dacs_pulse_busy]]
 create_debug_port u_ila_0 probe
 set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe10]
 set_property port_width 1 [get_debug_ports u_ila_0/probe10]
-connect_debug_port u_ila_0/probe10 [get_nets [list dacs_pulse_busy]]
+connect_debug_port u_ila_0/probe10 [get_nets [list fifo_almost_empty0]]
 create_debug_port u_ila_0 probe
 set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe11]
 set_property port_width 1 [get_debug_ports u_ila_0/probe11]
-connect_debug_port u_ila_0/probe11 [get_nets [list fifo_almost_empty0]]
+connect_debug_port u_ila_0/probe11 [get_nets [list fifo_almost_empty1]]
 create_debug_port u_ila_0 probe
 set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe12]
 set_property port_width 1 [get_debug_ports u_ila_0/probe12]
-connect_debug_port u_ila_0/probe12 [get_nets [list fifo_almost_empty1]]
+connect_debug_port u_ila_0/probe12 [get_nets [list fifo_axis0_tlast]]
 create_debug_port u_ila_0 probe
 set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe13]
 set_property port_width 1 [get_debug_ports u_ila_0/probe13]
-connect_debug_port u_ila_0/probe13 [get_nets [list fifo_axis0_tlast]]
+connect_debug_port u_ila_0/probe13 [get_nets [list fifo_axis0_tvalid]]
 create_debug_port u_ila_0 probe
 set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe14]
 set_property port_width 1 [get_debug_ports u_ila_0/probe14]
-connect_debug_port u_ila_0/probe14 [get_nets [list fifo_axis0_tvalid]]
+connect_debug_port u_ila_0/probe14 [get_nets [list fifo_axis1_tlast]]
 create_debug_port u_ila_0 probe
 set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe15]
 set_property port_width 1 [get_debug_ports u_ila_0/probe15]
-connect_debug_port u_ila_0/probe15 [get_nets [list fifo_axis1_tlast]]
+connect_debug_port u_ila_0/probe15 [get_nets [list fifo_axis1_tready]]
 create_debug_port u_ila_0 probe
 set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe16]
 set_property port_width 1 [get_debug_ports u_ila_0/probe16]
-connect_debug_port u_ila_0/probe16 [get_nets [list fifo_axis1_tready]]
+connect_debug_port u_ila_0/probe16 [get_nets [list fifo_axis1_tvalid]]
 create_debug_port u_ila_0 probe
 set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe17]
 set_property port_width 1 [get_debug_ports u_ila_0/probe17]
-connect_debug_port u_ila_0/probe17 [get_nets [list fifo_axis1_tvalid]]
+connect_debug_port u_ila_0/probe17 [get_nets [list p2p0_busy]]
 create_debug_port u_ila_0 probe
 set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe18]
 set_property port_width 1 [get_debug_ports u_ila_0/probe18]
-connect_debug_port u_ila_0/probe18 [get_nets [list p2p0_busy]]
+connect_debug_port u_ila_0/probe18 [get_nets [list p2p1_busy]]
 create_debug_port u_ila_0 probe
 set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe19]
 set_property port_width 1 [get_debug_ports u_ila_0/probe19]
-connect_debug_port u_ila_0/probe19 [get_nets [list p2p1_busy]]
-create_debug_port u_ila_0 probe
-set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe20]
-set_property port_width 1 [get_debug_ports u_ila_0/probe20]
-connect_debug_port u_ila_0/probe20 [get_nets [list trigger_dacs_pulse]]
+connect_debug_port u_ila_0/probe19 [get_nets [list trigger_dacs_pulse]]
 set_property C_CLK_INPUT_FREQ_HZ 300000000 [get_debug_cores dbg_hub]
 set_property C_ENABLE_CLK_DIVIDER false [get_debug_cores dbg_hub]
 set_property C_USER_SCAN_CHAIN 1 [get_debug_cores dbg_hub]

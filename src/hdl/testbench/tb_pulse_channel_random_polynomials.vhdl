@@ -22,8 +22,9 @@ use     std.textio.all;
 use     ieee.math_real.all;
 
 use     std_developerskit.std_iopak.all;
-use     work.qlaser_pkg.all;
 use     work.qlaser_dacs_pulse_channel_pkg.all;
+use     work.qlasert_pulse_channel_tasks.all;
+
 use     work.qlasert_pulse_channel_tasks.all;
 
 entity tb_pulse_channel_random_polynomials is
@@ -108,6 +109,7 @@ end;
 -- Other helper functions are now moved to qlasert_pulse_channel_tasks.vhdl
 -------------------------------------------------------------
 
+-- Convert real array to string
 function real_arr_to_string(
     constant size : in integer;  -- numbers of items
     constant arr  : in real_array;
@@ -136,7 +138,7 @@ begin
     -------------------------------------------------------------
 	-- Unit Under Test
     -------------------------------------------------------------
-	u_dac_pulse : entity work.qlaser_dacs_pulse_channel
+	u_dac_pulse : entity work.qlaser_dacs_pulse_channel(channel)
 	port map (
         clk             => clk                      , -- in  std_logic;
         reset           => reset                    , -- in  std_logic;
@@ -263,13 +265,10 @@ begin
 
         v_coeffs         := (others => 0.0);
         
-        -- parse the line until the end of the file
-        while not endfile(err_in) loop
-            fgetline(line_buf, err_in);
-            line_cnt := line_cnt + 1;
-        end loop;
 
-        if line_cnt = 1 then
+        -- Create the header if the file is empty (first line is empty)
+        fgetline(line_buf, err_in);
+        if strlen(line_buf) < 1 then
             fputs("Run#" & ", Time (ns)" & ", Max Error" & ", Delta" & ", Error/Delta" & ", Pulse Number" & ", CNT-Time", err_out);
         end if;
 
@@ -282,8 +281,7 @@ begin
         seed1            := positive(int_seed);
         seed2            := positive(int_seed + 1);
         cpu_print_msg("Seed: " & to_string(int_seed));
-
-        while sim_addr < C_LENGTH_WAVEFORM and v_pulseaddr < 256 loop  -- make sure we don't go over the rams sizes
+        while sim_addr < C_LENGTH_WAVEFORM and v_pulseaddr < C_LEN_PULSE/C_PC_INCR loop  -- make sure we don't go over the rams sizes
             cpu_print_msg("Generating pulse " & to_string(v_pulseaddr));
             for NCOEFF in 0 to DEGREES + 1 loop
                 uniform(seed1, seed2, x);
@@ -348,7 +346,7 @@ begin
         -- Load pulse RAM with a series of pulse start times
         ----------------------------------------------------------------
         cpu_print_msg("Load pulse RAM");
-        for NADDR in 0 to 255 loop
+        for NADDR in 0 to total_pulses - 1 loop
             cpu_write_pulsedef(
                 clk, 
                 NADDR*4, 
@@ -392,7 +390,7 @@ begin
         start      <= '0';
 
         cpu_print_msg("Start the pulse outputs");
-        while v_pulseaddr < total_pulses - 1 loop
+        while v_pulseaddr < total_pulses loop
             cnt_time      <= std_logic_vector(unsigned(cnt_time) + 1); 
             
             -- Force increment the pulse address if the current time is the next pulse start time or falling edge of axis_tvalid (wave just finished output)

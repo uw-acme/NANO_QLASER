@@ -9,54 +9,65 @@
 --
 ----------------------------------------------------------
 library ieee;
+library std_developerskit;
 use     ieee.numeric_std.all;
 use     ieee.std_logic_1164.all; 
-use     std.textio.all; 
+use     ieee.std_logic_textio.all;
+use     ieee.std_logic_misc.all;
+use     std.textio.all;
 
-use     work.qlaser_pkg.all;
-use     work.std_iopak.all;
+use     ieee.math_real.all;
+
+
+
+use     std_developerskit.std_iopak.all;
 use     work.qlaser_dacs_pulse_channel_pkg.all;
-
+use     work.qlasert_pulse_channel_tasks.all;
 
 entity tb_cpubus_dacs_pulse_channel is
+    generic (
+        SEED        : integer := 1;
+        RESULT_FILE : string  := "errors.txt";
+        DEGREES     : integer := 2;
+        SEQ_LENGTH  : integer := 32000
+    );
 end    tb_cpubus_dacs_pulse_channel;
 
 architecture behave of tb_cpubus_dacs_pulse_channel is 
 
-signal reset: std_logic;
-signal clk: std_logic;
-signal enable: std_logic;
-signal trigger: std_logic;
-signal jesd_syncs: std_logic_vector(31 downto 0);
-signal ready: std_logic;
-signal busy: std_logic;
-signal err: std_logic;
-signal error_latched: std_logic;
-signal cpu_addr: std_logic_vector(12 downto 0);
-signal cpu_wdata: std_logic_vector(31 downto 0);
-signal cpu_wr: std_logic;
-signal cpu_sel: std_logic;
-signal cpu_rdata: std_logic_vector(31 downto 0);
-signal cpu_rdata_dv: std_logic;
-signal axis_treadys: std_logic_vector(31 downto 0);
-signal axis_tdatas: t_arr_slv32x16b;
-signal axis_tvalids: std_logic_vector(31 downto 0);
-signal axis_tlasts: std_logic_vector(31 downto 0) ;
+signal clk                          : std_logic;
+signal reset                        : std_logic;
+signal enable                       : std_logic;  
+signal start                        : std_logic;  
+signal cnt_time                     : std_logic_vector(23 downto 0);  
+signal busy                         : std_logic;  
+signal done_seq                     : std_logic;
+signal cpu_wr                       : std_logic;
+signal cpu_sel                      : std_logic;
+signal cpu_addr                     : std_logic_vector(15 downto 0);
+signal cpu_wdata                    : std_logic_vector(31 downto 0);
+signal cpu_rdata                    : std_logic_vector(31 downto 0);
+signal cpu_rdata_dv                 : std_logic; 
+
+-- AXI-stream output interface
+signal axis_tready                  : std_logic := '1'; -- Always ready
+signal axis_tdata                   : std_logic_vector(15 downto 0);
+signal axis_tvalid                  : std_logic;
+signal axis_tlast                   : std_logic;
 
 -- Halts simulation by stopping clock when set true
 signal sim_done                     : boolean   := false;
 
--- Crystal clock freq expressed in MHz
-constant CLK_FREQ_MHZ               : real      := 100.0; 
--- Clock period
-constant CLK_PER                    : time      := integer(1.0E+6/(CLK_FREQ_MHZ)) * 1 ps;
+signal erros                        : std_logic_vector(C_ERRORS_TOTAL - 1 downto 0);
+signal clear_errors                 : std_logic;
 
--- Block registers
--- constant ADR_RAM_PULSE              : integer   :=  to_integer(unsigned(X"0000"));    -- TODO: Modelsim cannot compile this
--- constant ADR_RAM_WAVE               : integer   :=  to_integer(unsigned(X"0200"));    -- TODO: Modelsim cannot compile this
-constant ADR_RAM_PULSE              : integer   :=  0;    -- TODO: Modelsim cannot compile this
-constant ADR_RAM_WAVE               : integer   :=  2048;    -- TODO: Modelsim cannot compile this
+-- Simulation signals
+signal wave_values                  : real := 0.0;                             -- waveform values
+signal diffs                        : real := 0.0;                             -- difference between expected and actual values
+signal axis_tdata_d1                : real := 0.0;                             -- previous axis_tdata
 
+
+signal pdef_fakeram                 : arr_pdef;                               -- fake pulse definition RAM
 
 -------------------------------------------------------------
 -- Delay
@@ -70,47 +81,72 @@ begin
     end loop;
 end;
 
-
-----------------------------------------------------------------
--- Print a string with no time or instance path.
-----------------------------------------------------------------
-procedure cpu_print_msg(
-    constant msg    : in    string
-) is
-variable line_out   : line;
+-------------------------------------------------------------
+-- Mathematical model of the waveform generator
+-------------------------------------------------------------
+function calc_pulse_value(
+    current_time : in integer;
+    start_time   : in integer;
+    pulse_time   : in integer;
+    sustain_time : in integer;
+    timefactor   : in real;
+    gainfactor   : in real;
+    coefficients : in real_array;
+    degree       : in integer
+) return real is
+    variable rel_time       : real := real(current_time - start_time);
+    variable pulse_width    : real := ceil(real(pulse_time - 1) / timefactor) + 1.0;
+    variable time_processed : real;
 begin
-    write(line_out, msg);
-    writeline(output, line_out);
-end procedure cpu_print_msg;
+    if (rel_time >= 0.0) and (rel_time < pulse_width) then
+        time_processed := rel_time * timefactor;
+    elsif (rel_time >= pulse_width) and (rel_time < pulse_width + real(sustain_time)) then
+        time_processed := real(pulse_time - 1);
+    elsif (rel_time >= pulse_width + real(sustain_time)) and (rel_time < 2.0 * pulse_width + (real(sustain_time) - 1.0)) then
+        time_processed := (2.0 * pulse_width + real(sustain_time) - 1.0 - rel_time) * timefactor;
+    else
+        time_processed := 0.0;
+    end if;
 
+    return poly_gen(degree, time_processed / real(pulse_time), coefficients) * gainfactor;
+end calc_pulse_value;
 
 begin
 
     -------------------------------------------------------------
 	-- Unit Under Test
     -------------------------------------------------------------
-	u_dacs_pulse : entity work.qlaser_dacs_pulse generic map ( G_NCHANS      =>  32)
-                            port map ( reset         => reset,
-                                       clk           => clk,
-                                       enable        => enable,
-                                       trigger       => trigger,
-                                       jesd_syncs    => jesd_syncs,
-                                       ready         => ready,
-                                       busy          => busy,
-                                       error         => err,
-                                       error_latched => error_latched,
-                                       
-                                       cpu_addr      => cpu_addr,
-                                       cpu_wdata     => cpu_wdata,
-                                       cpu_wr        => cpu_wr,
-                                       cpu_sel       => cpu_sel,
-                                       cpu_rdata     => cpu_rdata,
-                                       cpu_rdata_dv  => cpu_rdata_dv,
-                                       
-                                       axis_treadys  => axis_treadys,
-                                       axis_tdatas   => axis_tdatas,
-                                       axis_tvalids  => axis_tvalids,
-                                       axis_tlasts   => axis_tlasts );
+	u_dac_pulse : entity work.qlaser_dacs_pulse_channel(channel)
+	port map (
+        clk             => clk                      , -- in  std_logic;
+        reset           => reset                    , -- in  std_logic;
+
+        enable          => enable                   , -- in std_logic;  
+        start           => start                    , -- in std_logic; 
+        cnt_time        => cnt_time                 , -- in std_logic_vector(23 downto 0);
+
+        busy            => busy                     , -- out std_logic;
+        done_seq        => done_seq                 , -- in std_logic;
+
+        erros           => erros                    , -- out std_logic_vector(C_ERRORS_TOTAL - 1 downto 0);
+        clear_errors    => clear_errors             , -- in  std_logic;
+
+        -- CPU interface
+        cpu_wr          => cpu_wr                   , -- in  std_logic;
+        cpu_sel         => cpu_sel                  , -- in  std_logic;
+        cpu_addr        => cpu_addr(11 downto 0)    , -- in  std_logic_vector(11 downto 0);
+        cpu_wdata       => cpu_wdata                , -- in  std_logic_vector(31 downto 0);
+
+        cpu_rdata       => cpu_rdata                , -- out std_logic_vector(31 downto 0);
+        cpu_rdata_dv    => cpu_rdata_dv             , -- out std_logic; 
+
+                   
+        -- AXI-Stream interface
+        axis_tready     => axis_tready              , -- in  std_logic;          -- Clock (50 MHz max)
+        axis_tdata      => axis_tdata               , -- out std_logic_vector(15 downto 0);
+        axis_tvalid     => axis_tvalid              , -- out std_logic;          -- Master out, Slave in. (Data to DAC)
+        axis_tlast      => axis_tlast                 -- out std_logic;          -- Active low chip select (sync_n)
+    );
 	
 
     -------------------------------------------------------------
@@ -132,699 +168,147 @@ begin
     -- Reset and drive CPU bus 
     -------------------------------------------------------------
     pr_main : process
-    variable v_ndata32        : integer := 0;
-    variable v_ndata16        : integer := 0;
-    
+    variable v_pulseaddr       : integer := 0;    -- manually set the pulse address, 0 to 255
+    variable v_pdef            : arr_pdef;        -- pulse definition arrays
+    variable v_pulsetime_total : integer := 0;    -- total time for all pulses
+
     begin
         -- Reset 
         reset       <= '1';
         enable      <= '0';
+        start       <= '0';
+        done_seq    <= '0';
+        cnt_time    <= (others=>'0');
 
         cpu_sel     <= '0';
         cpu_wr      <= '0';
 		cpu_wdata   <= (others=>'0');
 		cpu_addr  	<= (others=>'0');
-		jesd_syncs  <= (others=>'1');
-		axis_treadys<= (others=>'1');
-		
-		trigger <= '0';
 
         cpu_print_msg("Simulation start");
         clk_delay(5);
-        trigger <= '1'; -- triggering while reset should do nothing 
-        wait until rising_edge(clk);
-        trigger <= '0';
         reset       <= '0';
 
         clk_delay(5);
-        enable      <= '1';       
+        enable      <= '1';
+       
 
         clk_delay(20);
+        -------------------------------------------------------------
+        -- Load RAMs
+        -------------------------------------------------------------
+        cpu_print_msg("Load pulse RAM");
         
-        -- write all registers
-        cpu_addr <= (others => '0');
-        cpu_addr(12) <= '1';
-        cpu_wr <= '1';
-        cpu_sel <= '1';
-        for i in 0 to 15 loop
-            cpu_addr(3 downto 0) <= std_logic_vector(to_unsigned(i, 4));
-            cpu_addr(11 downto 4) <= std_logic_vector(to_unsigned(i * 31, 8)); -- put garbage here, make sure it's not used
-            cpu_wdata <= X"ABCDEF" & std_logic_vector(to_unsigned(i, 8));
-            wait until rising_edge(clk);
-        end loop;
-        cpu_addr <= (others => '0');
-        cpu_wr <= '0';
-        cpu_sel <= '0';
-        -- end write all registers
-        
-        -- read all registers
-        cpu_addr(12) <= '1';
-        for i in 0 to 15 loop
-            cpu_addr(3 downto 0) <= std_logic_vector(to_unsigned(i, 4));
-            cpu_addr(11 downto 4) <= std_logic_vector(to_unsigned(i * 31, 8)); -- put garbage here, make sure it's not used
-            cpu_wdata <= X"FFFFFFFF";
-            cpu_wr <= '0';
-            cpu_sel <= '1';
-            wait until rising_edge(clk);
-        end loop;
-        cpu_addr <= (others => '0');
-        -- end read all registers
-        
-        -- reset from reset and read all registers
-        reset       <= '1';
-        enable      <= '0';
-        cpu_sel     <= '0';
-        cpu_wr      <= '0';
-		cpu_wdata   <= (others=>'0');
-		cpu_addr  	<= (others=>'0');
-		wait until rising_edge(clk);
-		reset <= '0';
-		wait until rising_edge(clk);
-		enable <= '1';
-		wait until rising_edge(clk);
-		
-		cpu_addr <= (others => '0');
-        cpu_addr(12) <= '1';
-        for i in 0 to 15 loop
-            cpu_addr(3 downto 0) <= std_logic_vector(to_unsigned(i, 4));
-            cpu_addr(11 downto 4) <= std_logic_vector(to_unsigned(i * 31, 8)); -- put garbage here, make sure it's not used
-            cpu_wdata <= X"FFFFFFFF";
-            cpu_wr <= '0';
-            cpu_sel <= '1';
-            wait until rising_edge(clk);
-        end loop;
-        cpu_addr <= (others => '0');
-        -- end reset and read all registers 
+        -- Same pulse but scaled addr
+        v_pulseaddr := 0;
+        v_pdef(v_pulseaddr).starttime := 4;
+        -- v_pdef(v_pulseaddr).timefactor := 174.796875;
+        -- v_pdef(v_pulseaddr).gainfactor := 0.186554;
+        -- v_pdef(v_pulseaddr).startaddr := 0;
+        -- v_pdef(v_pulseaddr).steps := 430;
+        -- v_pdef(v_pulseaddr).sustain := 5;
+        -- v_pdef(v_pulseaddr).coefficients(0 to 1) := (0.385649, 0.483473);
 
+        v_pdef(v_pulseaddr).timefactor := 1.996094;
+        v_pdef(v_pulseaddr).gainfactor := 0.476990;
+        v_pdef(v_pulseaddr).startaddr := 0;
+        v_pdef(v_pulseaddr).steps := 4;
+        v_pdef(v_pulseaddr).sustain := 2;
+        v_pdef(v_pulseaddr).coefficients(0 to 1) := (0.563951, 0.703244);
 
-               
+        -- v_pdef(v_pulseaddr + 1).starttime := v_pdef(v_pulseaddr).starttime + v_pdef(v_pulseaddr).steps * 2 + v_pdef(v_pulseaddr).sustain + 4 + 3 + 1;
+        pdef_fakeram(v_pulseaddr) <= v_pdef(v_pulseaddr);
+        cpu_write_pulsedef(clk, v_pulseaddr*4, v_pdef(v_pulseaddr).starttime, v_pdef(v_pulseaddr).timefactor, v_pdef(v_pulseaddr).gainfactor, v_pdef(v_pulseaddr).startaddr, v_pdef(v_pulseaddr).steps, v_pdef(v_pulseaddr).sustain, cpu_sel, cpu_wr, cpu_addr, cpu_wdata);
         
-        -- write to enable all channels
-        cpu_addr(12) <= '1';
-        cpu_addr(11 downto 5) <= (others => '0');
-        cpu_addr(3 downto 0) <= "0010";
-        cpu_wdata <= X"FFFFFFFF";
-        cpu_wr <= '1';
-        cpu_sel <= '1';
-        wait until rising_edge(clk);
-        -- write to select all channels
-        cpu_addr(12) <= '1';
-        cpu_addr(11 downto 5) <= (others => '0');
-        cpu_addr(3 downto 0) <= "0001";
-        cpu_wdata <= X"FFFFFFFF";
-        cpu_wr <= '1';
-        cpu_sel <= '1';
-        wait until rising_edge(clk);
-        cpu_wr <= '0';
-        cpu_sel <= '0';
-        cpu_wdata <= (others => '0');
-        cpu_addr <= (others => '0');
-        -- end write to enable all channels
-        
-        
-        -- constant first pulse entry for all channels
-        -- First pulse entry start.
-        cpu_addr(4 downto 0) <= "00000"; -- ram_pulse_addra
-        wait until rising_edge(clk);
-        cpu_wdata <= X"00000004"; -- start time
-        cpu_wr <= '1';
-        cpu_sel <= '1';
-        
-        wait until rising_edge(clk);
-        cpu_wr <= '0';
-        cpu_sel <= '0';
-        
-        cpu_addr(4 downto 0) <= "00001"; -- ram_pulse_addra
-        wait until rising_edge(clk);
-        cpu_wdata(11 downto 0) <= X"000"; -- wave start address
-        cpu_wdata(25 downto 16) <= "0000001000"; -- wave length
-        cpu_wr <= '1';
-        cpu_sel <= '1';
-        
-        wait until rising_edge(clk);
-        cpu_wr <= '0';
-        cpu_sel <= '0';
-        
-        cpu_addr(4 downto 0) <= "00010"; -- ram_pulse_addra
-        wait until rising_edge(clk);
-        cpu_wdata(15 downto 0) <= X"0100";  -- scale 
-        cpu_wdata(31 downto 16) <= X"8000"; -- gain 
-        cpu_wr <= '1';
-        cpu_sel <= '1';
-        
-        wait until rising_edge(clk);
-        cpu_wr <= '0';
-        cpu_sel <= '0';
-        
-        cpu_addr(4 downto 0) <= "00011"; -- ram_pulse_addra
-        wait until rising_edge(clk);
-        cpu_wdata <= X"00000010"; -- flat top length 
-        cpu_wr <= '1';
-        cpu_sel <= '1';
-        
-        wait until rising_edge(clk);
-        cpu_wr <= '0';
-        cpu_sel <= '0';
-        -- First pulse entry end.
-        
-        -- constant waveforms for all channels
-        cpu_addr(11) <= '1'; -- write to waveform table
-        for i in 0 to 255 loop
-            cpu_addr(9 downto 0) <= std_logic_vector(to_unsigned(i, 10)); -- ram_pulse_addra
-            wait until rising_edge(clk);
-            cpu_wdata(15 downto 0) <= std_logic_vector(to_unsigned(i, 16));
-            cpu_wdata(31 downto 16) <= std_logic_vector(to_unsigned(i, 16));
-            cpu_wr <= '1';
-            cpu_sel <= '1';
-            
-            wait until rising_edge(clk);
-            cpu_wr <= '0';
-            cpu_sel <= '0';
-        end loop;
-        cpu_addr(11) <= '0';
-        cpu_wdata <= X"00000000";
-        wait until rising_edge(clk);
-        -- end constant waveforms for all channels
-        
-        
-        for i in 0 to 31 loop
-            
-            -- write to select channel i 
-            cpu_wdata <= X"00000000";
-            wait until rising_edge(clk);
-            cpu_addr(12) <= '1';
-            cpu_addr(11 downto 5) <= (others => '0');
-            cpu_addr(3 downto 0) <= "0001";
-            wait until rising_edge(clk);
-            cpu_wdata(i) <= '1';
-            cpu_wr <= '1';
-            cpu_sel <= '1';
-            
-            wait until rising_edge(clk);
-            cpu_wdata <= X"00000000";
-            cpu_wr <= '0';
-            cpu_sel <= '0';
-            cpu_addr <= (others => '0');
-            -- end write to enable channel i 
-            
-            cpu_addr <= (others => '0');
-            wait until rising_edge(clk);
-            -- write top value
-            cpu_addr(11) <= '1'; -- write to waveform table
-            cpu_addr(9 downto 0) <= std_logic_vector(to_unsigned(2 + 3 * i, 10)); -- ram_pulse_addra 
-            wait until rising_edge(clk);
-            cpu_wdata(15 downto 0) <= std_logic_vector(to_unsigned(2 + 4 * i, 16));
-            cpu_wdata(31 downto 16) <= std_logic_vector(to_unsigned(2 + 4 * i, 16));
-            cpu_wr <= '1';
-            cpu_sel <= '1';
-            
-            wait until rising_edge(clk);
-            cpu_wr <= '0';
-            cpu_sel <= '0';
-            cpu_addr(11) <= '0';
-            cpu_addr(11 downto 5) <= (others => '0');
-            -- end write top value 
-
-            
-            -- Second pulse entry start.
-            cpu_addr(4 downto 0) <= "00100"; -- ram_pulse_addra
-            wait until rising_edge(clk);
-            cpu_wdata <= std_logic_vector(to_unsigned(i * 2 + 64, 32)); -- start time
-            cpu_wr <= '1';
-            cpu_sel <= '1';
-            
-            wait until rising_edge(clk);
-            cpu_wr <= '0';
-            cpu_sel <= '0';
-            
-            cpu_addr(4 downto 0) <= "00101"; -- ram_pulse_addra
-            wait until rising_edge(clk);
-            cpu_wdata(11 downto 0) <=  std_logic_vector(to_unsigned(4 * i, 12)); -- wave start address
-            cpu_wdata(25 downto 16) <= std_logic_vector(to_unsigned(4 + 2 * i, 10)); -- wave length
-            cpu_wr <= '1';
-            cpu_sel <= '1';
-            
-            wait until rising_edge(clk);
-            cpu_wr <= '0';
-            cpu_sel <= '0';
-            
-            cpu_addr(4 downto 0) <= "00110"; -- ram_pulse_addra
-            wait until rising_edge(clk);
-            cpu_wdata(15 downto 0) <= X"0100"; -- scale 
-            cpu_wdata(31 downto 16) <= X"8000"; -- gain
-            cpu_wr <= '1';
-            cpu_sel <= '1';
-            
-            wait until rising_edge(clk);
-            cpu_wr <= '0';
-            cpu_sel <= '0';
-            
-            cpu_addr(4 downto 0) <= "00111"; -- ram_pulse_addra
-            wait until rising_edge(clk);
-            cpu_wdata <= std_logic_vector(to_unsigned(i * 2 + 16, 32)); -- flat top length 
-            cpu_wr <= '1';
-            cpu_sel <= '1';
-            
-            wait until rising_edge(clk);
-            cpu_wr <= '0';
-            cpu_sel <= '0';
-            -- Second pulse entry end.
-        end loop;   
-        
-        
-        -- write reg_seq_length
-        cpu_addr <= (others => '0');
-        cpu_addr(12) <= '1';
-        cpu_addr(3 downto 0) <= "0000";
-        cpu_wdata <= X"00000160";
-        cpu_wr <= '1';
-        cpu_sel <= '1';
-        wait until rising_edge(clk);
-        cpu_wr <= '0';
-        cpu_sel <= '0';
-        cpu_addr <= (others => '0');
-        -- end write reg_seq_length
-        
-        -- start first trigger
-        trigger <= '1';
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
-        wait until rising_edge(clk);
-        trigger <= '0';
-        
-        
-        clk_delay(5);
-
-        -- triggering while running should do nothing
-        trigger <= '1';
-        wait until rising_edge(clk);
-        trigger <= '0';
-        wait until rising_edge(clk);
-        -- end triggering while running should do nothing
-
-        
-        -- read sm_count_time
-        cpu_addr <= (others => '0');
-        cpu_addr(12) <= '1';
-        cpu_addr(3 downto 0) <= "0101";
-        cpu_wr <= '0';
-        cpu_sel <= '1';
-        wait until rising_edge(clk);
-        clk_delay(5);
-        cpu_addr <= (others => '0');
-        cpu_sel <= '0';
-        -- end read sm_count_time
-      
-        
-        clk_delay(400);
-        
-        -- start second trigger
-        trigger <= '1';
-        wait until rising_edge(clk);
-        trigger <= '0';
+        cpu_print_msg("Pulse RAM loaded");
         clk_delay(20);
 
-        -- reset from run
-        reset       <= '1';
-        enable      <= '0';
-        cpu_sel     <= '0';
-        cpu_wr      <= '0';
-		cpu_wdata   <= (others=>'0');
-		cpu_addr  	<= (others=>'0');
-		wait until rising_edge(clk);
-		reset <= '0';
-		wait until rising_edge(clk);
-		enable <= '1';
-		wait until rising_edge(clk);
-        -- end reset
-
-
-        -- reset channel wise top value back to normal
-        for i in 0 to 31 loop
-            
-            -- write to select channel i 
-            cpu_wdata <= X"00000000";
-            wait until rising_edge(clk);
-            cpu_addr(12) <= '1';
-            cpu_addr(11 downto 5) <= (others => '0');
-            cpu_addr(3 downto 0) <= "0001";
-            wait until rising_edge(clk);
-            cpu_wdata(i) <= '1';
-            cpu_wr <= '1';
-            cpu_sel <= '1';
-            
-            wait until rising_edge(clk);
-            cpu_wdata <= X"00000000";
-            cpu_wr <= '0';
-            cpu_sel <= '0';
-            cpu_addr <= (others => '0');
-            -- end write to enable channel i 
-            
-            cpu_addr <= (others => '0');
-            wait until rising_edge(clk);
-            -- write top value
-            cpu_addr(11) <= '1'; -- write to waveform table
-            cpu_addr(9 downto 0) <= std_logic_vector(to_unsigned(2 + 3 * i, 10)); -- ram_pulse_addra 
-            wait until rising_edge(clk);
-            cpu_wdata(15 downto 0) <= std_logic_vector(to_unsigned(2 + 3 * i, 16));
-            cpu_wdata(31 downto 16) <= std_logic_vector(to_unsigned(2 + 3 * i, 16));
-            cpu_wr <= '1';
-            cpu_sel <= '1';
-            
-            wait until rising_edge(clk);
-            cpu_wr <= '0';
-            cpu_sel <= '0';
-            cpu_addr(11) <= '0';
-            cpu_addr(11 downto 5) <= (others => '0');
-            -- end write top value 
-        end loop;   
-        -- endreset channel wise top value back to normal
-
-
-        for i in 0 to 31 loop
-            
-            -- write to select channel i 
-            cpu_wdata <= X"00000000";
-            wait until rising_edge(clk);
-            cpu_addr(12) <= '1';
-            cpu_addr(11 downto 5) <= (others => '0');
-            cpu_addr(3 downto 0) <= "0001";
-            wait until rising_edge(clk);
-            cpu_wdata(31 - i) <= '1';
-            cpu_wr <= '1';
-            cpu_sel <= '1';
-            
-            wait until rising_edge(clk);
-            cpu_wdata <= X"00000000";
-            cpu_wr <= '0';
-            cpu_sel <= '0';
-            cpu_addr <= (others => '0');
-            -- end write to enable channel i 
-            
-            cpu_addr <= (others => '0');
-            wait until rising_edge(clk);
-            -- write top value
-            cpu_addr(11) <= '1'; -- write to waveform table
-            cpu_addr(9 downto 0) <= std_logic_vector(to_unsigned(2 + 3 * i, 10)); -- ram_pulse_addra 
-            wait until rising_edge(clk);
-            cpu_wdata(15 downto 0) <= std_logic_vector(to_unsigned(2 + 4 * i, 16));
-            cpu_wdata(31 downto 16) <= std_logic_vector(to_unsigned(2 + 4 * i, 16));
-            cpu_wr <= '1';
-            cpu_sel <= '1';
-            
-            wait until rising_edge(clk);
-            cpu_wr <= '0';
-            cpu_sel <= '0';
-            cpu_addr(11) <= '0';
-            cpu_addr(11 downto 5) <= (others => '0');
-            -- end write top value 
-
-            
-            -- Second pulse entry start.
-            cpu_addr(4 downto 0) <= "00100"; -- ram_pulse_addra
-            wait until rising_edge(clk);
-            cpu_wdata <= std_logic_vector(to_unsigned(i * 2 + 64, 32)); -- start time
-            cpu_wr <= '1';
-            cpu_sel <= '1';
-            
-            wait until rising_edge(clk);
-            cpu_wr <= '0';
-            cpu_sel <= '0';
-            
-            cpu_addr(4 downto 0) <= "00101"; -- ram_pulse_addra
-            wait until rising_edge(clk);
-            cpu_wdata(11 downto 0) <=  std_logic_vector(to_unsigned(4 * i, 12)); -- wave start address
-            cpu_wdata(25 downto 16) <= std_logic_vector(to_unsigned(4 + 2 * i, 10)); -- wave length
-            cpu_wr <= '1';
-            cpu_sel <= '1';
-            
-            wait until rising_edge(clk);
-            cpu_wr <= '0';
-            cpu_sel <= '0';
-            
-            cpu_addr(4 downto 0) <= "00110"; -- ram_pulse_addra
-            wait until rising_edge(clk);
-            cpu_wdata(15 downto 0) <= X"0100"; -- scale
-            cpu_wdata(31 downto 16) <= X"8000"; -- gain
-            cpu_wr <= '1';
-            cpu_sel <= '1';
-            
-            wait until rising_edge(clk);
-            cpu_wr <= '0';
-            cpu_sel <= '0';
-            
-            cpu_addr(4 downto 0) <= "00111"; -- ram_pulse_addra
-            wait until rising_edge(clk);
-            cpu_wdata <= std_logic_vector(to_unsigned(i * 2 + 16, 32)); -- flat top length 
-            cpu_wr <= '1';
-            cpu_sel <= '1';
-            
-            wait until rising_edge(clk);
-            cpu_wr <= '0';
-            cpu_sel <= '0';
-            -- Second pulse entry end.
-        end loop;  
-
-        -- start third trigger
-        trigger <= '1';
-        wait until rising_edge(clk);
-        trigger <= '0';
-        clk_delay(400);
-
-        -- reset from idle
-        reset       <= '1';
-        enable      <= '0';
-        cpu_sel     <= '0';
-        cpu_wr      <= '0';
-		cpu_wdata   <= (others=>'0');
-		cpu_addr  	<= (others=>'0');
-		wait until rising_edge(clk);
-		reset <= '0';
-		wait until rising_edge(clk);
-		enable <= '1';
-		wait until rising_edge(clk);
-        -- end reset
-
-        -- start fourth trigger
-        trigger <= '1';
-        wait until rising_edge(clk);
-        trigger <= '0';
-        clk_delay(400);
-
-
-        -- read all rams
-        for i in 0 to 31 loop
-            
-            -- write to select channel i 
-            cpu_wdata <= X"00000000";
-            wait until rising_edge(clk);
-            cpu_addr(12) <= '1';
-            cpu_addr(11 downto 5) <= (others => '0');
-            cpu_addr(3 downto 0) <= "0001";
-            wait until rising_edge(clk);
-            cpu_wdata(i) <= '1';
-            cpu_wr <= '1';
-            cpu_sel <= '1';
-            
-            wait until rising_edge(clk);
-            cpu_wdata <= X"00000000";
-            cpu_wr <= '0';
-            cpu_sel <= '0';
-            cpu_addr <= (others => '0');
-            -- end write to enable channel i 
-            
-            cpu_addr <= (others => '0');
-            wait until rising_edge(clk);
-            -- read top value
-            cpu_addr(11) <= '1'; -- read waveform table
-            cpu_addr(9 downto 0) <= std_logic_vector(to_unsigned(2 + 3 * i, 10)); -- ram_pulse_addra 
-            wait until rising_edge(clk);
-            -- cpu_wdata(15 downto 0) <= std_logic_vector(to_unsigned(2 + 4 * i, 16));
-            -- cpu_wdata(31 downto 16) <= std_logic_vector(to_unsigned(2 + 4 * i, 16));
-            cpu_wr <= '0';
-            cpu_sel <= '1';
-            
-            wait until rising_edge(clk);
-            cpu_wr <= '0';
-            cpu_sel <= '0';
-            cpu_addr(11) <= '0';
-            cpu_addr(11 downto 5) <= (others => '0');
-            -- end read top value 
-
-            -- read start time
-            cpu_addr(4 downto 0) <= "00100"; -- ram_pulse_addra
-            wait until rising_edge(clk);
-            -- cpu_wdata <= std_logic_vector(to_unsigned(i * 2 + 64, 32)); -- start time
-            cpu_wr <= '0';
-            cpu_sel <= '1';
-            
-            wait until rising_edge(clk);
-            cpu_wr <= '0';
-            cpu_sel <= '0';
-            -- end read start time
-        end loop;   
-        -- end read all rams
-
-
-        -- read all at once
-        -- write to select all channels 
-        cpu_wdata <= X"FFFFFFFF";
-        wait until rising_edge(clk);
-        cpu_addr(12) <= '1';
-        cpu_addr(11 downto 5) <= (others => '0');
-        cpu_addr(3 downto 0) <= "0001";
-        wait until rising_edge(clk);
-        cpu_wr <= '1';
-        cpu_sel <= '1';
+        -- TODO: if coeff is >= 1 vhdl doesnt like it?
+        poly_gen_ram(clk, v_pdef(v_pulseaddr).startaddr, v_pdef(v_pulseaddr).steps, DEGREES, v_pdef(v_pulseaddr).coefficients, cpu_sel, cpu_wr, cpu_addr, cpu_wdata);
+        cpu_print_msg("Load waveform RAM");  
+        clk_delay(20);
         
-        wait until rising_edge(clk);
-        cpu_wdata <= X"00000000";
-        cpu_wr <= '0';
-        cpu_sel <= '0';
-        cpu_addr <= (others => '0');
-        -- end write to select all channels
+        -- -- -----------------------------------------------------------------------------------------------------
+        -- v_pulseaddr := 1;
+        -- v_pdef(v_pulseaddr).starttime := 10000 - 512;
+        -- v_pdef(v_pulseaddr).timefactor := 1.0;
+        -- v_pdef(v_pulseaddr).gainfactor := 1.0;
+        -- v_pdef(v_pulseaddr).startaddr := 0;
+        -- v_pdef(v_pulseaddr).steps := 512;
+        -- v_pdef(v_pulseaddr).sustain := 16;
+        -- v_pdef(v_pulseaddr).coefficients(0 to 1) := (1.0, 1.0);
+
+        -- -- v_pdef(v_pulseaddr + 1).starttime := v_pdef(v_pulseaddr).starttime + v_pdef(v_pulseaddr).steps * 2 + v_pdef(v_pulseaddr).sustain + 4 + 3 + 1;
+        -- pdef_fakeram(v_pulseaddr) <= v_pdef(v_pulseaddr);
+        -- cpu_write_pulsedef(clk, v_pulseaddr*4, v_pdef(v_pulseaddr).starttime, v_pdef(v_pulseaddr).timefactor, v_pdef(v_pulseaddr).gainfactor, v_pdef(v_pulseaddr).startaddr, v_pdef(v_pulseaddr).steps, v_pdef(v_pulseaddr).sustain, cpu_sel, cpu_wr, cpu_addr, cpu_wdata);
         
-        cpu_addr <= (others => '0');
-        wait until rising_edge(clk);
-        -- read top value
-        cpu_addr(11) <= '1'; -- read waveform table
-        cpu_addr(9 downto 0) <= std_logic_vector(to_unsigned(5, 10)); -- ram_pulse_addra 
-        wait until rising_edge(clk);
-        -- cpu_wdata(15 downto 0) <= std_logic_vector(to_unsigned(2 + 4 * i, 16));
-        -- cpu_wdata(31 downto 16) <= std_logic_vector(to_unsigned(2 + 4 * i, 16));
-        cpu_wr <= '0';
-        cpu_sel <= '1';
+        -- cpu_print_msg("Pulse RAM loaded");
+        -- clk_delay(20);
+
+        -- -- TODO: if coeff is >= 1 vhdl doesnt like it?
+        -- poly_gen_ram(clk, v_pdef(v_pulseaddr).startaddr, v_pdef(v_pulseaddr).steps, DEGREES, v_pdef(v_pulseaddr).coefficients, cpu_sel, cpu_wr, cpu_addr, cpu_wdata);
+        -- cpu_print_msg("Load waveform RAM");  
+        -- clk_delay(20);
+
+        -- cpu_print_msg("start pulse" & to_string(pdef_fakeram(v_pulseaddr).starttime) & " " & to_string(pdef_fakeram(v_pulseaddr).timefactor) & " " & to_string(pdef_fakeram(v_pulseaddr).gainfactor) & " " & to_string(pdef_fakeram(v_pulseaddr).startaddr) & " " & to_string(pdef_fakeram(v_pulseaddr).steps) & " " & to_string(pdef_fakeram(v_pulseaddr).sustain) & " " & to_string(pdef_fakeram(v_pulseaddr).coefficients(0)) & " " & to_string(pdef_fakeram(v_pulseaddr).coefficients(1)));
+
+        ----------------------------------------------------------------
+        -- Start the pulse outputs
+        ----------------------------------------------------------------
+        v_pulsetime_total := v_pdef(v_pulseaddr).starttime + integer(real(v_pdef(v_pulseaddr).steps) / v_pdef(v_pulseaddr).timefactor) * 2 + v_pdef(v_pulseaddr).sustain + 3; -- + 4 + 3 + 1;
+
+        clk_delay(5);
+        start      <= '1';
+        clk_delay(5);
+        start      <= '0';
+
+        v_pulseaddr := 0;    -- reset the pulse address
+        -- TODO: we may need to modify the for loop to make sure the simulation time is long enough to cover all the pulses
+        -- Wait for cnt_time to reach last pulse start time + waveform size
         
-        wait until rising_edge(clk);
-        cpu_wr <= '0';
-        cpu_sel <= '0';
-        cpu_addr(11) <= '0';
-        cpu_addr(11 downto 5) <= (others => '0');
-        -- end read top value 
+        for NCNT in 1 to SEQ_LENGTH loop  -- TODO: EricToGeoff/Sara: in the real settings do we have a constant amount of time or the total time also vary? if so, how much?
+        -- for NCNT in 1 to 128 loop    -- count the time shorter for now so it won't take too long to simulate
+            cnt_time      <= std_logic_vector(unsigned(cnt_time) + 1);
 
-        -- read start time
-        cpu_addr(4 downto 0) <= "00100"; -- ram_pulse_addra
-        wait until rising_edge(clk);
-        -- cpu_wdata <= std_logic_vector(to_unsigned(i * 2 + 64, 32)); -- start time
-        cpu_wr <= '0';
-        cpu_sel <= '1';
+            -- increment when next pulse start time is reached or current pulse finishes
+            if (v_pdef(v_pulseaddr + 1).starttime = to_integer(unsigned(cnt_time))) or falling_edge(axis_tvalid) then
+                v_pulseaddr := v_pulseaddr + 1;  -- force increment the pulse address
+                -- x           := real(v_pdef(v_pulseaddr).starttime);  -- set x to the start time of the next pulse
+                cpu_print_msg("##### Moving on to pulse #" & to_string(v_pulseaddr));
+            end if;
+            
+            -- -- stop on error
+            -- if or_reduce(erros) = '1' then
+            --     cpu_print_msg("##### [ERROR] Hardware error detected: " & to_string(erros));
+            --     exit;
+            -- end if; 
+
+            wave_values <= calc_pulse_value(
+                to_integer(unsigned(cnt_time) - 1),
+                v_pdef(v_pulseaddr).starttime,
+                v_pdef(v_pulseaddr).steps,
+                v_pdef(v_pulseaddr).sustain,
+                v_pdef(v_pulseaddr).timefactor,
+                v_pdef(v_pulseaddr).gainfactor,
+                v_pdef(v_pulseaddr).coefficients,
+                DEGREES
+            );
+
+            if axis_tvalid = '1' then
+                diffs <= wave_values - real(to_integer(signed(axis_tdata)));
+            else
+                diffs <= 0.0;
+            end if;
+
+            clk_delay(0);
+        end loop;
         
-        wait until rising_edge(clk);
-        cpu_wr <= '0';
-        cpu_sel <= '0';
-        -- end read start time
-        -- end read all at once
-
-
-        -- reset
-        reset       <= '1';
-        enable      <= '0';
-        cpu_sel     <= '0';
-        cpu_wr      <= '0';
-		cpu_wdata   <= (others=>'0');
-		cpu_addr  	<= (others=>'0');
-		wait until rising_edge(clk);
-		reset <= '0';
-		wait until rising_edge(clk);
-		enable <= '1';
-		wait until rising_edge(clk);
-        -- end reset
-
-
-        -- change time factor and gain factor 
-        for i in 0 to 31 loop
-            
-            -- write to select channel i 
-            cpu_wdata <= X"00000000";
-            wait until rising_edge(clk);
-            cpu_addr(12) <= '1';
-            cpu_addr(11 downto 5) <= (others => '0');
-            cpu_addr(3 downto 0) <= "0001";
-            wait until rising_edge(clk);
-            cpu_wdata(31 - i) <= '1';
-            cpu_wr <= '1';
-            cpu_sel <= '1';
-            
-            wait until rising_edge(clk);
-            cpu_wdata <= X"00000000";
-            cpu_wr <= '0';
-            cpu_sel <= '0';
-            cpu_addr <= (others => '0');
-            -- end write to enable channel i 
-            
-            cpu_addr <= (others => '0');
-            wait until rising_edge(clk);
-            -- write top value
-            cpu_addr(11) <= '1'; -- write to waveform table
-            cpu_addr(9 downto 0) <= std_logic_vector(to_unsigned(2 + 3 * i, 10)); -- ram_pulse_addra 
-            wait until rising_edge(clk);
-            cpu_wdata(15 downto 0) <= std_logic_vector(to_unsigned(2 + 3 * i, 16));
-            cpu_wdata(31 downto 16) <= std_logic_vector(to_unsigned(2 + 3 * i, 16));
-            cpu_wr <= '1';
-            cpu_sel <= '1';
-            
-            wait until rising_edge(clk);
-            cpu_wr <= '0';
-            cpu_sel <= '0';
-            cpu_addr(11) <= '0';
-            cpu_addr(11 downto 5) <= (others => '0');
-            -- end write top value 
-
-            
-            -- Second pulse entry start.
-            cpu_addr(4 downto 0) <= "00100"; -- ram_pulse_addra
-            wait until rising_edge(clk);
-            cpu_wdata <= std_logic_vector(to_unsigned(64, 32)); -- start time
-            cpu_wr <= '1';
-            cpu_sel <= '1';
-            
-            wait until rising_edge(clk);
-            cpu_wr <= '0';
-            cpu_sel <= '0';
-            
-            cpu_addr(4 downto 0) <= "00101"; -- ram_pulse_addra
-            wait until rising_edge(clk);
-            cpu_wdata(11 downto 0) <= X"0FF"; -- wave start address
-            cpu_wdata(25 downto 16) <= "0000100000"; -- wave length
-            cpu_wr <= '1';
-            cpu_sel <= '1';
-            
-            wait until rising_edge(clk);
-            cpu_wr <= '0';
-            cpu_sel <= '0';
-            
-            cpu_addr(4 downto 0) <= "00110"; -- ram_pulse_addra
-            wait until rising_edge(clk);
-            cpu_wdata(15 downto 0) <= std_logic_vector(to_unsigned((i rem 2)*256 + 256, 16)); -- scale 
-            cpu_wdata(31 downto 16) <= std_logic_vector(to_unsigned(i * 128, 16)); -- gain 
-            cpu_wr <= '1';
-            cpu_sel <= '1';
-            
-            wait until rising_edge(clk);
-            cpu_wr <= '0';
-            cpu_sel <= '0';
-            
-            cpu_addr(4 downto 0) <= "00111"; -- ram_pulse_addra
-            wait until rising_edge(clk);
-            cpu_wdata <= X"00000010"; -- flat top length 
-            cpu_wr <= '1';
-            cpu_sel <= '1';
-            
-            wait until rising_edge(clk);
-            cpu_wr <= '0';
-            cpu_sel <= '0';
-            -- Second pulse entry end.
-        end loop;  
-        
-        -- start fifth trigger
-        trigger <= '1';
-        wait until rising_edge(clk);
-        trigger <= '0';
-        clk_delay(400);
+        -- wait for 10 us;
         
         cpu_print_msg("Simulation done");
-        clk_delay(5);
-		
+        -- clk_delay(5);
+		done_seq <= '1';
+        clear_errors <= '1';
         sim_done    <= true;
         wait;
 

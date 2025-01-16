@@ -229,7 +229,12 @@ begin
     cpu_sel_p2p1 <= cpu_sels(SEL_SPARE) and     cpu_addr(15); 
 
     -- clear pulse errors
-    clr_errors(0)           <= ps_gpout(C_GPIO_PS_ERR_CLR);
+    -- TODO: Should we have it sync'd across all 32 channels should we control one by one?
+    g_clr: for I in 0 to 31 generate
+        clr_errors(I) <= ps_gpout(C_GPIO_PS_ERR_CLR);
+    end generate g_clr;
+    -- clr_errors(0)           <= ps_gpout(C_GPIO_PS_ERR_CLR);
+    -- clr_errors(1)           <= ps_gpout(C_GPIO_PS_ERR_CLR);
 
     -- JESD outputs
 --    p_tx0n_out              <= ps_jesd_tx0n_out;
@@ -552,7 +557,7 @@ begin
     ps_gpin(15 downto 8)  <= pulse_errors(1);
     
     -- Debug signals
-    ps_gpin(16)           <= ps_enable_dacs_pulse;
+    ps_gpin(16)           <= trigger_dacs_pulse;
     ps_gpin(17)           <= tick_usec;
 
     -- FIFO-PMOD interface, use ps gpio pin ps_gpout(3) to select which pmod data to get
@@ -606,8 +611,8 @@ begin
             p_debug_out(3)              <= p2p_spi1_sclk;
             p_debug_out(4)              <= p2p_spi1_mosi;
             p_debug_out(5)              <= p2p_spi1_cs_n;
-            p_debug_out(6)              <= fifo_almost_empty0;
-            p_debug_out(7)              <= fifo_almost_empty1;
+            p_debug_out(6)              <= fifo_axis0_tvalid;
+            p_debug_out(7)              <= fifo_axis1_tvalid;
             p_debug_out(8)              <= tick_msec;
             p_debug_out(9)              <= trigger_dacs_pulse;
         end if;

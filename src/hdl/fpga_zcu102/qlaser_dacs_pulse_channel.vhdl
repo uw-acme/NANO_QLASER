@@ -493,6 +493,10 @@ architecture channel of qlaser_dacs_pulse_channel is
                             ram_pulse_addrb     <= (others=>'0');
                             sm_wavedata         <= (others=>'0');
                             sm_wavedata_dv      <= '0';
+                        elsif (sm_state_d1 = S_WAVE_DOWN) then  -- output the last pulse definition address for one more clock cycle
+                            v_ram_waveform_doutb_multiplied := std_logic_vector(unsigned(ram_waveform_doutb) * reg_scale_gain);
+                            sm_wavedata                     <= v_ram_waveform_doutb_multiplied(30 downto 15); 
+                            sm_wavedata_dv                  <= '1';
                         end if;
                         
                         if unsigned(pc) >= pulse_written then
