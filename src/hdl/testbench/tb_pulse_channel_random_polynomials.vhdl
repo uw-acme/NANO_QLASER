@@ -22,6 +22,7 @@ use     std.textio.all;
 use     ieee.math_real.all;
 
 use     std_developerskit.std_iopak.all;
+use     work.qlaser_pkg.all;
 use     work.qlaser_dacs_pulse_channel_pkg.all;
 use     work.qlasert_pulse_channel_tasks.all;
 

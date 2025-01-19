@@ -26,8 +26,8 @@
 ../../src/hdl/fpga_zcu102/*pkg.vhd
 ../../src/hdl/fpga_zcu102/qlaser_version_pkg_zcu.vhd
 
-../../src/hdl/testbench/tb_zcu102_ps_cpu_pkg.vhdl
 ../../src/hdl/testbench/qlaser_addr_zcu102_pkg.vhdl
+../../src/hdl/testbench/tb_zcu102_ps_cpu_pkg.vhdl
 // ../../src/hdl/testbench/qlaser_addr_zcu102_pkg.vhdl
 // ../../src/hdl/testbench/qlaser_pulse_channel_tasks.vhdl
 

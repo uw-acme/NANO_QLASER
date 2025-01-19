@@ -126,7 +126,7 @@ architecture channel of qlaser_dacs_pulse_channel is
         S_IDLE,     -- Wait for 'start'
         S_WAIT,     -- Wait for cnt_time, external input, to match pulse position RAM output
         S_LOAD,     -- Load the pulse channel RAM addresses and start the waveform output
-        S_HOLD,     -- Hold the last pulse definition address and output its data
+        S_LAST,     -- Special stage to enter when last value has been output
         S_WAVE_UP,  -- Output the rising edge of a waveform
         S_WAVE_FLAT,-- Output the flat top part of a waveform
         S_WAVE_DOWN -- Output the falling edge of a waveform
@@ -394,7 +394,6 @@ architecture channel of qlaser_dacs_pulse_channel is
     
                 -- Default 
                 sm_wavedata     <= (others=>'0');
-                sm_wavedata_dv  <= '0';
     
                 if clear_errors = '1' then
                     erros               <= (others=>'0');
@@ -414,7 +413,7 @@ architecture channel of qlaser_dacs_pulse_channel is
     
                         if (enable = '1') and (enable_d1 = '0') then
                             sm_wavedata     <= (others=>'0');
-                            sm_wavedata_dv  <= '1'; 
+                            sm_wavedata_dv  <= '0';
                             sm_state        <= S_IDLE;
                         end if;
                         sm_busy                         <= '0';
@@ -425,10 +424,12 @@ architecture channel of qlaser_dacs_pulse_channel is
                     ------------------------------------------------------------------------
                     when  S_IDLE    =>
                         if (start = '1') and (start_d1 = '0') then
-                            sm_state    <= S_LOAD;
-                            sm_busy     <= '1';
+                            sm_state        <= S_LOAD;
+                            sm_busy         <= '1';
+                            sm_wavedata_dv  <= '1';
                         else
-                            sm_busy     <= '0';
+                            sm_busy         <= '0';
+                            sm_wavedata_dv  <= '0';
                         end if;
     
                     ------------------------------------------------------------------------
@@ -441,10 +442,8 @@ architecture channel of qlaser_dacs_pulse_channel is
                         if (sm_state_d1 = S_WAVE_DOWN) then  -- output the last pulse definition address for one more clock cycle
                             v_ram_waveform_doutb_multiplied := std_logic_vector(unsigned(ram_waveform_doutb) * reg_scale_gain);
                             sm_wavedata                     <= v_ram_waveform_doutb_multiplied(30 downto 15); 
-                            sm_wavedata_dv                  <= '1';
                         else
                             sm_wavedata                     <= (others=>'0');
-                            sm_wavedata_dv                  <= '0';
                         end if;  
 
                         -- Pipline the pulse definition address
@@ -492,18 +491,16 @@ architecture channel of qlaser_dacs_pulse_channel is
                             pc                  <= (others=>'0');
                             ram_pulse_addrb     <= (others=>'0');
                             sm_wavedata         <= (others=>'0');
-                            sm_wavedata_dv      <= '0';
                         elsif (sm_state_d1 = S_WAVE_DOWN) then  -- output the last pulse definition address for one more clock cycle
                             v_ram_waveform_doutb_multiplied := std_logic_vector(unsigned(ram_waveform_doutb) * reg_scale_gain);
                             sm_wavedata                     <= v_ram_waveform_doutb_multiplied(30 downto 15); 
-                            sm_wavedata_dv                  <= '1';
+                        elsif (sm_last = '1') then
+                            sm_wavedata                     <= (others=>'0');
+                            sm_wavedata_dv                  <= '0';
                         end if;
                         
-                        if unsigned(pc) >= pulse_written then
-                            sm_last             <= '1';
-                        else
-                            sm_last             <= '0';
-                        end if;
+                       
+
                         ------------------------------------------------------------------------
                         -- Error checking
                         -- TODO: better to make a seperate process for error checking
@@ -535,6 +532,13 @@ architecture channel of qlaser_dacs_pulse_channel is
                     -- Hold the last address when complete
                     ------------------------------------------------------------------------
                     when  S_WAVE_UP =>
+                        -- Check if it is outputting last wave
+                        if unsigned(pc) >= pulse_written then
+                            sm_last             <= '1';
+                        else
+                            sm_last             <= '0';
+                        end if;
+
                         -- Check how far we are to the end of the end address. If is smaller than the scale time, then pad the address to the end address and move on to the next state
                         if (reg_wave_end_addr - unsigned(ram_waveform_addrb) < reg_scale_time) then
                             ram_waveform_addrb  <= std_logic_vector(reg_wave_end_addr);                                -- pad the address pointer to the end address
@@ -557,7 +561,6 @@ architecture channel of qlaser_dacs_pulse_channel is
                             pc                  <= (others=>'0');
                             ram_pulse_addrb     <= (others=>'0');
                             sm_wavedata         <= (others=>'0');
-                            sm_wavedata_dv      <= '0';
                         else
                             ram_waveform_addrb  <= std_logic_vector(unsigned(ram_waveform_addrb) + reg_scale_time);
                             wave_last_addr      <= std_logic_vector(unsigned(ram_waveform_addrb) + reg_scale_time);    -- hold the last address of the wavetable
@@ -567,12 +570,6 @@ architecture channel of qlaser_dacs_pulse_channel is
                         -- # ** Error: Prefix of slice name cannot be type conversion (STD_LOGIC_VECTOR) expression.
                         v_ram_waveform_doutb_multiplied := std_logic_vector(unsigned(ram_waveform_doutb) * reg_scale_gain);
                         sm_wavedata                     <= v_ram_waveform_doutb_multiplied(30 downto 15); 
-                        if (sm_state_d1 = S_WAIT) then                                                                 -- data valid is delayed by one clock cycle
-                            sm_wavedata_dv                  <= '0';
-                        else
-                            -- TODO: invalidate the data if ram_waveform_addrb has "x"
-                            sm_wavedata_dv                  <= '1';
-                        end if;
                         
                     ------------------------------------------------------------------------
                     -- Hold the last address and output its data
@@ -590,14 +587,12 @@ architecture channel of qlaser_dacs_pulse_channel is
                             pc                  <= (others=>'0');
                             ram_pulse_addrb     <= (others=>'0');
                             sm_wavedata         <= (others=>'0');
-                            sm_wavedata_dv      <= '0';
                         else
                             ram_waveform_addrb  <= std_logic_vector(reg_wave_end_addr);                                -- pad the address pointer to the end address
                             cnt_wave_top        <= cnt_wave_top + 1;
                         end if;
                         v_ram_waveform_doutb_multiplied := std_logic_vector(unsigned(ram_waveform_doutb) * reg_scale_gain);
                         sm_wavedata                     <= v_ram_waveform_doutb_multiplied(30 downto 15);
-                        sm_wavedata_dv                  <= '1';
                         
                     ------------------------------------------------------------------------
                     -- Output the falling edge of a waveform
@@ -607,7 +602,8 @@ architecture channel of qlaser_dacs_pulse_channel is
                         
                     -- End of waveform?
                         -- TODO: convert the numbers below to constaint. right now just make sure I'm not confused
-                        if (unsigned(ram_waveform_addrb) - reg_scale_time <= (resize(unsigned(reg_wave_start_addr), 20) sll 8)) or (unsigned(ram_waveform_addrb) = 0) then
+                        -- if (unsigned(ram_waveform_addrb) - reg_scale_time <= (resize(unsigned(reg_wave_start_addr), 20) sll 8)) or (unsigned(ram_waveform_addrb) = 0) then
+                        if (unsigned(ram_waveform_addrb) - (resize(unsigned(reg_wave_start_addr), 20) sll 8) < reg_scale_time) then
                             ram_waveform_addrb  <= (others=>'0'); -- reset the address for the next waveform
                             -- If the end of the pulse table is reached then go to idle, increment pulse address for the next waveform otherwise
                             if (ram_pulse_addrb = std_logic_vector(to_unsigned(C_LEN_PULSE-1, C_BITS_ADDR_PULSE))) then
@@ -620,7 +616,6 @@ architecture channel of qlaser_dacs_pulse_channel is
                                 pc                  <= (others=>'0');
                                 ram_pulse_addrb     <= (others=>'0');
                                 sm_wavedata         <= (others=>'0');
-                                sm_wavedata_dv      <= '0';
                             else                                                                                       -- increment pulse address for the next waveform
                                 ram_pulse_addrb     <= pc;
                                 if sm_last = '1' then
@@ -636,7 +631,6 @@ architecture channel of qlaser_dacs_pulse_channel is
                         end if;
                         v_ram_waveform_doutb_multiplied := std_logic_vector(unsigned(ram_waveform_doutb) * reg_scale_gain);
                         sm_wavedata                     <= v_ram_waveform_doutb_multiplied(30 downto 15); 
-                        sm_wavedata_dv                  <= '1'; 
     
                     ------------------------------------------------------------------------
                     -- Default
@@ -654,34 +648,36 @@ architecture channel of qlaser_dacs_pulse_channel is
         -- TBD: This should come from a FIFO
         -- TODO: the bits are not correct, should be top bits (C_BITS_GAIN_FACTOR + 16 downto C_BITS_GAIN_FACTOR), but for now just make it this way so modelsim can simulate
         axis_tdata          <= sm_wavedata;         -- axi stream output data, this output should be multiplied by the gain factor, then take the top 16 bits
-        -- axis_tvalid         <= sm_wavedata_dv;      -- axi_stream output data valid
-        axis_tvalid         <= '1' when not (sm_state = S_IDLE or sm_state = S_RESET) else '0';  -- always output valid data when not idle or reset so hopefully the fifo catch all.
+        axis_tvalid         <= sm_wavedata_dv;      -- axi_stream output data valid
+        -- axis_tvalid         <= '1' when not (sm_state = S_IDLE or sm_state = S_RESET) else '0';  -- always output valid data when not idle or reset so hopefully the fifo catch all.
+        -- axis_tvalid         <= '1' when (sm_state = S_LOAD or sm_state = S_WAIT or sm_state = S_WAVE_UP or sm_state = S_WAVE_FLAT or sm_state = S_WAVE_DOWN) else '0';  -- output when either waiting or outputting data
     
         -- last valid data outputted. indicated by direct transision from wave_down to wait.
         axis_tlast          <= '1' when (sm_state_d1 = S_WAVE_DOWN) and (sm_state = S_WAIT) else '0';  -- axi_stream output last 
+        -- axis_tlast          <= rising_edge(sm_last and not sm_wavedata_dv);  -- axi_stream output last
 
         ------------------------------------------------------------------------
         -- ILA DEBUG
         ------------------------------------------------------------------------
-        -- debug_probe(0)            <= sm_wavedata_dv;
-        -- debug_probe(1)            <= '0';
-        -- debug_probe(2)            <= '0';
-        -- debug_probe(3)            <= sm_last;
+        -- -- debug_probe(0)            <= sm_wavedata_dv;
+        -- -- debug_probe(1)            <= '0';
+        -- -- debug_probe(2)            <= '0';
+        -- -- debug_probe(3)            <= sm_last;
 
-        debug_probe(0)            <= done_seq;
-        debug_probe(1)            <= start;
-        debug_probe(2)            <= sm_last;
-        debug_probe(3)            <= sm_wavedata_dv;
-        debug_probe(15 downto 8)  <= std_logic_vector(pulse_written(7 downto 0));
-        debug_probe(23 downto 16) <= pc(7 downto 0);
-        debug_probe(24)           <= '1' when (sm_state = S_RESET)     else '0';
-        debug_probe(25)           <= '1' when (sm_state = S_IDLE)      else '0';
-        debug_probe(26)           <= '1' when (sm_state = S_WAIT)      else '0';
-        debug_probe(27)           <= '1' when (sm_state = S_LOAD)      else '0';
-        debug_probe(28)           <= '1' when (sm_state = S_HOLD)      else '0';
-        debug_probe(29)           <= '1' when (sm_state = S_WAVE_UP)   else '0';
-        debug_probe(30)           <= '1' when (sm_state = S_WAVE_FLAT) else '0';
-        debug_probe(31)           <= '1' when (sm_state = S_WAVE_DOWN) else '0';
+        -- debug_probe(0)            <= done_seq;
+        -- debug_probe(1)            <= start;
+        -- debug_probe(2)            <= sm_last;
+        -- debug_probe(3)            <= sm_wavedata_dv;
+        -- debug_probe(15 downto 8)  <= std_logic_vector(pulse_written(7 downto 0));
+        -- debug_probe(23 downto 16) <= pc(7 downto 0);
+        -- debug_probe(24)           <= '1' when (sm_state = S_RESET)     else '0';
+        -- debug_probe(25)           <= '1' when (sm_state = S_IDLE)      else '0';
+        -- debug_probe(26)           <= '1' when (sm_state = S_WAIT)      else '0';
+        -- debug_probe(27)           <= '1' when (sm_state = S_LOAD)      else '0';
+        -- debug_probe(28)           <= '1' when (sm_state = S_HOLD)      else '0';
+        -- debug_probe(29)           <= '1' when (sm_state = S_WAVE_UP)   else '0';
+        -- debug_probe(30)           <= '1' when (sm_state = S_WAVE_FLAT) else '0';
+        -- debug_probe(31)           <= '1' when (sm_state = S_WAVE_DOWN) else '0';
         
         -- u_pulse_dbg : entity work.ila_pulse
         -- PORT MAP (

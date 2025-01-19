@@ -27,3 +27,4 @@
 
 // // finally compile the testbench
 ../../src/hdl/testbench/tb_pulse_channel_random_polynomials.vhdl 
+../../src/hdl/testbench/tb_cpubus_dacs_pulse_channel.vhdl 

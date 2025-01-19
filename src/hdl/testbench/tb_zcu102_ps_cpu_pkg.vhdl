@@ -12,6 +12,8 @@ use     std.textio.all;
 use     work.std_iopak.all;
 
 use     work.qlaser_pkg.all;
+use     work.qlaser_dacs_pulse_channel_pkg.all;
+use     work.qlaser_addr_zcu102_pkg.all;
 
 
 package tb_zcu102_ps_cpu_pkg is
@@ -223,27 +225,16 @@ package body tb_zcu102_ps_cpu_pkg is
 
     constant C_ZEROS            : std_logic_vector(31 downto 0) := (others=>'0');
 
-    constant ADR_RAM_PDEF       : integer   := 0;    	-- 
+    constant ADR_RAM_PDEF       : integer   := to_integer(unsigned(ADR_BASE_PULSE_DEFN));
     constant ADR_RAM_WAVE       : integer   := 2048; 	-- bit 11 of addr selects RAM 
 
-    -- Define the number of fractional bits
-    -- Gain factor is a multiplier for the waveform RAM output value.
-    -- It has a maximum of 1.0, an unsigned, fixed point, represented by X"8000" [1.15]
-    -- A gain of 0.5 would be stored as X"4000". 
-    constant BIT_FRAC_GAIN      : integer := 15;  -- TODO: this should be defined in qlaser_pkg
 
-    -- Time factor is used to control the step increments for the waveform table address.
-    -- A maximum of 255.0, and a min of 1/256. So an unsigned, fixed point,  [8.8]
-    -- A factor of 1.0 (default) is stored as X"0100"
-    -- A factor of 2.0           is stored as X"0200" Skip alternate wave values
-    -- A factor of 0.5           is stored as X"0080" Use every wave value twice
-    constant BIT_FRAC_TIME      : integer :=  8;  -- TODO: this should be defined in qlaser_pkg
 
     begin
 
         -- Convert each field into its std_logic_vector equivalent
         slv_pulsetime     := std_logic_vector(to_unsigned(pulsetime, 24));
-        slv_timefactor    := std_logic_vector(to_unsigned(integer(timefactor * real(2**BIT_FRAC_TIME)), 16));  -- Convert real to std_logic_vector keeping the fractional part
+        slv_timefactor    := std_logic_vector(to_unsigned(integer(timefactor * real(2**BIT_FRAC)), 16));  -- Convert real to std_logic_vector keeping the fractional part
         slv_gainfactor    := std_logic_vector(to_unsigned(integer(gainfactor * real(2**BIT_FRAC_GAIN)), 16));  -- Convert real to std_logic_vector keeping the fractional part
         slv_wavestartaddr := std_logic_vector(to_unsigned(wavestartaddr, 12));
         slv_wavesteps     := std_logic_vector(to_unsigned(wavesteps, 10));
@@ -251,11 +242,12 @@ package body tb_zcu102_ps_cpu_pkg is
 
         -- Each entry is made up of four 32-bit RAM locations.
         -- Parameters are aligned to 8-bit boundaries
-        cpu_write(clk, ADR_RAM_PDEF+(4*num_entry  ) , C_ZEROS(31 downto 24) & slv_pulsetime,       cpu_rd, cpu_wr, cpu_addr, cpu_wdata);
-        cpu_write(clk, ADR_RAM_PDEF+(4*num_entry+1) , C_ZEROS(31 downto 26) & slv_wavesteps
-                                                    & C_ZEROS(15 downto 12) & slv_wavestartaddr,   cpu_rd, cpu_wr, cpu_addr, cpu_wdata);
-        cpu_write(clk, ADR_RAM_PDEF+(4*num_entry+2) , slv_timefactor        & slv_gainfactor,      cpu_rd, cpu_wr, cpu_addr, cpu_wdata);
-        cpu_write(clk, ADR_RAM_PDEF+(4*num_entry+3) , C_ZEROS(31 downto 17) & slv_wavetopwidth,    cpu_rd, cpu_wr, cpu_addr, cpu_wdata);
+
+        cpu_write(clk, ADR_RAM_PDEF+4*(4*num_entry  ) , C_ZEROS(31 downto 24) & slv_pulsetime,       cpu_rd, cpu_wr, cpu_addr, cpu_wdata);
+        cpu_write(clk, ADR_RAM_PDEF+4*(4*num_entry+1) , C_ZEROS(31 downto 26) & slv_wavesteps
+                                                      & C_ZEROS(15 downto 12) & slv_wavestartaddr,   cpu_rd, cpu_wr, cpu_addr, cpu_wdata);
+        cpu_write(clk, ADR_RAM_PDEF+4*(4*num_entry+2) , slv_gainfactor        & slv_timefactor,      cpu_rd, cpu_wr, cpu_addr, cpu_wdata);
+        cpu_write(clk, ADR_RAM_PDEF+4*(4*num_entry+3) , C_ZEROS(31 downto 17) & slv_wavetopwidth,    cpu_rd, cpu_wr, cpu_addr, cpu_wdata);
     end;
 
 

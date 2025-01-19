@@ -153,49 +153,34 @@ begin
         -- write pulse def
         -- entry_pulse_defn(0, 40, 0, 0x0010, 0x8000, 0x100, 0x00010); 
         cpu_print_msg("Define pulses");
-        cpu_write(clk, ADR_BASE_PULSE_DEFN,                   X"00000064", rd, wr, addr, wdata); -- start time
-        cpu_write(clk, ADR_BASE_PULSE_DEFN or "00" & X"0004", X"00040000", rd, wr, addr, wdata); -- wave length, wave addr
-        cpu_write(clk, ADR_BASE_PULSE_DEFN or "00" & X"0008", X"80000100", rd, wr, addr, wdata); -- scale addr, scale gain
-        cpu_write(clk, ADR_BASE_PULSE_DEFN or "00" & X"000C", X"00000002", rd, wr, addr, wdata); -- flat top
+
+        -- cpu_write(clk, ADR_BASE_PULSE_DEFN,                   X"00000004", rd, wr, addr, wdata); -- start time
+        -- cpu_write(clk, ADR_BASE_PULSE_DEFN or "00" & X"0004", X"00040000", rd, wr, addr, wdata); -- wave length, wave addr
+        -- cpu_write(clk, ADR_BASE_PULSE_DEFN or "00" & X"0008", X"80000100", rd, wr, addr, wdata); -- scale addr, scale gain
+        -- cpu_write(clk, ADR_BASE_PULSE_DEFN or "00" & X"000C", X"00000004", rd, wr, addr, wdata); -- flat top
+
+        cpu_write_pdef(clk, 0,  4, 0, 4, 4, 1.0, 1.0, rd, wr, addr, wdata);
+        cpu_write_pdef(clk, 1, 31, 0, 4, 4, 1.0, 1.0, rd, wr, addr, wdata);
         
         clk_delay(10, clk);
-        -- write waveform
-        -- -- Load a ramp waveform into the RAM
-        -- for NADDR in 0 to 2047 loop
-        --     v_ndata32_upper := NADDR * 2**16;
-        --     v_ndata32_lower := NADDR;
-        --     v_ndata32       := v_ndata32_upper + v_ndata32_lower;
-        --     cpu_write(
-        --         clk, 
-        --         -- (2048 + NADDR) , 
-        --         "01" & x"2" & std_logic_vector(to_unsigned(NADDR, C_WIDTH_PS_ADDR_BUS - 6)), 
-        --         std_logic_vector(to_unsigned(v_ndata32,32)), 
-        --         rd, 
-        --         wr, 
-        --         addr,
-        --         wdata
-        --     );
-        --     v_ndata16       := v_ndata16 + 2;
-        --     wait until rising_edge(clk);
-        -- end loop;
-
-        cpu_write(clk, ADR_BASE_PULSE_WAVE                  , X"00010002", rd, wr, addr, wdata); 
-        cpu_write(clk, ADR_BASE_PULSE_WAVE or "00" & X"0004", X"00040003", rd, wr, addr, wdata); 
-        cpu_write(clk, ADR_BASE_PULSE_WAVE or "00" & X"0008", X"00060005", rd, wr, addr, wdata); 
-        cpu_write(clk, ADR_BASE_PULSE_WAVE or "00" & X"000C", X"00080007", rd, wr, addr, wdata); 
-        
-        -- for i in 0 to 255 loop
-        --     -- cpu_addr(9 downto 0) <= std_logic_vector(to_unsigned(i, 10)); -- ram_pulse_addra
-        --     wait until rising_edge(clk);
-        --     -- cpu_wdata(15 downto 0) <= std_logic_vector(to_unsigned(i, 16));
-        --     -- cpu_wdata(31 downto 16) <= std_logic_vector(to_unsigned(i, 16));
-        --     cpu_write(clk, "01" & x"2" & "00" & std_logic_vector(to_unsigned(i, 10)), std_logic_vector(to_unsigned(i, 16)) & std_logic_vector(to_unsigned(i, 16)), rd, wr, addr, wdata); 
-
-            
-        --     wait until rising_edge(clk);
-
-        -- end loop;
-        -- wait until rising_edge(clk);
+        cpu_print_msg("write waveform");
+        -- Load a ramp waveform into the RAM
+        for NADDR in 0 to 2047 loop
+            v_ndata32_upper := (v_ndata16 + 1) * 2**16;
+            v_ndata32_lower := v_ndata16;
+            v_ndata32       := v_ndata32_upper + v_ndata32_lower;
+            cpu_write(
+                clk, 
+                to_integer(unsigned(ADR_BASE_PULSE_WAVE)) + 4*NADDR,
+                v_ndata32,
+                rd, 
+                wr, 
+                addr,
+                wdata
+            );
+            v_ndata16       := v_ndata16 + 2;
+            wait until rising_edge(clk);
+        end loop;
 
         cpu_print_msg("##### Waves loaded! #####");
 
@@ -215,16 +200,12 @@ begin
         -- wait until rising_edge(clk);
         -- cpu_write(clk, ADR_MISC_DEBUG_TRIGGER    , X"00000000", rd, wr, addr, wdata);
 
-        cpu_print_msg("Current debug value: " & to_string(gpio_int_in_tri_i));
-
         clk_delay(SIM_DURATION, clk);
-
-        
 
         ----------------------------------------------------------------
         -- ADD CUSTOM REGISTER COMMANDS ABOVE HERE
         ----------------------------------------------------------------
-        
+        cpu_print_msg("Current debug value: " & to_string(gpio_int_in_tri_i));
         cpu_print_msg("CPU done");
         -- clk_delay(5, clk);
 		

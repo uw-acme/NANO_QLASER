@@ -21,6 +21,7 @@ use     ieee.math_real.all;
 
 
 use     std_developerskit.std_iopak.all;
+use     work.qlaser_pkg.all;
 use     work.qlaser_dacs_pulse_channel_pkg.all;
 use     work.qlasert_pulse_channel_tasks.all;
 
@@ -209,16 +210,28 @@ begin
         -- v_pdef(v_pulseaddr).sustain := 5;
         -- v_pdef(v_pulseaddr).coefficients(0 to 1) := (0.385649, 0.483473);
 
-        v_pdef(v_pulseaddr).timefactor := 1.996094;
-        v_pdef(v_pulseaddr).gainfactor := 0.476990;
-        v_pdef(v_pulseaddr).startaddr := 0;
+        v_pdef(v_pulseaddr).timefactor := 1.0;
+        v_pdef(v_pulseaddr).gainfactor := 1.0;
+        v_pdef(v_pulseaddr).startaddr := 6;
         v_pdef(v_pulseaddr).steps := 4;
-        v_pdef(v_pulseaddr).sustain := 2;
-        v_pdef(v_pulseaddr).coefficients(0 to 1) := (0.563951, 0.703244);
+        v_pdef(v_pulseaddr).sustain := 4;
+        v_pdef(v_pulseaddr).coefficients(0) := 1.0;
 
         -- v_pdef(v_pulseaddr + 1).starttime := v_pdef(v_pulseaddr).starttime + v_pdef(v_pulseaddr).steps * 2 + v_pdef(v_pulseaddr).sustain + 4 + 3 + 1;
         pdef_fakeram(v_pulseaddr) <= v_pdef(v_pulseaddr);
         cpu_write_pulsedef(clk, v_pulseaddr*4, v_pdef(v_pulseaddr).starttime, v_pdef(v_pulseaddr).timefactor, v_pdef(v_pulseaddr).gainfactor, v_pdef(v_pulseaddr).startaddr, v_pdef(v_pulseaddr).steps, v_pdef(v_pulseaddr).sustain, cpu_sel, cpu_wr, cpu_addr, cpu_wdata);
+
+        -- clk_delay(1);
+        -- v_pulseaddr := 1;
+        -- v_pdef(v_pulseaddr).starttime := 32;
+        -- v_pdef(v_pulseaddr).timefactor := 1.0;
+        -- v_pdef(v_pulseaddr).gainfactor := 1.0;
+        -- v_pdef(v_pulseaddr).startaddr := 0;
+        -- v_pdef(v_pulseaddr).steps := 2;
+        -- v_pdef(v_pulseaddr).sustain := 4;
+        -- v_pdef(v_pulseaddr).coefficients(0) := 1.0;
+        -- pdef_fakeram(v_pulseaddr) <= v_pdef(v_pulseaddr);
+        -- cpu_write_pulsedef(clk, v_pulseaddr*4, v_pdef(v_pulseaddr).starttime, v_pdef(v_pulseaddr).timefactor, v_pdef(v_pulseaddr).gainfactor, v_pdef(v_pulseaddr).startaddr, v_pdef(v_pulseaddr).steps, v_pdef(v_pulseaddr).sustain, cpu_sel, cpu_wr, cpu_addr, cpu_wdata);
         
         cpu_print_msg("Pulse RAM loaded");
         clk_delay(20);
