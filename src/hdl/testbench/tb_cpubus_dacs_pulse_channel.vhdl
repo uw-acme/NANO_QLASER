@@ -173,6 +173,8 @@ begin
     variable v_pdef            : arr_pdef;        -- pulse definition arrays
     variable v_pulsetime_total : integer := 0;    -- total time for all pulses
 
+    variable temp_int1         : integer := 1;
+
     begin
         -- Reset 
         reset       <= '1';
@@ -202,7 +204,7 @@ begin
         
         -- Same pulse but scaled addr
         v_pulseaddr := 0;
-        v_pdef(v_pulseaddr).starttime := 4;
+        v_pdef(v_pulseaddr).starttime := 5;
         -- v_pdef(v_pulseaddr).timefactor := 174.796875;
         -- v_pdef(v_pulseaddr).gainfactor := 0.186554;
         -- v_pdef(v_pulseaddr).startaddr := 0;
@@ -212,8 +214,8 @@ begin
 
         v_pdef(v_pulseaddr).timefactor := 1.0;
         v_pdef(v_pulseaddr).gainfactor := 1.0;
-        v_pdef(v_pulseaddr).startaddr := 6;
-        v_pdef(v_pulseaddr).steps := 4;
+        v_pdef(v_pulseaddr).startaddr := 4;
+        v_pdef(v_pulseaddr).steps := 5;
         v_pdef(v_pulseaddr).sustain := 4;
         v_pdef(v_pulseaddr).coefficients(0) := 1.0;
 
@@ -221,12 +223,12 @@ begin
         pdef_fakeram(v_pulseaddr) <= v_pdef(v_pulseaddr);
         cpu_write_pulsedef(clk, v_pulseaddr*4, v_pdef(v_pulseaddr).starttime, v_pdef(v_pulseaddr).timefactor, v_pdef(v_pulseaddr).gainfactor, v_pdef(v_pulseaddr).startaddr, v_pdef(v_pulseaddr).steps, v_pdef(v_pulseaddr).sustain, cpu_sel, cpu_wr, cpu_addr, cpu_wdata);
 
-        -- clk_delay(1);
+        clk_delay(1);
         -- v_pulseaddr := 1;
-        -- v_pdef(v_pulseaddr).starttime := 32;
+        -- v_pdef(v_pulseaddr).starttime := v_pdef(v_pulseaddr - 1).starttime + v_pdef(v_pulseaddr - 1).steps * 2 + v_pdef(v_pulseaddr - 1).sustain + 5;
         -- v_pdef(v_pulseaddr).timefactor := 1.0;
         -- v_pdef(v_pulseaddr).gainfactor := 1.0;
-        -- v_pdef(v_pulseaddr).startaddr := 0;
+        -- v_pdef(v_pulseaddr).startaddr := 6;
         -- v_pdef(v_pulseaddr).steps := 2;
         -- v_pdef(v_pulseaddr).sustain := 4;
         -- v_pdef(v_pulseaddr).coefficients(0) := 1.0;
@@ -237,7 +239,8 @@ begin
         clk_delay(20);
 
         -- TODO: if coeff is >= 1 vhdl doesnt like it?
-        poly_gen_ram(clk, v_pdef(v_pulseaddr).startaddr, v_pdef(v_pulseaddr).steps, DEGREES, v_pdef(v_pulseaddr).coefficients, cpu_sel, cpu_wr, cpu_addr, cpu_wdata);
+        poly_gen_ram(clk, v_pdef(0).startaddr, v_pdef(0).steps, DEGREES, v_pdef(0).coefficients, cpu_sel, cpu_wr, cpu_addr, cpu_wdata);
+        -- poly_gen_ram(clk, v_pdef(1).startaddr, v_pdef(1).steps, DEGREES, v_pdef(1).coefficients, cpu_sel, cpu_wr, cpu_addr, cpu_wdata);
         cpu_print_msg("Load waveform RAM");  
         clk_delay(20);
         

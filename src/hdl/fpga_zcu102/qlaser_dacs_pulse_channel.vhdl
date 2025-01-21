@@ -488,22 +488,22 @@ architecture channel of qlaser_dacs_pulse_channel is
                             -- time is up or done_seq is set, finish the sequence
                             sm_state                <= S_IDLE;
                             -- reset everything
-                            pc                  <= (others=>'0');
-                            ram_pulse_addrb     <= (others=>'0');
-                            sm_wavedata         <= (others=>'0');
+                            pc                      <= (others=>'0');
+                            ram_pulse_addrb         <= (others=>'0');
+                            sm_wavedata             <= (others=>'0');
                         elsif (sm_state_d1 = S_WAVE_DOWN) then  -- output the last pulse definition address for one more clock cycle
                             v_ram_waveform_doutb_multiplied := std_logic_vector(unsigned(ram_waveform_doutb) * reg_scale_gain);
-                            sm_wavedata                     <= v_ram_waveform_doutb_multiplied(30 downto 15); 
+                            sm_wavedata             <= v_ram_waveform_doutb_multiplied(30 downto 15); 
                         elsif (sm_last = '1') then
-                            sm_wavedata                     <= (others=>'0');
-                            sm_wavedata_dv                  <= '0';
+                            sm_wavedata             <= (others=>'0');
+                            sm_wavedata_dv          <= '0';
                         end if;
                         
                        
 
                         ------------------------------------------------------------------------
                         -- Error checking
-                        -- TODO: better to make a seperate process for error checking
+                        -- TODO: better to make a seperate process for error checking?
                         ------------------------------------------------------------------------
                         if ((C_LENGTH_WAVEFORM - 1) - unsigned(reg_wave_start_addr) < reg_wave_length) then
                             -- if the length is bigger than the wavetable, then the address will overflow
@@ -512,7 +512,7 @@ architecture channel of qlaser_dacs_pulse_channel is
                         if (reg_wave_length <= 1) then
                             erros(C_INVAL_LENGTH)   <= '1';
                         end if;
-                        if (reg_scale_time(C_BITS_TIME_FACTOR - 1 downto BIT_FRAC) >= reg_wave_length) then
+                        if (reg_scale_time(C_BITS_TIME_FACTOR - 1 downto BIT_FRAC) > reg_wave_length) then
                             -- Time step bigger than the size of the rise
                             erros(C_ERR_BIG_STEP)   <= '1';
                         end if;
@@ -601,9 +601,9 @@ architecture channel of qlaser_dacs_pulse_channel is
                     when S_WAVE_DOWN =>
                         
                     -- End of waveform?
-                        -- TODO: convert the numbers below to constaint. right now just make sure I'm not confused
                         -- if (unsigned(ram_waveform_addrb) - reg_scale_time <= (resize(unsigned(reg_wave_start_addr), 20) sll 8)) or (unsigned(ram_waveform_addrb) = 0) then
-                        if (unsigned(ram_waveform_addrb) - (resize(unsigned(reg_wave_start_addr), 20) sll 8) < reg_scale_time) then
+                        -- ram_waveform_addrb has to be bigger than time scale to avoid underflow
+                        if (unsigned(ram_waveform_addrb) < reg_scale_time) or (unsigned(ram_waveform_addrb) - reg_scale_time < (resize(unsigned(reg_wave_start_addr), C_BITS_ADDR_FULL) sll BIT_FRAC)) then
                             ram_waveform_addrb  <= (others=>'0'); -- reset the address for the next waveform
                             -- If the end of the pulse table is reached then go to idle, increment pulse address for the next waveform otherwise
                             if (ram_pulse_addrb = std_logic_vector(to_unsigned(C_LEN_PULSE-1, C_BITS_ADDR_PULSE))) then

@@ -9,7 +9,7 @@ import multiprocessing
 from rich import print
 from analyze import main as analyze
 
-SD_START = 1 # random.randint(0, 2**31 - 1)  # Start of the seed range
+SD_START = random.randint(0, 2**31 - 1)  # Start of the seed range
 N = 1000  # Number of times to run the testbench
 
 MAX_THREADS = int(os.cpu_count() / 2)  # Number of threads to run the testbench (half of the available threads)

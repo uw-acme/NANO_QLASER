@@ -159,8 +159,8 @@ begin
         -- cpu_write(clk, ADR_BASE_PULSE_DEFN or "00" & X"0008", X"80000100", rd, wr, addr, wdata); -- scale addr, scale gain
         -- cpu_write(clk, ADR_BASE_PULSE_DEFN or "00" & X"000C", X"00000004", rd, wr, addr, wdata); -- flat top
 
-        cpu_write_pdef(clk, 0,  4, 0, 4, 4, 1.0, 1.0, rd, wr, addr, wdata);
-        cpu_write_pdef(clk, 1, 31, 0, 4, 4, 1.0, 1.0, rd, wr, addr, wdata);
+        cpu_write_pdef(clk, 0,  5, 4, 5, 4, 1.0, 1.0, rd, wr, addr, wdata);
+        -- cpu_write_pdef(clk, 1, 31, 0, 4, 4, 1.0, 1.0, rd, wr, addr, wdata);
         
         clk_delay(10, clk);
         cpu_print_msg("write waveform");

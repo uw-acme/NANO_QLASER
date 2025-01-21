@@ -33,7 +33,8 @@ entity tb_pulse_channel_random_polynomials is
     generic (
         SEED        : integer := 1;
         RESULT_FILE : string  := "errors.txt";
-        DEGREES     : integer := 2
+        DEGREES     : integer := 2;
+        RATIO_THRESH: real    := 2.0  -- The ratio threshold for the error/delta
     );
 end    tb_pulse_channel_random_polynomials;
 
@@ -393,10 +394,22 @@ begin
         cpu_print_msg("Start the pulse outputs");
         while v_pulseaddr < total_pulses loop
             cnt_time      <= std_logic_vector(unsigned(cnt_time) + 1); 
+
+            -- exit on any error
+            if or_reduce(erros) = '1' then
+                cpu_print_msg("Hardware error detected: " & to_string(erros));
+                exit;
+            end if; 
             
             -- Force increment the pulse address if the current time is the next pulse start time or falling edge of axis_tvalid (wave just finished output)
-            if (start_times(v_pulseaddr + 1) = real(to_integer(unsigned(cnt_time)))) or falling_edge(axis_tvalid) then
+            if (start_times(v_pulseaddr + 1) = real(to_integer(unsigned(cnt_time)))) or axis_tlast = '1' then
                 v_pulseaddr := v_pulseaddr + 1;  -- force increment the pulse address
+                if max_error/mx_err_delta > RATIO_THRESH then
+                    cpu_print_msg("    ""status"":       ""FAILED""");
+                else
+                    cpu_print_msg("    ""status"":       ""PASS""");
+                end if;
+                cpu_print_msg("},");
             end if;
 
             -- Output wave infomations to the console
@@ -405,15 +418,8 @@ begin
                 cpu_print_msg("    ""constants"":    [" & real_arr_to_string(DEGREES, arr_coeffs(v_pulseaddr)) & "],");
                 cpu_print_msg("    ""gain_factors"": " & to_string(gain_factors(v_pulseaddr)) & ",");
                 cpu_print_msg("    ""time_factors"": " & to_string(time_factors(v_pulseaddr)) & ",");
-                cpu_print_msg("    ""size"":  " & to_string(pulse_times(v_pulseaddr)) & "");
-                cpu_print_msg("}");
+                cpu_print_msg("    ""size"":         " & to_string(pulse_times(v_pulseaddr)) & ",");
             end if;
-
-            -- exit on any error
-            if or_reduce(erros) = '1' then
-                cpu_print_msg("Hardware error detected: " & to_string(erros));
-                exit;
-            end if; 
 
             wave_values   <= poly_gen(DEGREES, x_processed / pulse_times(v_pulseaddr), arr_coeffs(v_pulseaddr)) * gain_factors(v_pulseaddr);
             rel_time      := real(to_integer(unsigned(cnt_time))) - start_times(v_pulseaddr);  -- First calculate relative time once
