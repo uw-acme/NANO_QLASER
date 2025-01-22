@@ -179,7 +179,6 @@ begin
                 wdata
             );
             v_ndata16       := v_ndata16 + 2;
-            wait until rising_edge(clk);
         end loop;
 
         cpu_print_msg("##### Waves loaded! #####");
@@ -192,10 +191,10 @@ begin
         -- trigger
         cpu_print_msg("Enable Pulse");
         gpio_int_o  <= std_logic_vector(to_unsigned(2, 32));
-        clk_delay(10, clk);
+        clk_delay(0, clk);
 
         cpu_print_msg("Toggle trigger");
-        clk_delay(10, clk);
+        clk_delay(0, clk);
         cpu_write(clk, ADR_MISC_DEBUG_TRIGGER    , X"00000001", rd, wr, addr, wdata); -- start run
         -- wait until rising_edge(clk);
         -- cpu_write(clk, ADR_MISC_DEBUG_TRIGGER    , X"00000000", rd, wr, addr, wdata);

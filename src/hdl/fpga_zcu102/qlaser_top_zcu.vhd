@@ -220,8 +220,7 @@ begin
     cif_reset <= not(ps_resetn0);
 
     -- Combine p_btn trigger (from pad) with misc block trigger and ps_gpout(0) to create internal trigger
-    -- TODO: should the user input trigger contered to one-cycle short pulse?
-    trigger_dacs_pulse      <= (p_btn_c or misc_trigger or ps_gpout(C_GPIO_PS_TRIG)) and not(p2p0_active) and not(p2p1_active) and not(dacs_pulse_busy) and fifo_almost_empty0 and fifo_almost_empty1;  -- ensure ALL resources are available 
+    trigger_dacs_pulse      <= (p_btn_c or misc_trigger or ps_gpout(C_GPIO_PS_TRIG)) and not(p2p0_active) and not(p2p1_active) and not(dacs_pulse_busy);  -- ensure ALL resources are available 
     ps_enable_dacs_pulse    <= ps_gpout(C_GPIO_PS_EN);
     any_dacs_busy           <= dacs_dc_busy(0) or dacs_dc_busy(1) or dacs_dc_busy(2) or dacs_dc_busy(3) or dacs_pulse_busy;
 
