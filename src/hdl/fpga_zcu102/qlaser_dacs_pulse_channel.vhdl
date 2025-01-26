@@ -410,7 +410,7 @@ architecture channel of qlaser_dacs_pulse_channel is
                     -- Send a zero value to initialize the DAC then go to idle.
                     ------------------------------------------------------------------------
                     when  S_RESET   =>
-    
+                        -- TODO: get rid of the ifs
                         if (enable = '1') and (enable_d1 = '0') then
                             sm_wavedata     <= (others=>'0');
                             sm_wavedata_dv  <= '0';
@@ -423,7 +423,7 @@ architecture channel of qlaser_dacs_pulse_channel is
                     -- No data output.
                     ------------------------------------------------------------------------
                     when  S_IDLE    =>
-                        if (start = '1') and (start_d1 = '0') then
+                        if (start = '1') and (start_d1 = '0') and (enable = '1') then
                             sm_state        <= S_LOAD;
                             sm_busy         <= '1';
                             sm_wavedata_dv  <= '1';
@@ -469,7 +469,7 @@ architecture channel of qlaser_dacs_pulse_channel is
                                                                                                                        -- forth quarter of the pulse definition, the scale factors are loaded
                             reg_scale_gain      <= unsigned(ram_pulse_doutb(31 downto 16));
                             reg_scale_time      <= unsigned(ram_pulse_doutb(15 downto 0));
-                            -- TODO: also output an error if time scale overflows, or either time or gain is in invalid range
+
                             reg_wave_end_addr   <=  resize(unsigned(reg_wave_start_addr) + reg_wave_length - 1, 20) sll 8;  -- get the supposed last value of the wavetable
                         end if;
 
@@ -532,10 +532,10 @@ architecture channel of qlaser_dacs_pulse_channel is
                             v_ram_waveform_doutb_multiplied := std_logic_vector(unsigned(ram_waveform_doutb) * reg_scale_gain);
                             sm_wavedata             <= v_ram_waveform_doutb_multiplied(30 downto 15); 
                             sm_last                 <= '1';
-                        elsif sm_last = '1' then
-                            sm_last                 <= '0';  -- incase this flag not cleared and messed up valid
-                            sm_wavedata             <= (others=>'0');
-                            sm_wavedata_dv          <= '0';
+                        -- elsif sm_last = '1' then
+                        --     sm_last                 <= '0';  -- incase this flag not cleared and messed up valid
+                        --     sm_wavedata             <= (others=>'0');
+                        --     sm_wavedata_dv          <= '0';
                         end if;
 
                     ------------------------------------------------------------------------
@@ -653,9 +653,9 @@ architecture channel of qlaser_dacs_pulse_channel is
         -- TBD: This should come from a FIFO
         -- TODO: the bits are not correct, should be top bits (C_BITS_GAIN_FACTOR + 16 downto C_BITS_GAIN_FACTOR), but for now just make it this way so modelsim can simulate
         axis_tdata          <= sm_wavedata;         -- axi stream output data, this output should be multiplied by the gain factor, then take the top 16 bits
-        axis_tvalid         <= sm_wavedata_dv;      -- axi_stream output data valid
+        -- axis_tvalid         <= sm_wavedata_dv;      -- axi_stream output data valid
         -- axis_tvalid         <= '1' when not (sm_state = S_IDLE or sm_state = S_RESET) else '0';  -- always output valid data when not idle or reset so hopefully the fifo catch all.
-        -- axis_tvalid         <= '1' when (sm_state = S_LOAD or sm_state = S_WAIT or sm_state = S_WAVE_UP or sm_state = S_WAVE_FLAT or sm_state = S_WAVE_DOWN) else '0';  -- output when either waiting or outputting data
+        axis_tvalid         <= '1' when (sm_state = S_LOAD or sm_state = S_WAIT or sm_state = S_WAVE_UP or sm_state = S_WAVE_FLAT or sm_state = S_WAVE_DOWN) else '0';  -- output when either waiting or outputting data
     
         -- last valid data outputted. indicated by direct transision from wave_down to wait.
         -- axis_tlast          <= '1' when (sm_state_d1 = S_WAVE_DOWN) and (sm_state = S_WAIT) else '0';  -- axi_stream output last 

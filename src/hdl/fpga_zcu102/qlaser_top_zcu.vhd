@@ -215,7 +215,7 @@ signal pulse2pmod1_busy              : std_logic;
 begin
 
     clk     <= ps_clk0;
-    reset   <= p_reset or not(ps_resetn0);  -- added to allow reset from PS
+    reset   <= p_reset or not(ps_resetn0) or ps_gpout(31);  -- added to allow reset from PS. TODO: temporary solution using MSB of gpout. need to figure out use of reset from PS
     resetn  <= not(reset);
     cif_reset <= not(ps_resetn0);
 
@@ -336,24 +336,24 @@ begin
         cpu_rdata_dv        => arr_cpu_dout_dv(SEL_DAC_DC)  , -- out std_logic;                        -- Acknowledge output
                        
         -- Interface SPI bus to 8-channel PMOD for DC channels 0-7
-        dc0_sclk            => p_dc3_sclk                   , -- out   std_logic;          -- Clock (50 MHz?)
-        dc0_mosi            => p_dc3_mosi                   , -- out   std_logic;          -- Master out, Slave in. (Data to DAC)
-        dc0_cs_n            => p_dc3_cs_n                   , -- out   std_logic;          -- Active low chip select (sync_n)
+        dc0_sclk            => open                         , -- out   std_logic;          -- Clock (50 MHz?)
+        dc0_mosi            => open                         , -- out   std_logic;          -- Master out, Slave in. (Data to DAC)
+        dc0_cs_n            => open                         , -- out   std_logic;          -- Active low chip select (sync_n)
         --
         -- Interface SPI bus to 8-channel PMOD for DC channels 8-15
-        dc1_sclk            => p_dc2_sclk                   , -- out   std_logic;  
-        dc1_mosi            => p_dc2_mosi                   , -- out   std_logic;  
-        dc1_cs_n            => p_dc2_cs_n                   , -- out   std_logic;  
+        dc1_sclk            => open                         , -- out   std_logic;  
+        dc1_mosi            => open                         , -- out   std_logic;  
+        dc1_cs_n            => open                         , -- out   std_logic;  
         
         -- Interface SPI bus to 8-channel PMOD for DC channels 16-23
-        dc2_sclk            => open                         , -- out   std_logic;  
-        dc2_mosi            => open                         , -- out   std_logic;  
-        dc2_cs_n            => open                         , -- out   std_logic;  
+        dc2_sclk            => p_dc2_sclk                   , -- out   std_logic;  
+        dc2_mosi            => p_dc2_mosi                   , -- out   std_logic;  
+        dc2_cs_n            => p_dc2_cs_n                   , -- out   std_logic;  
         
         -- Interface SPI bus to 8-channel PMOD for DC channels 24-31
-        dc3_sclk            => open                   , -- out   std_logic; 
-        dc3_mosi            => open                   , -- out   std_logic;  
-        dc3_cs_n            => open                     -- out   std_logic;
+        dc3_sclk            => p_dc3_sclk                   , -- out   std_logic; 
+        dc3_mosi            => p_dc3_mosi                   , -- out   std_logic;  
+        dc3_cs_n            => p_dc3_cs_n                     -- out   std_logic;
         
     );
     
@@ -539,8 +539,9 @@ begin
     pulse(3)              <= trigger_dacs_pulse;
 
     p_leds(0)             <= misc_flash or gpio_btns(0);
-    p_leds(1)             <= '1' when unsigned(fifo_axis0_tdata) > 0 else '0';
-    p_leds(2)             <= '1' when unsigned(fifo_axis1_tdata) > 0 else '0';
+    -- Geoff drops lower two bits of cpu_addr, so we connect those two to LED so we know if we have wrong address
+    p_leds(1)             <= ps_cpu_addr(0) or ps_cpu_addr(1);
+    p_leds(2)             <= cpu_sels(SEL_DAC_DC);
     p_leds(3)             <= p2p0_active;
     p_leds(4)             <= p2p1_active;
     p_leds(5)             <= (not ps_resetn0) or ps_leds(0) or dacs_pulse_busy;  

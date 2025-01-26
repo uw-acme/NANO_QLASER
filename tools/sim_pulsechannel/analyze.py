@@ -1,8 +1,10 @@
 import sys
+import os
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import cyclopts
+from glob import glob
 from rich import print
 
 # Set pandas to display all rows
@@ -109,6 +111,17 @@ def plot(csv: str, stat: dict | None = None, col: str=" Max Error", figname: str
     else:
         plt.show()
     
-if __name__ == "__main__":
-    sys.exit(app())
+# if __name__ == "__main__":
+#     sys.exit(app())
 
+results = glob("**/results/polyruns-2025-01-23*.csv", recursive=True)
+
+combined = open("combined.csv", "w")
+
+combined.write("Run#, Time (ns), Max Error, Delta, Error/Delta, Pulse Number, CNT-Time\n")
+
+for result in results:
+    filestr = open(result, 'r').readlines()
+    for line in filestr[1:]:
+        if "," in line:
+            combined.write(line)

@@ -7,7 +7,7 @@ import random
 import multiprocessing
 
 from rich import print
-from analyze import main as analyze
+# from analyze import main as analyze
 
 SD_START = random.randint(0, 2**31 - 1)  # Start of the seed range
 N = 1000  # Number of times to run the testbench
@@ -50,6 +50,6 @@ if __name__ == '__main__':
     end_time = time.time()
     print(f"Total sim time: {end_time - start_time} seconds")
     
-    # Analyze the results
-    analyze(results, col=" Error/Delta", figname=f"results/polyruns-{current_datetime}.png", file=f"results/result-{current_datetime}.txt")
+    # # Analyze the results
+    # analyze(results, col=" Error/Delta", figname=f"results/polyruns-{current_datetime}.png", file=f"results/result-{current_datetime}.txt")
     

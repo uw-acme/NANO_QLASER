@@ -337,7 +337,9 @@ begin
             end loop;
 
             v_pulseaddr := v_pulseaddr + 1;
-            v_pulsetime := v_pulsetime + 2 * (1 + integer(floor(real(v_wavesteps - 1) / v_timefactor))) + v_wavetopwidth + 431;
+
+            uniform(seed1, seed2, x);
+            v_pulsetime := v_pulsetime + 2 * (1 + integer(floor(real(v_wavesteps - 1) / v_timefactor))) + v_wavetopwidth + integer(ceil(x + 4.0));
         end loop;
 
         cpu_print_msg("Done generating random polynomials");
@@ -383,6 +385,8 @@ begin
         cpu_print_msg("Waveform RAM Loaded");
         clk_delay(20);
         v_pulseaddr     := 0;    -- manually reset the pulse address, 0 to 255
+
+        
         ----------------------------------------------------------------
         -- Start the pulse outputs
         ----------------------------------------------------------------        
