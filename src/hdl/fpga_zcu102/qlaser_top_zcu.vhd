@@ -250,13 +250,20 @@ begin
 
 
     -- Pulse 2 PMOD SPI interface
-    p_dc0_sclk      <= p2p_spi0_sclk; 
-    p_dc0_mosi      <= p2p_spi0_mosi; 
-    p_dc0_cs_n      <= p2p_spi0_cs_n; 
+    -- p_dc0_sclk      <= p2p_spi0_sclk; 
+    -- p_dc0_mosi      <= p2p_spi0_mosi; 
+    -- p_dc0_cs_n      <= p2p_spi0_cs_n; 
 
-    p_dc1_sclk      <= p2p_spi1_sclk;
-    p_dc1_mosi      <= p2p_spi1_mosi;
-    p_dc1_cs_n      <= p2p_spi1_cs_n;
+    -- p_dc1_sclk      <= p2p_spi1_sclk;
+    -- p_dc1_mosi      <= p2p_spi1_mosi;
+    -- p_dc1_cs_n      <= p2p_spi1_cs_n;
+    p_dc2_sclk      <= p2p_spi0_sclk; 
+    p_dc2_mosi      <= p2p_spi0_mosi; 
+    p_dc2_cs_n      <= p2p_spi0_cs_n; 
+
+    p_dc3_sclk      <= p2p_spi1_sclk;
+    p_dc3_mosi      <= p2p_spi1_mosi;
+    p_dc3_cs_n      <= p2p_spi1_cs_n;
 
 
     ---------------------------------------------------------------------------------
@@ -336,24 +343,24 @@ begin
         cpu_rdata_dv        => arr_cpu_dout_dv(SEL_DAC_DC)  , -- out std_logic;                        -- Acknowledge output
                        
         -- Interface SPI bus to 8-channel PMOD for DC channels 0-7
-        dc0_sclk            => open                         , -- out   std_logic;          -- Clock (50 MHz?)
-        dc0_mosi            => open                         , -- out   std_logic;          -- Master out, Slave in. (Data to DAC)
-        dc0_cs_n            => open                         , -- out   std_logic;          -- Active low chip select (sync_n)
+        dc0_sclk            => p_dc0_sclk             , -- out   std_logic;          -- Clock (50 MHz?)
+        dc0_mosi            => p_dc0_mosi             , -- out   std_logic;          -- Master out, Slave in. (Data to DAC)
+        dc0_cs_n            => p_dc0_cs_n             , -- out   std_logic;          -- Active low chip select (sync_n)
         --
         -- Interface SPI bus to 8-channel PMOD for DC channels 8-15
-        dc1_sclk            => open                         , -- out   std_logic;  
-        dc1_mosi            => open                         , -- out   std_logic;  
-        dc1_cs_n            => open                         , -- out   std_logic;  
+        dc1_sclk            => p_dc1_sclk             , -- out   std_logic;  
+        dc1_mosi            => p_dc1_mosi             , -- out   std_logic;  
+        dc1_cs_n            => p_dc1_cs_n             , -- out   std_logic;  
         
         -- Interface SPI bus to 8-channel PMOD for DC channels 16-23
-        dc2_sclk            => p_dc2_sclk                   , -- out   std_logic;  
-        dc2_mosi            => p_dc2_mosi                   , -- out   std_logic;  
-        dc2_cs_n            => p_dc2_cs_n                   , -- out   std_logic;  
+        dc2_sclk            => open                   , -- out   std_logic;  
+        dc2_mosi            => open                   , -- out   std_logic;  
+        dc2_cs_n            => open                   , -- out   std_logic;  
         
         -- Interface SPI bus to 8-channel PMOD for DC channels 24-31
-        dc3_sclk            => p_dc3_sclk                   , -- out   std_logic; 
-        dc3_mosi            => p_dc3_mosi                   , -- out   std_logic;  
-        dc3_cs_n            => p_dc3_cs_n                     -- out   std_logic;
+        dc3_sclk            => open                   , -- out   std_logic; 
+        dc3_mosi            => open                   , -- out   std_logic;  
+        dc3_cs_n            => open                     -- out   std_logic;
         
     );
     
