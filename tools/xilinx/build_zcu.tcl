@@ -41,7 +41,7 @@ proc checkRequiredFiles { origin_dir} {
  "[file normalize "$origin_dir/../constraint_zcu/pinout_zcu.xdc"]"\
  "[file normalize "$origin_dir/../constraint_zcu/qlaser_timing_zcu.xdc"]"\
  "[file normalize "$origin_dir/../constraint_zcu/set_usercode_zcu.xdc"]"\
- "[file normalize "$origin_dir/../constraint_zcu/fifo_pmod_dbg.xdc"]"\
+ "[file normalize "$origin_dir/../constraint_zcu/cpubus_pulse.xdc"]"\
  "[file normalize "$origin_dir/../../src/hdl/testbench/tb_cpubus_dacs_pulse_channel.vhdl"]"\
  "[file normalize "$origin_dir/../../src/hdl/testbench/tb_qlaser_pkg.vhd"]"\
  "[file normalize "$origin_dir/../../src/hdl/testbench/gj_tb_driver_gpio.vhd"]"\
@@ -421,9 +421,9 @@ set file_obj [get_files -of_objects [get_filesets constrs_1] [list "*$file"]]
 set_property -name "file_type" -value "XDC" -objects $file_obj
 
 # Add/Import constrs file and set constrs file properties
-set file "[file normalize "$origin_dir/../constraint_zcu/fifo_pmod_dbg.xdc"]"
+set file "[file normalize "$origin_dir/../constraint_zcu/cpubus_pulse.xdc"]"
 set file_added [add_files -norecurse -fileset $obj [list $file]]
-set file "$origin_dir/../constraint_zcu/fifo_pmod_dbg.xdc"
+set file "$origin_dir/../constraint_zcu/cpubus_pulse.xdc"
 set file [file normalize $file]
 set file_obj [get_files -of_objects [get_filesets constrs_1] [list "*$file"]]
 set_property -name "file_type" -value "XDC" -objects $file_obj

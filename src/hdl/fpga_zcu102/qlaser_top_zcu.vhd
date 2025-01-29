@@ -233,8 +233,6 @@ begin
     g_clr: for I in 0 to 31 generate
         clr_errors(I) <= ps_gpout(C_GPIO_PS_ERR_CLR);
     end generate g_clr;
-    -- clr_errors(0)           <= ps_gpout(C_GPIO_PS_ERR_CLR);
-    -- clr_errors(1)           <= ps_gpout(C_GPIO_PS_ERR_CLR);
 
     -- JESD outputs
 --    p_tx0n_out              <= ps_jesd_tx0n_out;
