@@ -52,6 +52,7 @@
 #define ADR_MISC_LEDS_EN    (ADR_BASE_MISC + 4*0x0002)     // '1' allows CPU control of LEDs. '0' allows FPGA logic
 #define ADR_MISC_DEBUG_CTRL (ADR_BASE_MISC + 4*0x0003)     // Select debug output from top level to pins
 #define ADR_MISC_TRIGGER    (ADR_BASE_MISC + 4*0x0004)     // Generate trigger
+#define ADR_MISC_ENABLE     (ADR_BASE_MISC + 4*0x0005)     // Generate enable
 
 // DAC DC block registers (32-bit word addresses)
 #define C_ADDR_SPI0         (ADR_BASE_DACS_DC + 8*4*0x00000)
@@ -333,9 +334,9 @@ void print_help()
 
 
 //----------------------------------------------------------------
-// Print a set of registers
+// Print a set of registers. Subroutine for status regs dumps
 //----------------------------------------------------------------
-void print_regs(int nValue)
+void print_regs()
 {
     //int i=0;
 
@@ -345,15 +346,20 @@ void print_regs(int nValue)
    (void)xil_printf ("ADR_PULSE_REG_CHEN                 = %08X\r\n", Xil_In32(ADR_PULSE_REG_CHEN));
    (void)xil_printf ("ADR_PULSE_REG_CHSTATUS             = %08X\r\n", Xil_In32(ADR_PULSE_REG_CHSTATUS));
    (void)xil_printf ("ADR_PULSE_REG_TIMER                = %08X\r\n", Xil_In32(ADR_PULSE_REG_TIMER  ));
-
+   (void)xil_printf ("\r\n");
+   (void)xil_printf ("ADR_BASE_DACS_DC                   = %08X\r\n", Xil_In32(ADR_BASE_DACS_DC     ));
+   (void)xil_printf ("\r\n");
+   (void)xil_printf ("ADR_BASE_P2PMOD                    = %08X\r\n", Xil_In32(ADR_BASE_P2PMOD      ));
+   (void)xil_printf ("\r\n");
+   (void)xil_printf ("ADR_MISC_TRIGGER                   = %08X\r\n", Xil_In32(ADR_MISC_TRIGGER     ));
    (void)xil_printf ("ADR_MISC_VERSION                   = %08X\r\n", Xil_In32(ADR_MISC_VERSION     ));
    (void)xil_printf ("ADR_MISC_LEDS                      = %08X\r\n", Xil_In32(ADR_MISC_LEDS        ));
    (void)xil_printf ("ADR_MISC_LEDS_EN                   = %08X\r\n", Xil_In32(ADR_MISC_LEDS_EN     ));
    (void)xil_printf ("ADR_MISC_DEBUG_CTRL                = %08X\r\n", Xil_In32(ADR_MISC_DEBUG_CTRL  ));
    (void)xil_printf ("ADR_MISC_TRIGGER                   = %08X\r\n", Xil_In32(ADR_MISC_TRIGGER     ));
-
+   (void)xil_printf ("\r\n");
    (void)xil_printf ("ADR_GPIO_IN                        = %08X\r\n", Xil_In32(ADR_GPIO_IN          ));
-   (void)xil_printf("\r\n");
+   (void)xil_printf ("\r\n");
 }
 
 //---------------------------------------------------------
@@ -1553,7 +1559,7 @@ int main()
                         // Print registers
                         //---------------------------------------------------------
                         case 'P':
-                            print_regs(nValue);
+                            print_regs();
                         break;
 
 
@@ -1566,7 +1572,10 @@ int main()
                            nData  = 0;
                            // Turn off trigger
                            trigger = false;
+                           on = false;
                            Xil_Out32(ADR_MISC_TRIGGER, 0x0);
+                           Xil_Out32(ADR_GPIO_OUT, 1 << 31);
+                           Xil_Out32(ADR_GPIO_OUT, 0);
                            // Clear errors
                            // TODO: BUG: if not using the channel at all error false positive
                            nRdata = Xil_In32(ADR_GPIO_IN);
@@ -1577,6 +1586,9 @@ int main()
                            Xil_Out32(ADR_GPIO_OUT, 0);
                            // Clear RAMs
                            clear_all_pulse_rams();
+
+                           // Clear all DC channels
+                           Xil_Out32(C_ADDR_SPI_ALL, 0x10000000);
 //                           psu_ps_pl_reset_config_data();
                         break;
 
@@ -1830,11 +1842,12 @@ int main()
 
                         case 'C':
 							Xil_Out32(PMOD_ADDR_CTRL, 0x1);
+							Xil_Out32(ADR_MISC_ENABLE, 0x1);
 //							Xil_Out32(C_ADDR_INTERNAL_REF, nRdata);
 
-							nRdata = Xil_In32(ADR_GPIO_IN);
-
-							Xil_Out32(ADR_GPIO_OUT, set_bit(nRdata, C_GPIO_PS_EN));
+//							nRdata = Xil_In32(ADR_GPIO_IN);
+//
+//							Xil_Out32(ADR_GPIO_OUT, set_bit(nRdata, C_GPIO_PS_EN));
 
 						break;
 

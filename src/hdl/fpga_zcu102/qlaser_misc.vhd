@@ -36,7 +36,8 @@ port (
     tick_msec       : out std_logic;                        -- Single cycle high every 1 msec. Used by SD interface debug registers
     tick_sec        : out std_logic;                        -- Single cycle high every 1 sec. 
     dbg_ctrl        : out std_logic_vector( 3 downto 0);    -- Select output to debug pins
-    trigger         : out std_logic
+    trigger         : out std_logic;
+    enable          : out std_logic
 );
 end qlaser_misc;
 
@@ -50,11 +51,13 @@ constant ADR_REG_LEDS       : integer := 1;     -- '1' sets LED on if correspond
 constant ADR_REG_LEDS_EN    : integer := 2;     -- '1' allows CPU control of LEDs. '0' allows FPGA logic
 constant ADR_REG_DEBUG_CTRL : integer := 3;     -- Select debug output from top level to pins
 constant ADR_REG_TRIGGER    : integer := 4;     -- Generate trigger
+constant ADR_REG_EN         : integer := 5;     -- Generate enable
 
 signal reg_leds             : std_logic_vector( 3 downto 0); 
 signal reg_leds_en          : std_logic_vector( 3 downto 0); 
 signal reg_dbg_ctrl         : std_logic_vector( 3 downto 0);
 signal reg_trigger          : std_logic;
+signal reg_enable           : std_logic;
 
 begin  
     
@@ -86,6 +89,7 @@ begin
     leds_en         <= reg_leds_en;
     dbg_ctrl        <= reg_dbg_ctrl;
     trigger         <= reg_trigger;
+    enable          <= reg_enable;
 
    
     ---------------------------------------------------------------------------------
@@ -105,6 +109,7 @@ begin
                 reg_leds_en         <= X"0";
                 reg_dbg_ctrl        <= (others=>'1');   -- Debug outputs driven to zero. Power reduction.
                 reg_trigger         <= '0';
+                reg_enable          <= '0';
                 
             -- Write registers
             elsif (cpu_sel='1' and cpu_wr='1') then
@@ -115,6 +120,7 @@ begin
                     when ADR_REG_LEDS_EN    => reg_leds_en      <= cpu_wdata( 3 downto 0);
                     when ADR_REG_DEBUG_CTRL => reg_dbg_ctrl     <= cpu_wdata( 3 downto 0);
                     when ADR_REG_TRIGGER    => reg_trigger      <= cpu_wdata(0);
+                    when ADR_REG_EN         => reg_enable       <= cpu_wdata(0);
                     when others             => null;
                 end case;
     
@@ -127,7 +133,8 @@ begin
                     when ADR_REG_LEDS       => cpu_rdata        <= X"0000000" & reg_leds;    
                     when ADR_REG_LEDS_EN    => cpu_rdata        <= X"0000000" & reg_leds_en;    
                     when ADR_REG_DEBUG_CTRL => cpu_rdata        <= X"0000000" & reg_dbg_ctrl;    
-                    when ADR_REG_TRIGGER    => cpu_rdata        <= X"0000000" & "000" & reg_trigger;    
+                    when ADR_REG_TRIGGER    => cpu_rdata        <= X"0000000" & "000" & reg_trigger;
+                    when ADR_REG_EN         => cpu_rdata        <= X"0000000" & "000" & reg_enable;    
                     when others             => cpu_rdata        <= X"CCCCCCCC";
                 end case;
                 cpu_rdata_dv  <= '1';

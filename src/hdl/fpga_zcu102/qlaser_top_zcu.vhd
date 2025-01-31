@@ -98,6 +98,7 @@ signal tick_msec            : std_logic;                        --  Timing inter
 signal tick_sec             : std_logic;            
 signal misc_dbg_ctrl        : std_logic_vector( 3 downto 0);
 signal misc_trigger         : std_logic;
+signal misc_enable          : std_logic;
 
 -- PS (Processor) outputs to PL
 signal ps_clk0                  : std_logic;
@@ -221,7 +222,7 @@ begin
 
     -- Combine p_btn trigger (from pad) with misc block trigger and ps_gpout(0) to create internal trigger
     trigger_dacs_pulse      <= (p_btn_c or misc_trigger or ps_gpout(C_GPIO_PS_TRIG)) and not(p2p0_active) and not(p2p1_active) and not(dacs_pulse_busy);  -- ensure ALL resources are available 
-    ps_enable_dacs_pulse    <= ps_gpout(C_GPIO_PS_EN);
+    ps_enable_dacs_pulse    <= ps_gpout(C_GPIO_PS_EN) or misc_enable;
     any_dacs_busy           <= dacs_dc_busy(0) or dacs_dc_busy(1) or dacs_dc_busy(2) or dacs_dc_busy(3) or dacs_pulse_busy;
 
     -- Split 'SEL_SPARE' block select into two
@@ -248,13 +249,6 @@ begin
 
 
     -- Pulse 2 PMOD SPI interface
-    -- p_dc0_sclk      <= p2p_spi0_sclk; 
-    -- p_dc0_mosi      <= p2p_spi0_mosi; 
-    -- p_dc0_cs_n      <= p2p_spi0_cs_n; 
-
-    -- p_dc1_sclk      <= p2p_spi1_sclk;
-    -- p_dc1_mosi      <= p2p_spi1_mosi;
-    -- p_dc1_cs_n      <= p2p_spi1_cs_n;
     p_dc2_sclk      <= p2p_spi0_sclk; 
     p_dc2_mosi      <= p2p_spi0_mosi; 
     p_dc2_cs_n      <= p2p_spi0_cs_n; 
@@ -501,9 +495,6 @@ begin
         spi1_cs_n        => p2p_spi1_cs_n              --  out std_logic;
     );
 
-    p2p0_busy <= pulse2pmod0_busy and not(fifo_almost_empty0);  -- Set to '1' while SPI interface is busy and FIFO is not empty (just in case...)
-    p2p1_busy <= pulse2pmod1_busy and not(fifo_almost_empty1);  -- Set to '1' while SPI interface is busy and FIFO is not empty (just in case...)
-
 
     ---------------------------------------------------------------------------------
     -- Misc interfaces. LEDs, Debug
@@ -533,7 +524,8 @@ begin
         tick_sec            => tick_sec                 , -- out std_logic;                        -- Single cycle high every N msec. 
 
         dbg_ctrl            => misc_dbg_ctrl            , -- out std_logic_vector( 3 downto 0);
-        trigger             => misc_trigger               -- out std_logic
+        trigger             => misc_trigger             , -- out std_logic
+        enable              => misc_enable                -- out std_logic
     );
 
  
@@ -574,6 +566,8 @@ begin
     ---------------------------------------------------------------------------------
     -- Debug output mux.
     ---------------------------------------------------------------------------------
+    p2p0_busy <= pulse2pmod0_busy and not(fifo_almost_empty0);  -- Set to '1' while SPI interface is busy and FIFO is not empty (just in case...)
+    p2p1_busy <= pulse2pmod1_busy and not(fifo_almost_empty1);  -- Set to '1' while SPI interface is busy and FIFO is not empty (just in case...)
     pr_dbg_mux : process (clk)
     begin
         if reset = '1' then

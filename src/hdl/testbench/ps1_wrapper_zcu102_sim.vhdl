@@ -190,7 +190,8 @@ begin
 
         -- trigger
         cpu_print_msg("Enable Pulse");
-        gpio_int_o  <= std_logic_vector(to_unsigned(2, 32));
+        -- gpio_int_o  <= std_logic_vector(to_unsigned(2, 32));
+        cpu_write(clk, ADR_MISC_DEBUG_EN    , X"00000001", rd, wr, addr, wdata);
         clk_delay(0, clk);
 
         cpu_print_msg("Toggle trigger");

@@ -108,7 +108,8 @@ constant ADR_MISC_VERSION       : std_logic_vector(17 downto 0) := ADR_BASE_MISC
 constant ADR_MISC_LEDS          : std_logic_vector(17 downto 0) := ADR_BASE_MISC & X"0004";   -- LEDs
 constant ADR_MISC_LEDS_EN       : std_logic_vector(17 downto 0) := ADR_BASE_MISC & X"0008";   -- LEDs enable
 constant ADR_MISC_DEBUG_CTRL    : std_logic_vector(17 downto 0) := ADR_BASE_MISC & X"000C";   -- Read board switch settings (if present)
-constant ADR_MISC_DEBUG_TRIGGER    : std_logic_vector(17 downto 0) := ADR_BASE_MISC & X"0010";   -- Select debug output from top level to pins
+constant ADR_MISC_DEBUG_TRIGGER : std_logic_vector(17 downto 0) := ADR_BASE_MISC & X"0010";   -- Select debug output from top level to pins
+constant ADR_MISC_DEBUG_EN      : std_logic_vector(17 downto 0) := ADR_BASE_MISC & X"0014";   -- Enable pulse generator
 
 -------------------------------------------------------------------------------------------------------------------------- 
 -- Pulse-to-Pmod block addresses -- double checked
