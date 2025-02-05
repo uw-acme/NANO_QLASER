@@ -12,8 +12,8 @@
 #include "xuartps_hw.h"
 
 #include "xiicps.h"
-#define IIC_0_DEVICE_ID		XPAR_XIICPS_0_DEVICE_ID
-#define IIC_1_DEVICE_ID		XPAR_XIICPS_1_DEVICE_ID
+#define IIC_0_DEVICE_ID     XPAR_XIICPS_0_DEVICE_ID
+#define IIC_1_DEVICE_ID     XPAR_XIICPS_1_DEVICE_ID
 
 
 #include "qlaser_fpga.h"
@@ -24,8 +24,8 @@
 //#include "qlaser_fpga_zc102.h"          // Constant definitions. Register addresses etc.
 
 // Memory size on CPU bus
-#define SIZERAM_PULSE_WAVE 2048			// Each memory address contains two waveform points
-#define SIZERAM_PULSE_DEFN 1024			// Each entry consists of 4 32-bit words
+#define SIZERAM_PULSE_WAVE 2048         // Each memory address contains two waveform points
+#define SIZERAM_PULSE_DEFN 1024         // Each entry consists of 4 32-bit words
 #define PDEF_NUM_ENTRY     (SIZERAM_PULSE_DEFN/4)
 
 #define ADR_BASE_GPIO_INT  XPAR_AXI_GPIO_INT_BASEADDR
@@ -36,10 +36,10 @@
 #define ADR_BASE_GPIO_LED_BTN   XPAR_AXI_GPIO_LED_BTN_BASEADDR
 #define ADR_GPIO_LED       (ADR_BASE_GPIO_LED_BTN + 0x0)
 #define ADR_GPIO_BTN       (ADR_BASE_GPIO_LED_BTN + 0x8)
-//#define XGPIO_DATA_OFFSET	    0x0   /**< Data register for 1st channel */
-//#define XGPIO_TRI_OFFSET	    0x4   /**< I/O direction reg for 1st channel */
-//#define XGPIO_DATA2_OFFSET	0x8   /**< Data register for 2nd channel */
-//#define XGPIO_TRI2_OFFSET	    0xC   /**< I/O direction reg for 2nd channel */
+//#define XGPIO_DATA_OFFSET     0x0   /**< Data register for 1st channel */
+//#define XGPIO_TRI_OFFSET      0x4   /**< I/O direction reg for 1st channel */
+//#define XGPIO_DATA2_OFFSET    0x8   /**< Data register for 2nd channel */
+//#define XGPIO_TRI2_OFFSET     0xC   /**< I/O direction reg for 2nd channel */
 
 // Addresses reached through CPUINT
 #define ADR_BASE_CPUINT    XPAR_AXI_CPUINT_S00_AXI_BASEADDR    // from xparameters.h
@@ -109,28 +109,29 @@
 #define REG_PORT_EXP_CONFIG0        0x6
 #define REG_PORT_EXP_CONFIG1        0x7
 
-#define BIT_FMC_HPC0_PRSNT_M2C_B    0x40    // Bit 6 is presence detect for FMC0 (P10)
-#define BIT_FMC_HPC1_PRSNT_M2C_B    0x80    // Bit 7 is presence detect for FMC1 (P11)
+// Presence-detect bits in lower 2 bits of REG_PORT_EXP_CONFIG1
+#define BIT_FMC_HPC0_PRSNT_M2C_B    0x01    // Bit 0 is presence detect for FMC0 (P10)
+#define BIT_FMC_HPC1_PRSNT_M2C_B    0x02    // Bit 1 is presence detect for FMC1 (P11)
 
 // IIC CPLD internal addresses
-#define IIC_CPLD_REG_CMD        0x00    // Bits initiate SPI transfers to DACs and Clk 
+#define IIC_CPLD_REG_CMD        0x00    // Bits initiate SPI transfers to DACs and Clk (Write only)
 #define     CPLD_CMD_WR_CLK         0x01    // Bit-0 triggers SPI xfer to LMK04828
 #define     CPLD_CMD_WR_DAC0        0x02    // Bit-1 triggers SPI xfer to DAC0
 #define     CPLD_CMD_WR_DAC1        0x04    // Bit-2 triggers SPI xfer to DAC1
 #define     CPLD_CMD_WR_DAC2        0x08    // Bit-3 triggers SPI xfer to DAC2
 #define     CPLD_CMD_WR_DAC3        0x10    // Bit-4 triggers SPI xfer to DAC3
 
-#define IIC_CPLD_REG_CTRL       0x01    // Bit 5 -0 control various oscillator and DAC features
+#define IIC_CPLD_REG_CTRL       0x01    // Bit 5 -0 control various oscillator and DAC features, reset DACs and CLK
 #define IIC_CPLD_REG_CTRL_DAC   0x02    // Bit 3-0 control DAC amp enables, 7-4 DAC sleep mode
 #define IIC_CPLD_REG_EN_OUT     0x03    // Bit 3-0 DAC output enables, 5-4 SYNC controls
 #define IIC_CPLD_REG_ALARM      0x04    // Bit 3-0 DAC alarms, 4 AD7291 alert, 6-5 GA[1:0] status
-#define IIC_CPLD_REG_VERSION    0x05    // CPLD version
+#define IIC_CPLD_REG_VERSION    0x05    // CPLD version (Read only)
 #define IIC_CPLD_REG_SPI_0      0x06    // SPI byte 0 bits 7-0 last sent
 #define IIC_CPLD_REG_SPI_1      0x07    // SPI byte 1
 #define IIC_CPLD_REG_SPI_2      0x08    // SPI byte 2
 #define IIC_CPLD_REG_SPI_3      0x09    // SPI byte 3 bits 31-24 first sent
-#define IIC_CPLD_REG_SPI_RD_1   0x0E    // SPI byte readback upper bits 15-8 
-#define IIC_CPLD_REG_SPI_RD_0   0x0F    // SPI byte readback lower bits  7-0
+#define IIC_CPLD_REG_SPI_RD_1   0x0E    // SPI byte readback upper bits 15-8 (Read only)
+#define IIC_CPLD_REG_SPI_RD_0   0x0F    // SPI byte readback lower bits  7-0 (Read only)
 
 
 //----------------------------------------------------------------------
@@ -151,11 +152,11 @@ XIicPs_Config *IicConfig1;
 // 1.0.f More iic functions
 // 1.0.g Set FMC216 board DACs and Clk to use 4-wire SPI so CPLD readback works
 // 1.0.h Set LMK SPI output mux
-// 1.0.i Add readout of JESD registers. Two JESD204c IP blocksadded to PS
+// 1.0.i Add readout of JESD registers. Two JESD204c IP blocks added to PS
 //----------------------------------------------------------------
-char    g_strVersion[]          = "1.0.h";
-int     g_nStateButtons 		= 0;
-int     g_nStateSwitches 		= 0;
+char    g_strVersion[]          = "1.0.i4";
+int     g_nStateButtons         = 0;
+int     g_nStateSwitches        = 0;
 
 char    inbyte      (void);
 void    outbyte     (char c);
@@ -317,6 +318,8 @@ void print_help()
    (void)xil_printf(" A   : DAC awaken\r\n");
    (void)xil_printf(" d   : Dump FMC registers\r\n");
    (void)xil_printf(" D   : Set FMC devices to 4-wire SPI\r\n");
+   (void)xil_printf(" m   : (value = fmc) Select FMC board to talk to (0  or 1)\r\n");
+   (void)xil_printf(" T   : Test default regs (0-3 = DACs, 4 = CLK LMK, 5 = CPLD\r\n");
    (void)xil_printf("\r\n");
 }
 
@@ -326,7 +329,8 @@ void print_help()
 //----------------------------------------------------------------
 void print_regs(int nValue)
 {
-    //int i=0;
+	//int i=0;
+	int nRdata=0;
 
     //xil_printf("%d\r\n", nValue);
    (void)xil_printf ("ADR_PULSE_REG_SEQ_LEN              = %08X\r\n", Xil_In32(ADR_PULSE_REG_SEQ_LEN));
@@ -342,27 +346,119 @@ void print_regs(int nValue)
    (void)xil_printf ("ADR_MISC_TRIGGER                   = %08X\r\n", Xil_In32(ADR_MISC_TRIGGER     ));
    (void)xil_printf("\r\n");
 
-   (void)xil_printf ("ADR_JESD_FMC0_JESD_IP_VERSION      = %08X\r\n", Xil_In32(ADR_JESD(FMC0, REG_JESD_IP_VERSION) ));
-   (void)xil_printf ("ADR_JESD_FMC0_JESD_IP_CONFIG             = %08X\r\n", Xil_In32(ADR_JESD(FMC0, REG_JESD_IP_CONFIG        ) ));
-   (void)xil_printf ("ADR_JESD_FMC0_JESD_RESET                 = %08X\r\n", Xil_In32(ADR_JESD(FMC0, REG_JESD_RESET            ) ));
+   (void)xil_printf ("ADR_JESD_FMC0_JESD_IP_VERSION            	= %08X\r\n", Xil_In32(ADR_JESD(FMC0, REG_JESD_IP_VERSION) ));
+
+   nRdata = Xil_In32(ADR_JESD(FMC0, REG_JESD_IP_CONFIG));
+   (void)xil_printf ("ADR_JESD_FMC0_JESD_IP_CONFIG             	= %08X\r\n", nRdata);
+   (void)xil_printf ("                      18   FEC=1              = %d\r\n", (nRdata & 0x40000)>>18);
+   (void)xil_printf ("                      17   64B66B=1/8B10B=0   = %d\r\n", (nRdata & 0x20000)>>17);
+   (void)xil_printf ("                      16   TX=1/RX=0     		= %d\r\n", (nRdata & 0x10000)>>16);
+   (void)xil_printf ("                    [3:0]  LANES             	= %d\r\n", (nRdata & 0xF));
+
+   nRdata = Xil_In32(ADR_JESD(FMC0, REG_JESD_RESET));
+   (void)xil_printf ("ADR_JESD_FMC0_JESD_RESET                 = %08X\r\n", nRdata);
+   (void)xil_printf ("                       7   GTs are still reset= %d\r\n", (nRdata & 0x80)>>7);
+   (void)xil_printf ("                       5   tx/rx_reset        = %d\r\n", (nRdata & 0x20)>>5);
+   (void)xil_printf ("                       4   tx/rx_core_reset   = %d\r\n", (nRdata & 0x10)>>4);
+   (void)xil_printf ("                       0   RESET          	= %d\r\n", (nRdata & 0x1));
+
    (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_SYNC          = %08X\r\n", Xil_In32(ADR_JESD(FMC0, REG_JESD_CTRL_TX_SYNC     ) ));
    (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_SUB_CLASS        = %08X\r\n", Xil_In32(ADR_JESD(FMC0, REG_JESD_CTRL_SUB_CLASS   ) ));
-   (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_8B10B_CFG        = %08X\r\n", Xil_In32(ADR_JESD(FMC0, REG_JESD_CTRL_8B10B_CFG   ) ));
-   (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_LANE_ENA         = %08X\r\n", Xil_In32(ADR_JESD(FMC0, REG_JESD_CTRL_LANE_ENA    ) ));
+
+   nRdata = Xil_In32(ADR_JESD(FMC0, REG_JESD_CTRL_8B10B_CFG));
+   (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_8B10B_CFG        = %08X\r\n", nRdata);
+   (void)xil_printf ("                   [31:24] ILA multiframes    = %d\r\n",((nRdata & 0xFF000000)>>24)+1);
+   (void)xil_printf ("                   [21:20] Reserved 00        = %d\r\n", (nRdata & 0x00300000)>>20);
+   (void)xil_printf ("                      19   Enable LinkErrCnts = %d\r\n", (nRdata & 0x00080000)>>19);
+   (void)xil_printf ("                      18   Err rpt using SYNC = %d\r\n", (nRdata & 0x00040000)>>18);
+   (void)xil_printf ("                      17   Enable ILA Support = %d\r\n", (nRdata & 0x00020000)>>17);
+   (void)xil_printf ("                      16   Enable Scrambling  = %d\r\n", (nRdata & 0x00010000)>>16);
+   (void)xil_printf ("                   [12:8]  Frames per Multifr (K) = %d\r\n",((nRdata & 0x00001F00)>> 8)+1);
+   (void)xil_printf ("                   [ 7:0]  Octets per Frame   = %d\r\n", (nRdata & 0x000000FF)+1  );
+
+   (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_LANE_ENA (0xFF)  = %08X\r\n", Xil_In32(ADR_JESD(FMC0, REG_JESD_CTRL_LANE_ENA    ) ));
+
    (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TEST_MODE        = %08X\r\n", Xil_In32(ADR_JESD(FMC0, REG_JESD_CTRL_TEST_MODE   ) ));
    (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_SYSREF           = %08X\r\n", Xil_In32(ADR_JESD(FMC0, REG_JESD_CTRL_SYSREF      ) ));
    (void)xil_printf ("ADR_JESD_FMC0_JESD_STAT_STATUS           = %08X\r\n", Xil_In32(ADR_JESD(FMC0, REG_JESD_STAT_STATUS      ) ));
    (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_IRQ              = %08X\r\n", Xil_In32(ADR_JESD(FMC0, REG_JESD_CTRL_IRQ         ) ));
    (void)xil_printf ("ADR_JESD_FMC0_JESD_STAT_IRQ              = %08X\r\n", Xil_In32(ADR_JESD(FMC0, REG_JESD_STAT_IRQ         ) ));
-   (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_ILA_CFG0      = %08X\r\n", Xil_In32(ADR_JESD(FMC0, REG_JESD_CTRL_TX_ILA_CFG0 ) ));
-   (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_ILA_CFG1      = %08X\r\n", Xil_In32(ADR_JESD(FMC0, REG_JESD_CTRL_TX_ILA_CFG1 ) ));
-   (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_ILA_CFG2      = %08X\r\n", Xil_In32(ADR_JESD(FMC0, REG_JESD_CTRL_TX_ILA_CFG2 ) ));
+
+
+   //----------------------------------------------------------------
+   // Config0
+   //----------------------------------------------------------------
+   nRdata = Xil_In32(ADR_JESD(FMC0, REG_JESD_CTRL_TX_ILA_CFG0));
+   (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_ILA_CFG0      = %08X\r\n", nRdata);
+   (void)xil_printf ("                   [11:8]  Bank ID         	= 0x%01X\r\n", (nRdata & 0x00000F00)>>8  );
+   (void)xil_printf ("                   [ 7:0]  Device ID       	= 0x%02X\r\n", (nRdata & 0x000000FF)  );
+
+   //----------------------------------------------------------------
+   // Config1
+   //----------------------------------------------------------------
+   // 31:26 –   Reserved
+   // 25:24 0x0 CS (Control bits per Sample). Binary value.
+   // 23:21 –   Reserved
+   // 20:16 0x0 N' (Totals bits per Sample). Binary value minus 1.
+   // 15:13 –   Reserved
+   // 12:8 0x0  N (Converter Resolution). Binary value minus 1.
+   //  7:0 0x0  M (Converters per Device). Binary value minus 1.
+   nRdata = Xil_In32(ADR_JESD(FMC0, REG_JESD_CTRL_TX_ILA_CFG1));
+   (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_ILA_CFG1      = %08X\r\n", nRdata);
+   (void)xil_printf ("                   [25:24]  CS Bits/sample     = %d\r\n", ((nRdata & 0x03000000)>>24)    );
+   (void)xil_printf ("                   [20:16]  Bits/sample N'     = %d\r\n", ((nRdata & 0x001F0000)>>16)+1  );
+   (void)xil_printf ("                   [12: 8]  Conv resolution    = %d\r\n", ((nRdata & 0x0001FF00)>> 8)+1  );
+   (void)xil_printf ("                   [ 7: 0]  Conv per dev (M)   = %d\r\n", ((nRdata & 0x000000FF)    )+1  );
+
+   //----------------------------------------------------------------
+   // Config2
+   //----------------------------------------------------------------
+   // 28:24 0x0 CF (Control Words per Frame). Binary value.
+   // 16      0 HD (High Density format)
+   // 12:8  0x0  S (Samples per Converter per Frame). Binary value minus 1.
+   nRdata = Xil_In32(ADR_JESD(FMC0, REG_JESD_CTRL_TX_ILA_CFG2));
+   (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_ILA_CFG2      = %08X\r\n", nRdata);
+   (void)xil_printf ("                   [28:24] Ctrl Words/Frame  (S) = %d\r\n", ((nRdata & 0x1F000000)>>24)    );
+   (void)xil_printf ("                       16  HD format             = %d\r\n", ((nRdata & 0x00010000)>>16)    );
+   (void)xil_printf ("                   [12: 8] Sample/Conv/Frame (S) = %d\r\n", ((nRdata & 0x00001F00)>> 8)+1  );
+
    (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_ILA_CFG3      = %08X\r\n", Xil_In32(ADR_JESD(FMC0, REG_JESD_CTRL_TX_ILA_CFG3 ) ));
    (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_ILA_CFG4      = %08X\r\n", Xil_In32(ADR_JESD(FMC0, REG_JESD_CTRL_TX_ILA_CFG4 ) ));
    (void)xil_printf("\r\n");
 
-   (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_ILA_LID   0   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC0, LANE0, REG_JESD_CTRL_TX_ILA_LID) ));
-   (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_GT        0   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC0, LANE0, REG_JESD_CTRL_TX_GT ) ));
+   //----------------------------------------------------------------
+   // Config3 (per lane)
+   //----------------------------------------------------------------
+   // 31:21 – Reserved
+   // 20:16 L Number of lanes per link (binary value minus 1). The default value for all lanes is L (total number of lanes minus 1).
+   // These values should be programmed when:
+   // • Not all lanes in the generated IP core are enabled.
+   // • A single TX core is used to drive multiple DAC devices.
+   // • Multiple TX cores are combined to create links with more than eight lanes.
+   // 15:5 – Reserved
+   // 4:0 N ID of lane N. Value can be anywhere between 0 and 31. The default value N is set to the lane number.
+   // For interfaces using more than 8 lanes and hence multiple JESD204C cores, this register should be programmed to
+   // ensure each lane has the correct identifier.
+   nRdata = Xil_In32(ADR_JESD_LANE(FMC0, LANE0, REG_JESD_CTRL_TX_ILA_LID) );
+   (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_ILA_LID   0   = %08X\r\n", nRdata);
+   (void)xil_printf ("                   [20:16] L Number of lanes per link L-1 = %d\r\n", ((nRdata & 0x001F0000)>>20)+1    );
+   (void)xil_printf ("                   [ 4:0 ] ID for Lane                    = %d\r\n", ((nRdata & 0x0000001F))    );
+
+   //----------------------------------------------------------------
+   // Config4 (per lane)
+   //----------------------------------------------------------------
+   //   4  0 	TXINHIBIT   Set High to inhibit transmission of TX data
+   //   3  0 	TXELECIDLE  Set High to force idle signal on transmitter output
+   // 2:1  0x0 	TXPD   		TX power down
+   //   0  0 	TXPOLARITY  Set High to invert the polarity of the outgoing TX data
+   nRdata = Xil_In32(ADR_JESD_LANE(FMC0, LANE0, REG_JESD_CTRL_TX_GT ) );
+   (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_GT        0   = %08X\r\n", nRdata);
+   (void)xil_printf ("                   [4] TXINHIBIT             	= %d\r\n", ((nRdata & 0x00000010)>>4)    );
+   (void)xil_printf ("                   [3] TXELECIDLE 			= %d\r\n", ((nRdata & 0x00000008)>>3)    );
+   (void)xil_printf ("                 [2:1] TXPD      				= %d\r\n", ((nRdata & 0x00000006)>>2)    );
+   (void)xil_printf ("                   [0] TXPOLARITY      		= %d\r\n", ((nRdata & 0x00000001))       );
+
+
    (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_ILA_LID   1   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC0, LANE1, REG_JESD_CTRL_TX_ILA_LID) ));
    (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_GT        1   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC0, LANE1, REG_JESD_CTRL_TX_GT ) ));
    (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_ILA_LID   2   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC0, LANE2, REG_JESD_CTRL_TX_ILA_LID) ));
@@ -414,9 +510,72 @@ void print_regs(int nValue)
    (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_GT        6   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC1, LANE6, REG_JESD_CTRL_TX_GT ) ));
    (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_ILA_LID   7   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC1, LANE7, REG_JESD_CTRL_TX_ILA_LID) ));
    (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_GT        7   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC1, LANE7, REG_JESD_CTRL_TX_GT ) ));
-
 }
 
+
+//---------------------------------------------------------
+//
+//---------------------------------------------------------
+void set_jesd_ip_subclass(nFMC, nSubClass)
+{
+	int nAddr = (ADR_BASE_JESD + (nFMC * ADR_FMC_STEP) + REG_JESD_CTRL_SUB_CLASS);
+	Xil_Out32(nAddr, nSubClass);
+}
+
+//---------------------------------------------------------
+// CTRL_8B10B_CFG
+//---------------------------------------------------------
+void set_jesd_ip_8B10B_cfg(int nFMC)
+{
+	int	ILA_Multiframes 		= 0;
+	int En_LinkErrCnts			= 0;
+	int Err_Rpt_Sync    		= 0;
+	int En_ILA          		= 0;
+	int En_Scrambling   		= 0;
+	int Frames_Per_MultiFrame   = 0;
+	int Octets_Per_Frame		= 0;
+
+	int nWdata = (
+
+			(((ILA_Multiframes-1)		& 0xFF) << 24)
+		+	((En_LinkErrCnts  			& 0x01) << 19)
+		+	((Err_Rpt_Sync    			& 0x01) << 18)
+		+	((En_ILA          			& 0x01) << 17)
+		+	((En_Scrambling   			& 0x01) << 16)
+		+	(((Frames_Per_MultiFrame-1) & 0x1F) <<  8)
+		+	(((Octets_Per_Frame-1)	    & 0xFF)      )
+	);
+
+	int nAddr = (ADR_BASE_JESD + (nFMC * ADR_FMC_STEP) + REG_JESD_CTRL_8B10B_CFG);
+	Xil_Out32(nAddr, nWdata);
+}
+
+
+//---------------------------------------------------------
+// Program Xilinx JESD IP block for Abaco FMC216 links
+// RESET
+// CTRL_TX_SYNC
+// CTRL_SUB_CLASS
+// CTRL_8B10B_CFG
+// CTRL_LANE_ENA
+// CTRL_TEST_MODE
+// CTRL_SYSREF
+// CTRL_TX_ILA_CFG0
+// CTRL_TX_ILA_CFG1
+// CTRL_TX_ILA_CFG2
+// CTRL_TX_ILA_CFG3
+// CTRL_TX_ILA_CFG4
+// CTRL_TX_ILA_LID 0-7
+// CTRL_TX_GT      0-7
+//---------------------------------------------------------
+void init_jesd_ip(int nFMC)
+{
+    xil_printf ("init_jesd_ip(nFMC = %d)\r\n", nFMC);
+
+    set_jesd_ip_subclass  (nFMC, SUBCLASS1);
+    set_jesd_ip_8B10B_cfg (nFMC);
+    set_jesd_ip_lane_en   (nFMC, 0xFF);
+}
 
 
 //---------------------------------------------------------
@@ -434,8 +593,8 @@ void load_pulse_wave(int nChannel, int nAddrStart, int nSize)
     int nWaddr;
     int nWdata;
     for (int nLoop = 0 ; nLoop < nSize ; nLoop++) {
-        Waddr = nAddrStart + nLoop;
-        Wdata = 16 * nLoop;
+        nWaddr = nAddrStart + nLoop;
+        nWdata = 16 * nLoop;
         xil_printf ("   nAddr = 0x%04X, nValue = 0x%04X)\r\n", nWaddr, nWdata);
         Xil_Out32(nWaddr, nWdata);
     }
@@ -455,8 +614,8 @@ void load_pulse_wave(int nChannel, int nAddrStart, int nSize)
 //---------------------------------------------------------
 void entry_pulse_defn(int nEntry, int nStartTime, int nWaveAddr, int nWaveLen, int nScaleGain, int nScaleAddr, int nFlattop)
 {
-	int nWdata;
-	int nWaddr;
+    int nWdata;
+    int nWaddr;
 
     xil_printf ("entry_pulse_defn(%d)\r\n", nEntry);
 
@@ -640,8 +799,8 @@ int clear_all_pulse_rams()
 //---------------------------------------------------------
 // Test Pulse Channel RAMs
 // Set a bit in nChanValid for each channel that has full logic
-// #define SIZERAM_PULSE_WAVE 512	   Each memory address contains two waveform points
-// #define SIZERAM_PULSE_DEFN 16	   Each entry is composted a 4-word 
+// #define SIZERAM_PULSE_WAVE 512      Each memory address contains two waveform points
+// #define SIZERAM_PULSE_DEFN 16       Each entry is composted a 4-word 
 // RAM base address
 // #define ADR_BASE_PULSE_WAVE     (ADR_BASE_DACS_AC + 0x0800)     // Either (512 x 32) for 1K table, or (2K x 32) for 4K tables
 // #define ADR_BASE_PULSE_DEFN     (ADR_BASE_DACS_AC + 0x0000)
@@ -786,27 +945,27 @@ int test_pulse_channels(int nChanValid)
 //---------------------------------------------------------
 int iic_enable_fmc(int nFMC)
 {
-	int nStatusIic;
-	u8  MsgWr[2];
+    int nStatusIic;
+    u8  MsgWr[2];
 
 
     if (nFMC == 0)
         MsgWr[0] = (u8)0x01; // FMC_0 requires setting bit-0. FMC_1 requires setting bit-1
     else if (nFMC == 1)
-    	MsgWr[0] = (u8)0x02;
+        MsgWr[0] = (u8)0x02;
     else {
-    	xil_printf ("iic_enable_fmc(%d) invalid FMC connector. Must be 0 or 1\r\n", nFMC);
-    	return XST_FAILURE;
+        xil_printf ("iic_enable_fmc(%d) invalid FMC connector. Must be 0 or 1\r\n", nFMC);
+        return XST_FAILURE;
     }
 
     while (XIicPs_BusIsBusy(&IicPs1)) {
-	    /* NOP */
+        /* NOP */
     }
 
     nStatusIic = XIicPs_MasterSendPolled(&IicPs1, &MsgWr[0], 1, IIC_ADDR_ZCU_BUS_MUX);
 
     if (nStatusIic != XST_SUCCESS) {
-	    xil_printf("Fail config iZCU IIC mux for access to FMC %d\r\n", nFMC);
+        xil_printf("Fail config iZCU IIC mux for access to FMC %d\r\n", nFMC);
         return XST_FAILURE;
     } else {
         return XST_SUCCESS;
@@ -822,20 +981,20 @@ int iic_enable_fmc(int nFMC)
 //---------------------------------------------------------
 int iic_read_fmc_mux()
 {
-	int nStatusIic;
+    int nStatusIic;
     u8  MsgRd[2];
 
     // Read back
-	while (XIicPs_BusIsBusy(&IicPs1)) {
+    while (XIicPs_BusIsBusy(&IicPs1)) {
         /* NOP */
     }
     MsgRd[0] =  0xCC;
     nStatusIic = XIicPs_MasterRecvPolled(&IicPs1, &MsgRd[0], 1, IIC_ADDR_ZCU_BUS_MUX);
 
-	if (nStatusIic != XST_SUCCESS) {
-		xil_printf("Fail read ZCU IIC mux\r\n");
+    if (nStatusIic != XST_SUCCESS) {
+        xil_printf("Fail read ZCU IIC mux\r\n");
         return -1;
-	}
+    }
     else {
         xil_printf("Read mux = 0x%02X : ", MsgRd[0]);
         if (MsgRd[0] == 0x01) 
@@ -865,40 +1024,85 @@ int iic_read_fmc_mux()
 //---------------------------------------------------------
 int iic_read_portexp_reg(int nDevAddr, int nRdReg)
 {
-	int nStatusIic;
+    int nStatusIic;
     u8  MsgRd[2];
     u8  MsgWr[2];
 
-	//xil_printf("iic_read_portexp_reg(%d, %d)\r\n", nDevAddr, nRdReg);
+    //xil_printf("iic_read_portexp_reg(%d, %d)\r\n", nDevAddr, nRdReg);
 
     // Wait for bus to be free
-	while (XIicPs_BusIsBusy(&IicPs0)) {
+    while (XIicPs_BusIsBusy(&IicPs0)) {
         /* NOP */
     }
     // Read Port Expander reg ZCU102 board
     // Write the command byte with the read register address.
-    MsgWr[0] = (u8)nRdReg; // CPLD reg
+    MsgWr[0] = (u8)nRdReg; // Port Expander reg address
 
     nStatusIic  = XIicPs_MasterSendPolled(&IicPs0, &MsgWr[0], 1, nDevAddr);
 
-	if (nStatusIic != XST_SUCCESS) {
-		xil_printf("Fail to set Port Exp address %d , status  0x%04X\r\n", nRdReg, nStatusIic);
+    if (nStatusIic != XST_SUCCESS) {
+        xil_printf("Fail to set Port Exp address %d , status  0x%04X\r\n", nRdReg, nStatusIic);
         return XST_FAILURE;
-	}
+    }
     else { // Read back data
         MsgRd[0] =  0xCC;
         nStatusIic = XIicPs_MasterRecvPolled(&IicPs0, &MsgRd[0], 1, nDevAddr);
 
-	    if (nStatusIic != XST_SUCCESS) {
-		    xil_printf("Fail to read Port Exp register %d, status 0x%04X\r\n", nRdReg, nStatusIic);
+        if (nStatusIic != XST_SUCCESS) {
+            xil_printf("Fail to read Port Exp register %d, status 0x%04X\r\n", nRdReg, nStatusIic);
             return XST_FAILURE;
-	    }
+        }
         else {
             xil_printf("Read PortExp[%d] = 0x%02X\r\n", nRdReg, MsgRd[0]);
             return MsgRd[0];
         }
     }
 }
+
+
+//---------------------------------------------------------
+// To write the port expander
+// Following the successful acknowledgment of the address byte, the bus controller sends a command byte, which
+// is stored in the control register in the TCA6416A. Three bits of this data byte state the operation (read or write)
+// and the internal registers (input, output, polarity inversion, or configuration) that will be affected. 
+// This register can be written or read through the I2C bus.
+//
+// The command byte is sent only during a write transmission.
+//
+// The last bit of the target address defines the operation (read or write) to be performed. A high (1) selects a read
+// operation, while a low (0) selects a write operation.
+//---------------------------------------------------------
+int iic_write_portexp_reg(int nDevAddr, int nWrReg, int nWrData)
+{
+    int     nStatusIic;
+    u8      MsgWr[2];
+    bool    bNoisy = true;
+
+    xil_printf("iic_write_portexp_reg(%d, %d, 0x%04X)\r\n", nDevAddr, nWrReg, nWrData);
+
+    // Wait for bus to be free
+    while (XIicPs_BusIsBusy(&IicPs0)) {
+        /* NOP */
+    }
+    // Write Port Expander reg ZCU102 board
+    // Write the command byte with the write register address.
+    MsgWr[0] = (u8)nWrReg; // Port Expander reg address
+    MsgWr[1] = (u8)nWrData; // Port Expander reg data
+
+    nStatusIic  = XIicPs_MasterSendPolled(&IicPs0, &MsgWr[0], 2, nDevAddr);
+
+    if (nStatusIic != XST_SUCCESS) {
+        xil_printf("Fail to set Port Exp address %d to 0x%02X, status  0x%04X\r\n", nWrReg, nWrData, nStatusIic);
+        return XST_FAILURE;
+    }
+    else {
+        if (bNoisy == true)
+            xil_printf("Wrote 0x%02X to Port Exp address %d, status  0x%04X\r\n",nWrData, nWrReg,  nStatusIic);
+        return XST_SUCCESS;
+    }
+}
+
+
 //---------------------------------------------------------
 // Read the IIC-0 port expander U97 on the ZCU102 board to
 // see if FMC0 and FMC1 have boards plugged in. 
@@ -912,36 +1116,42 @@ int iic_read_portexp_reg(int nDevAddr, int nRdReg)
 int is_present_fmc(int nFMC)
 {  
     int     nRdata = 0;
-    bool	bNoisy = TRUE;
+    bool    bNoisy = TRUE;
 
     nRdata = iic_read_portexp_reg(IIC_ADDR_ZCU_PORT_EXP_U97, REG_PORT_EXP_IN1);
 
     if (nFMC == 0) {
         if ((nRdata & BIT_FMC_HPC0_PRSNT_M2C_B) == 0) {
+            if (bNoisy == TRUE)
+                xil_printf("FMC0 is present\r\n");
             return 1;
-	        if (bNoisy == TRUE)
-		        xil_printf("FMC0 is present\r\n");
         }
         else {
+            if (bNoisy == TRUE)
+                xil_printf("FMC0 board is not present\r\n");
             return 0;
-	        if (bNoisy == TRUE)
-		        xil_printf("FMC0 board is not present\r\n");
         }
     }
 
 
-    if (nFMC == 1) {
+    else if (nFMC == 1) {
         if ((nRdata & BIT_FMC_HPC1_PRSNT_M2C_B) == 0) {
+            if (bNoisy == TRUE)
+                xil_printf("FMC1 is present\r\n");
             return 1;
-	        if (bNoisy == TRUE)
-		        xil_printf("FMC1 is present\r\n");
         }
         else {
+            if (bNoisy == TRUE)
+                xil_printf("FMC1 board is not present\r\n");
             return 0;
-	        if (bNoisy == TRUE)
-		        xil_printf("FMC1 board is not present\r\n");
         }
     }
+    else
+    {
+        xil_printf("Invalid FMC board number\r\n");
+        return -1;
+    }
+
 }
 
 
@@ -950,17 +1160,17 @@ int is_present_fmc(int nFMC)
 //---------------------------------------------------------
 int iic_read_cpld_reg(int nReg)
 {
-	int 	nStatusIic;
-    u8 		MsgRd[2];
-    u8  	MsgWr[2];
-    bool	bNoisy = false;
+    int     nStatusIic;
+    u8      MsgRd[2];
+    u8      MsgWr[2];
+    bool    bNoisy = false;
 
 
-	if (bNoisy == TRUE)
-		xil_printf("iic_read_cpld_reg(%d)\r\n", nReg);
+    if (bNoisy == TRUE)
+        xil_printf("iic_read_cpld_reg(%d)\r\n", nReg);
 
-	// Wait for bus to be free
-	while (XIicPs_BusIsBusy(&IicPs1)) {
+    // Wait for bus to be free
+    while (XIicPs_BusIsBusy(&IicPs1)) {
         /* NOP */
     }
     // Read CPLD reg on an attached Abaco FMC216 board 
@@ -969,54 +1179,54 @@ int iic_read_cpld_reg(int nReg)
 
     nStatusIic  = XIicPs_MasterSendPolled(&IicPs1, &MsgWr[0], 1, IIC_ADDR_ABA_CPLD);
 
-	if (nStatusIic != XST_SUCCESS) {
-		xil_printf("*** Fail to set CPLD address %d , status  0x%04X\r\n", nReg, nStatusIic);
+    if (nStatusIic != XST_SUCCESS) {
+        xil_printf("*** Fail to set CPLD address %d , status  0x%04X\r\n", nReg, nStatusIic);
         return XST_FAILURE;
-	}
+    }
     else { // Read back data
         MsgRd[0] =  0xCC;
         nStatusIic = XIicPs_MasterRecvPolled(&IicPs1, &MsgRd[0], 1, IIC_ADDR_ABA_CPLD);
 
-	    if (nStatusIic != XST_SUCCESS) {
-		    xil_printf("*** Fail to read CPLD register %d, status 0x%04X\r\n", nReg, nStatusIic);
+        if (nStatusIic != XST_SUCCESS) {
+            xil_printf("*** Fail to read CPLD register %d, status 0x%04X\r\n", nReg, nStatusIic);
             return XST_FAILURE;
-	    }
+        }
         else {
             if (bNoisy == true)
-            	xil_printf("Read CPLD[%d] = 0x%02X\r\n", nReg, MsgRd[0]);
+                xil_printf("Read CPLD[%d] = 0x%02X\r\n", nReg, MsgRd[0]);
             return MsgRd[0];
         }
     }
 }
 
-
+                         
 //---------------------------------------------------------
 // Write data to a CPLD register
 //---------------------------------------------------------
 int iic_write_cpld_reg(u8 nReg, u8 nData)
 {
-	int 	nStatusIic;
-    u8  	MsgWr[2];
-    bool 	bNoisy = false;
+    int     nStatusIic;
+    u8      MsgWr[2];
+    bool    bNoisy = false;
 
     // Load transmit buffer
     MsgWr[0] = (u8)nReg;    // CPLD reg address
     MsgWr[1] = (u8)nData;   // CPLD reg data
 
     // Wait for bus to be free
-	while (XIicPs_BusIsBusy(&IicPs1)) {
+    while (XIicPs_BusIsBusy(&IicPs1)) {
         /* NOP */
     }
     nStatusIic  = XIicPs_MasterSendPolled(&IicPs1, &MsgWr[0], 2, IIC_ADDR_ABA_CPLD);
 
-	if (nStatusIic != XST_SUCCESS) {
-		xil_printf("Failed to write CPLD address %d, to 0x%02X,  status  0x%04X\r\n", nReg, nData, nStatusIic);
+    if (nStatusIic != XST_SUCCESS) {
+        xil_printf("Failed to write CPLD address %d, to 0x%02X,  status  0x%04X\r\n", nReg, nData, nStatusIic);
         return XST_FAILURE;
-	}
+    }
     else {
-		if (bNoisy == true)
-			xil_printf("Wrote 0x%02X to CPLD address %d, status  0x%04X\r\n",nData, nReg,  nStatusIic);
-	    return XST_SUCCESS;
+        if (bNoisy == true)
+            xil_printf("Wrote 0x%02X to CPLD address %d, status  0x%04X\r\n",nData, nReg,  nStatusIic);
+        return XST_SUCCESS;
     }
 }
 
@@ -1033,7 +1243,7 @@ int iic_write_cpld_reg(u8 nReg, u8 nData)
 //---------------------------------------------------------
 int iic_write_dac_reg(int nDac, int nReg, int nData)
 {
-	int nStatusIic      = XST_SUCCESS;
+    int nStatusIic      = XST_SUCCESS;
     u8 nSpiCommand      = (u8)nReg & 0x7F;       // 7-bit DAC register address
     u8 nSpiDataUpper    = (u8)((nData >> 8) & 0xFF);
     u8 nSpiDataLower    = (u8)(nData & 0xFF);
@@ -1054,7 +1264,7 @@ int iic_write_dac_reg(int nDac, int nReg, int nData)
     else if (nDac == 3)
         nStatusIic  = iic_write_cpld_reg(IIC_CPLD_REG_CMD, CPLD_CMD_WR_DAC3);
     else {
-		xil_printf("iic_write_dac() illegal DAC number %d. Must be 0-3\r\n", nDac);
+        xil_printf("iic_write_dac() illegal DAC number %d. Must be 0-3\r\n", nDac);
         return XST_FAILURE;
     }
     return nStatusIic;
@@ -1063,16 +1273,41 @@ int iic_write_dac_reg(int nDac, int nReg, int nData)
 
 //---------------------------------------------------------
 // Write/Readback some CPLD registers
+//#define IIC_CPLD_REG_CTRL       0x01    // Bit 5 -0 control various oscillator and DAC features
+//#define IIC_CPLD_REG_CTRL_DAC   0x02    // Bit 3-0 control DAC amp enables, 7-4 DAC sleep mode
+//#define IIC_CPLD_REG_EN_OUT     0x03    // Bit 3-0 DAC output enables, 5-4 SYNC controls
+//#define IIC_CPLD_REG_ALARM      0x04    // Bit 3-0 DAC alarms, 4 AD7291 alert, 6-5 GA[1:0] status
+//#define IIC_CPLD_REG_VERSION    0x05    // CPLD version (Read only)
 //---------------------------------------------------------
 int iic_cpld_test()
 {
-	int nStatusIic      = XST_SUCCESS;
+    int nStatusIic      = XST_SUCCESS;
     int nReadData       = 0;
-    int nExpData0       = 0x06;
-    int nExpData1       = 0x07;
-    int nExpData2       = 0x08;
-    int nExpData3       = 0x09;
+    int nExpVersion     = 0x11;
 
+    nReadData = iic_read_cpld_reg(IIC_CPLD_REG_CTRL);
+    xil_printf("iic_cpld_test(0x01     CTRL)  0x%02X\r\n", nReadData);
+
+
+    nReadData = iic_read_cpld_reg(IIC_CPLD_REG_CTRL_DAC);
+    xil_printf("iic_cpld_test(0x02 CTRL_DAC)  0x%02X\r\n", nReadData);
+
+
+    nReadData = iic_read_cpld_reg(IIC_CPLD_REG_EN_OUT);
+    xil_printf("iic_cpld_test(0x03   EN_OUT)  0x%02X\r\n", nReadData);
+
+    nReadData = iic_read_cpld_reg(IIC_CPLD_REG_ALARM);
+    xil_printf("iic_cpld_test(0x04    ALARM)  0x%02X\r\n", nReadData);
+
+
+    nReadData = iic_read_cpld_reg(IIC_CPLD_REG_VERSION);
+    if (nReadData == nExpVersion)
+    	xil_printf("iic_cpld_test(0x05  VERSION)  0x%02X  PASS\r\n", nReadData);
+    else
+        xil_printf("iic_cpld_test(0x05  VERSION)  0x%02X  FAIL****\r\n", nReadData);
+        
+
+    /*
     // Write SPI word into CPLD SPI registers
     iic_write_cpld_reg(IIC_CPLD_REG_SPI_0, 0x06);
     iic_write_cpld_reg(IIC_CPLD_REG_SPI_1, 0x07);
@@ -1080,29 +1315,29 @@ int iic_cpld_test()
     iic_write_cpld_reg(IIC_CPLD_REG_SPI_3, 0x09);
 
     nReadData = iic_read_cpld_reg(IIC_CPLD_REG_SPI_0);
-    if (nReadData == nExpData)
-		xil_printf("iic_cpld_test(0) PASS\r\n");
+    if (nReadData == nExpData0)
+        xil_printf("iic_cpld_test(0) PASS 0x%02X\r\n", nReadData);
     else
-		xil_printf("iic_cpld_test(0) FAIL\r\n");
+        xil_printf("iic_cpld_test(0) FAIL 0x%02X  ****\r\n", nReadData);
         
     nReadData = iic_read_cpld_reg(IIC_CPLD_REG_SPI_1);
-    if (nReadData == nExpData)
-		xil_printf("iic_cpld_test(1) PASS\r\n");
+    if (nReadData == nExpData1)
+        xil_printf("iic_cpld_test(1) PASS 0x%02X\r\n", nReadData);
     else
-		xil_printf("iic_cpld_test(1) FAIL\r\n");
+        xil_printf("iic_cpld_test(1) FAIL 0x%02X  ****\r\n", nReadData);
 
     nReadData = iic_read_cpld_reg(IIC_CPLD_REG_SPI_2);
-    if (nReadData == nExpData)
-		xil_printf("iic_cpld_test(2) PASS\r\n");
+    if (nReadData == nExpData2)
+        xil_printf("iic_cpld_test(2) PASS 0x%02X\r\n", nReadData);
     else
-		xil_printf("iic_cpld_test(2) FAIL\r\n");
+        xil_printf("iic_cpld_test(2) FAIL 0x%02X  ****\r\n", nReadData);
 
     nReadData = iic_read_cpld_reg(IIC_CPLD_REG_SPI_3);
-    if (nReadData == nExpData)
-		xil_printf("iic_cpld_test(3) PASS\r\n");
+    if (nReadData == nExpData3)
+        xil_printf("iic_cpld_test(3) PASS 0x%02X\r\n", nReadData);
     else
-		xil_printf("iic_cpld_test(3) FAIL\r\n");
-
+        xil_printf("iic_cpld_test(3) FAIL 0x%02X  ****\r\n", nReadData);
+*/
     return nStatusIic;
 }
 
@@ -1120,7 +1355,7 @@ int iic_cpld_test()
 //---------------------------------------------------------
 int iic_read_reg_dac(int nDac, int nReg)
 {
-	int nReadData       = 0xCCCC;
+    int nReadData       = 0xCCCC;
     u8 nSpiCommand      = (u8)((nReg & 0x7F) | 0x80);       // DAC register address, R/W_n = 1
 
     // Write SPI word into CPLD registers
@@ -1139,13 +1374,13 @@ int iic_read_reg_dac(int nDac, int nReg)
     else if (nDac == 3)
         iic_write_cpld_reg(IIC_CPLD_REG_CMD, CPLD_CMD_WR_DAC3);
     else {
-		xil_printf("iic_write_dac() illegal DAC number %d. Must be 0-3\r\n", nDac);
+        xil_printf("iic_write_dac() illegal DAC number %d. Must be 0-3\r\n", nDac);
         return 0x5555;
     }
 
     // Read DAC data from the two CPLD registers
-    nReadData  = iic_read_cpld_reg(IIC_CPLD_REG_SPI_RD_0) << 8; 		// Upper bits
-    nReadData  = nReadData + iic_read_cpld_reg(IIC_CPLD_REG_SPI_RD_1);	// Lower bits
+    nReadData  = iic_read_cpld_reg(IIC_CPLD_REG_SPI_RD_0) << 8;         // Upper bits
+    nReadData  = nReadData + iic_read_cpld_reg(IIC_CPLD_REG_SPI_RD_1);  // Lower bits
 
     return nReadData;
 }
@@ -1164,7 +1399,7 @@ int iic_read_reg_dac(int nDac, int nReg)
 //---------------------------------------------------------
 int iic_write_clk_reg(int nReg, int nData)
 {
-	int nStatusIic      = XST_SUCCESS;
+    int nStatusIic      = XST_SUCCESS;
     int nSpiAddr        = nReg & 0x1FFF;       // A12-A0 Register address
     u8  nSpiCmdUpper    = (u8)(nSpiAddr >> 8); 
     u8  nSpiCmdLower    = (u8)(nSpiAddr & 0xFF); 
@@ -1203,10 +1438,10 @@ int iic_write_clk_reg(int nReg, int nData)
 //---------------------------------------------------------
 int iic_read_reg_clk(int nReg)
 {
-	int nReadData = 0xCC;
-    int nSpiAddr         = nReg & 0x1FFF;       // A12-A0 Register address
-    u8  nSpiCmdUpper     = (u8)((nSpiAddr >> 8) | 0x80); 
-    u8  nSpiCmdLower     = (u8)(nSpiAddr & 0xFF); 
+    int nReadData       = 0xCC;
+    int nSpiAddr        = nReg & 0x1FFF;       // A12-A0 Register address
+    u8  nSpiCmdUpper    = (u8)((nSpiAddr >> 8) | 0x80);
+    u8  nSpiCmdLower    = (u8)(nSpiAddr & 0xFF);
 
     // Write SPI word into CPLD registers
     iic_write_cpld_reg(IIC_CPLD_REG_SPI_3, 0x00);
@@ -1238,10 +1473,10 @@ int iic_read_reg_clk(int nReg)
 //---------------------------------------------------------
 int iic_dacs_sleep(int nData)
 {
-	int nStatusIic      = XST_SUCCESS;
+    int nStatusIic      = XST_SUCCESS;
 
-	// Write SPI word into CPLD registers
-	nStatusIic = iic_write_cpld_reg(IIC_CPLD_REG_CTRL_DAC, (u8)(nData & 0xFF));
+    // Write SPI word into CPLD registers
+    nStatusIic = iic_write_cpld_reg(IIC_CPLD_REG_CTRL_DAC, (u8)(nData & 0xFF));
 
     return nStatusIic;
 }
@@ -1281,6 +1516,33 @@ void iic_set_fmc_spi4()
 }
 
 //---------------------------------------------------------
+// Write to the DACs and the Clock generator on the
+// selected FMC board to set their SPI interfaces to 4-wire
+// mode so that registers can be read.
+//---------------------------------------------------------
+void iic_test_write_dacs_clk()
+{
+    int nDac    = 0;
+    int nWdata  = 0x1234;
+
+    (void)xil_printf("iic_test_write_dacs_clk()\r\n");
+
+    // Set all four DAC chips alarm reg config4
+    nWdata = 0x1234;
+    for (nDac = 0; nDac < 4 ; nDac++) {
+        iic_write_dac_reg(nDac, ADR_CONFIG_4, nWdata);
+        (void)xil_printf("DAC%d config04 set to 0x1234\r\n", nDac);
+    }
+
+    // Set reg 0x101 ADR_REG_LMK_DCLK0_DDLY to 0x44
+    nWdata = 0x0044;
+    iic_write_clk_reg(ADR_REG_LMK_DCLK0_DDLY, nWdata);
+    (void)xil_printf("Set LMK04821 ADR_REG_LMK_DCLK0_DDLY to 0x%02X\r\n", nWdata);
+
+    (void)xil_printf("\r\n");
+}
+
+//---------------------------------------------------------
 // Read default values from all FMC216 DAC registers
 // and compare with expected value
 //---------------------------------------------------------
@@ -1292,16 +1554,16 @@ void test_regs_default_dac(u8 nDac)
     (void)xil_printf("test_regs_default_dac(%d)\r\n", nDac);
 
     // Compare register values with defaults
-    //for (nReg = 0; nReg < NUM_REGS_DAC_39J84 ; nReg++) {
-    for (nReg = 0; nReg < 16 ; nReg++)
+    for (nReg = 0; nReg < NUM_REGS_DAC_39J84 ; nReg++) 
+    //for (nReg = 0; nReg < 16 ; nReg++)
     {
-    	nRdata = iic_read_reg_dac(nDac, nReg);
+        nRdata = iic_read_reg_dac(nDac, nReg);
 
-    	(void)xil_printf("DAC%d[%03d] :  0x%04X", nDac, nReg, nRdata);
+        (void)xil_printf("DAC%d[%03d] :  0x%04X", nDac, nReg, nRdata);
         if (nRdata == arr_reg_dac_defaults[nReg])
-    	    (void)xil_printf(" PASS\r\n");
+            (void)xil_printf(" PASS\r\n");
         else
-    	    (void)xil_printf(" FAIL ****\r\n");
+            (void)xil_printf(" FAIL ****\r\n");
     }
 }
 
@@ -1318,22 +1580,23 @@ void test_regs_default_clk()
     (void)xil_printf("test_regs_default_clk()\r\n");
 
     // Compare register values with defaults
-    //for (nReg = 0; nReg < NUM_REGS_LMK04828 ; nReg++) {
-    for (nReg = 0; nReg < 16 ; nReg++)
+    for (nReg = 0; nReg < NUM_REGS_LMK04828 ; nReg++)
+    //for (nReg = 0; nReg < 16 ; nReg++)
     {
-    	nAddr  = arr_reg_addr_clk[nReg];
-    	nRdata = iic_read_reg_clk(nAddr);
+        nAddr  = arr_reg_addr_clk[nReg];
+        nRdata = iic_read_reg_clk(nAddr);
 
-    	(void)xil_printf("PLL[%03d] :  0x%04X", nAddr, nRdata);
-        if (nRdata == arr_reg_default_clk[nAddr])
-    	    (void)xil_printf(" PASS\r\n");
+        (void)xil_printf("PLL[0x%03X] :  0x%02X", nAddr, nRdata);
+        if (nRdata == arr_reg_default_clk[nReg])
+            (void)xil_printf(" PASS\r\n");
         else
-    	    (void)xil_printf(" FAIL ****\r\n");
+            (void)xil_printf(" FAIL ****\r\n");
     }
 }
 
 
 //---------------------------------------------------------
+// Print first 3 DAC regs
 // Print the Clock chip ID regs
 //   0x003 ID_DEVICE_TYPE
 //   0x004 ID_PROD[15:8]
@@ -1352,16 +1615,16 @@ void dump_regs_fmc()
     //-----------------------------------------------------
     // Print the ID registers from all four DAC chips
     for (nDac = 0; nDac < 4 ; nDac++) {
-    	nRdata = iic_read_reg_dac(nDac, 0x0000);
-    	(void)xil_printf("DAC%d[0] :  0x%04X\r\n", nDac, nRdata);	// Default 0x0218
+        nRdata = iic_read_reg_dac(nDac, 0x0000);
+        (void)xil_printf("DAC%d[0] :  0x%04X\r\n", nDac, nRdata);   // Default 0x0218
 
-    	nRdata = iic_read_reg_dac(nDac, 0x0001);
-    	(void)xil_printf("DAC%d[1] :  0x%04X\r\n", nDac, nRdata);	// Default 0x0003
+        nRdata = iic_read_reg_dac(nDac, 0x0001);
+        (void)xil_printf("DAC%d[1] :  0x%04X\r\n", nDac, nRdata);   // Default 0x0003
 
-    	nRdata = iic_read_reg_dac(nDac, 0x0002);
-    	(void)xil_printf("DAC%d[2] :  0x%04X\r\n", nDac, nRdata);	// Default 0x2002 w. 4 wire 0x2082
+        nRdata = iic_read_reg_dac(nDac, 0x0002);
+        (void)xil_printf("DAC%d[2] :  0x%04X\r\n", nDac, nRdata);   // Default 0x2002 w. 4 wire 0x2082
 
-    	(void)xil_printf("\r\n");
+        (void)xil_printf("\r\n");
     }
 
     //-----------------------------------------------------
@@ -1373,29 +1636,52 @@ void dump_regs_fmc()
     //   0x00C ID_VNDR[15:8]
     //   0x00D ID_VNDR[7:0]
    nRdata = iic_read_reg_clk(ADR_REG_LMK_RESET);
-   (void)xil_printf("LMK04821[LMK_RESET]   			:  0x%03X\r\n",  nRdata);
+   (void)xil_printf("LMK04821[LMK_RESET]            :  0x%03X\r\n",  nRdata);
 
    nRdata = iic_read_reg_clk(ADR_REG_LMK_PWR_DOWN);
-   (void)xil_printf("LMK04821[LMK_PWR_DOWN]     	:  0x%03X\r\n",  nRdata);
+   (void)xil_printf("LMK04821[LMK_PWR_DOWN]         :  0x%03X\r\n",  nRdata);
 
    nRdata = iic_read_reg_clk(ADR_REG_LMK_ID_DEVICE_TYPE);
-   (void)xil_printf("LMK04821[LMK_ID_DEVICE_TYPE]	:  0x%03X\r\n",  nRdata);
+   (void)xil_printf("LMK04821[LMK_ID_DEVICE_TYPE]   :  0x%03X",  nRdata);
+   if (nRdata != DEF_LMK_ID_DEVICE_TYPE)
+       (void)xil_printf("** FAIL **  expected 0x%03X\r\n",  DEF_LMK_ID_DEVICE_TYPE);
+   else
+       (void)xil_printf("\r\n");
 
    nRdata = iic_read_reg_clk(ADR_REG_LMK_ID_PROD1);
-   (void)xil_printf("LMK04821[LMK_ID_PROD1]         :  0x%03X\r\n",  nRdata);
+   (void)xil_printf("LMK04821[LMK_ID_PROD1]         :  0x%03X",  nRdata);
+   if (nRdata != DEF_LMK_ID_PROD1)
+       (void)xil_printf("** FAIL **  expected 0x%03X\r\n",  DEF_LMK_ID_PROD1);
+   else
+       (void)xil_printf("\r\n");
 
    nRdata = iic_read_reg_clk(ADR_REG_LMK_ID_PROD0);
-   (void)xil_printf("LMK04821[LMK_ID_PROD0]         :  0x%03X\r\n",  nRdata);
+   (void)xil_printf("LMK04821[LMK_ID_PROD0]         :  0x%03X",  nRdata);
+   if (nRdata != DEF_LMK_ID_PROD0)
+       (void)xil_printf("** FAIL **  expected 0x%03X\r\n",  DEF_LMK_ID_PROD0);
+   else
+       (void)xil_printf("\r\n");
 
    nRdata = iic_read_reg_clk(ADR_REG_LMK_ID_MASKREV);
-   (void)xil_printf("LMK04821[LMK_ID_MASKREV] 		:  0x%03X\r\n",  nRdata);
+   (void)xil_printf("LMK04821[LMK_ID_MASKREV]       :  0x%03X",  nRdata);
+   if (nRdata != DEF_LMK_ID_MASKREV)
+       (void)xil_printf("** FAIL **  expected 0x%03X\r\n",  DEF_LMK_ID_MASKREV);
+   else
+       (void)xil_printf("\r\n");
 
    nRdata = iic_read_reg_clk(ADR_REG_LMK_ID_VNDR1);
-   (void)xil_printf("LMK04821[LMK_ID_VNDR1] 		:  0x%03X\r\n",  nRdata);
+   (void)xil_printf("LMK04821[LMK_ID_VNDR1]         :  0x%03X",  nRdata);
+   if (nRdata != DEF_LMK_ID_VNDR1)
+       (void)xil_printf("** FAIL **  expected 0x%03X\r\n",  DEF_LMK_ID_VNDR1);
+   else
+       (void)xil_printf("\r\n");
 
    nRdata = iic_read_reg_clk(ADR_REG_LMK_ID_VNDR0);
-   (void)xil_printf("LMK04821[LMK_ID_VNDR0] 		:  0x%03X\r\n",  nRdata);
-}
+   (void)xil_printf("LMK04821[LMK_ID_VNDR0]         :  0x%03X",  nRdata);
+   if (nRdata != DEF_LMK_ID_VNDR0)
+       (void)xil_printf("** FAIL **  expected 0x%03X\r\n",  DEF_LMK_ID_VNDR0);
+   else
+       (void)xil_printf("\r\n");}
 
 
 //---------------------------------------------------------
@@ -1403,13 +1689,13 @@ void dump_regs_fmc()
 //---------------------------------------------------------
 int iic_enable_fmc_temp()
 {
-	int nStatusIic;
+    int nStatusIic;
     u8  MsgWr[3];
 
-	xil_printf("iic_enable_fmc_temp()\r\n");
+    xil_printf("iic_enable_fmc_temp()\r\n");
 
     // Wait for bus to be free
-	while (XIicPs_BusIsBusy(&IicPs1)) {
+    while (XIicPs_BusIsBusy(&IicPs1)) {
         /* NOP */
     }
 
@@ -1420,12 +1706,13 @@ int iic_enable_fmc_temp()
 
     nStatusIic  = XIicPs_MasterSendPolled(&IicPs1, &MsgWr[0], 3, IIC_ADDR_ABA_VMON);
 
-	if (nStatusIic != XST_SUCCESS) {
-		xil_printf("Fail to set AD7291 address %d , status  0x%04X\r\n", 0, nStatusIic);
+    if (nStatusIic != XST_SUCCESS) {
+        xil_printf("Fail to set AD7291 address %d , status  0x%04X\r\n", 0, nStatusIic);
         return XST_FAILURE;
-	}
-	else
-		return XST_SUCCESS;
+    }
+    else
+
+        return XST_SUCCESS;
 }
 
 
@@ -1434,15 +1721,15 @@ int iic_enable_fmc_temp()
 //---------------------------------------------------------
 int iic_read_fmc_temp(int nReg)
 {
-	int nStatusIic;
+    int nStatusIic;
     u8  MsgRd[2];
     u8  MsgWr[2];
     int nTemp = 0;
 
-	xil_printf("iic_read_fmc_temp(%d)\r\n", nReg);
+    xil_printf("iic_read_fmc_temp(%d)\r\n", nReg);
 
     // Wait for bus to be free
-	while (XIicPs_BusIsBusy(&IicPs1)) {
+    while (XIicPs_BusIsBusy(&IicPs1)) {
         /* NOP */
     }
     // Read  temperature register
@@ -1451,22 +1738,22 @@ int iic_read_fmc_temp(int nReg)
 
     nStatusIic  = XIicPs_MasterSendPolled(&IicPs1, &MsgWr[0], 1, IIC_ADDR_ABA_VMON);
 
-	if (nStatusIic != XST_SUCCESS) {
-		xil_printf("Fail to set AD7291 address %d , status  0x%04X\r\n", nReg, nStatusIic);
+    if (nStatusIic != XST_SUCCESS) {
+        xil_printf("Fail to set AD7291 address %d , status  0x%04X\r\n", nReg, nStatusIic);
         return XST_FAILURE;
-	}
+    }
     else { // Read back data
         MsgRd[0] =  0xCC;
         MsgRd[1] =  0xCC;
 
         nStatusIic = XIicPs_MasterRecvPolled(&IicPs1, &MsgRd[0], 2, IIC_ADDR_ABA_VMON);
 
-	    if (nStatusIic != XST_SUCCESS) {
-		    xil_printf("Fail to read VMON register %d, status 0x%04X\r\n", nReg, nStatusIic);
+        if (nStatusIic != XST_SUCCESS) {
+            xil_printf("Fail to read VMON register %d, status 0x%04X\r\n", nReg, nStatusIic);
             return XST_FAILURE;
-	    }
+        }
         else {
-        	nTemp = (MsgRd[0] << 8) + MsgRd[1];
+            nTemp = (MsgRd[0] << 8) + MsgRd[1];
             xil_printf("Read VMON[%d] = 0x%04X\r\n", nReg, nTemp);
             return nTemp;
         }
@@ -1492,7 +1779,7 @@ int main()
     int     nStateButtonsLast   = 0;
     int     nStateSwitchesLast  = 0;
     int     nMode = C_MODE_CMD;
-	int 	nStatusIic;
+    int     nStatusIic;
 
     init_platform();
 
@@ -1503,62 +1790,82 @@ int main()
    (void)xil_printf("FPGA Version = 0x%08X\r\n", nRdata);
     print("\n\r");
 
-	//----------------------------------------------------------------------
-	// Initialize the IIC driver so that it's ready to use
-	// Look up the configuration in the config table, then initialize it.
-	//----------------------------------------------------------------------
-	IicConfig0 = XIicPs_LookupConfig(IIC_0_DEVICE_ID);
-	if (NULL == IicConfig0) {
-		xil_printf("Fail lookup IIC_0\r\n");
-	}
+    //----------------------------------------------------------------------
+    // Initialize the IIC driver so that it's ready to use
+    // Look up the configuration in the config table, then initialize it.
+    //----------------------------------------------------------------------
+    IicConfig0 = XIicPs_LookupConfig(IIC_0_DEVICE_ID);
+    if (NULL == IicConfig0) {
+        xil_printf("Fail lookup IIC_0\r\n");
+    }
 
-	nStatusIic = XIicPs_CfgInitialize(&IicPs0, IicConfig0, IicConfig0->BaseAddress);
-	if (nStatusIic != XST_SUCCESS) {
-		xil_printf("Fail config IIC_0\r\n");
-	}
-	else {
-		xil_printf("Successfully config IIC_0\r\n");
-	}
+    nStatusIic = XIicPs_CfgInitialize(&IicPs0, IicConfig0, IicConfig0->BaseAddress);
+    if (nStatusIic != XST_SUCCESS) {
+        xil_printf("Fail config IIC_0\r\n");
+    }
+    else {
+        xil_printf("Successfully config IIC_0\r\n");
+    }
 
-	IicConfig1 = XIicPs_LookupConfig(IIC_1_DEVICE_ID);
-	if (NULL == IicConfig1) {
-		xil_printf("Fail lookup IIC_1\r\n");
-	}
+    IicConfig1 = XIicPs_LookupConfig(IIC_1_DEVICE_ID);
+    if (NULL == IicConfig1) {
+        xil_printf("Fail lookup IIC_1\r\n");
+    }
 
-	nStatusIic = XIicPs_CfgInitialize(&IicPs1, IicConfig1, IicConfig1->BaseAddress);
-	if (nStatusIic != XST_SUCCESS) {
-		xil_printf("Fail config IIC_1\r\n");
-	}
-	else {
-		xil_printf("Successfully config IIC_1\r\n");
-	}
+    nStatusIic = XIicPs_CfgInitialize(&IicPs1, IicConfig1, IicConfig1->BaseAddress);
+    if (nStatusIic != XST_SUCCESS) {
+        xil_printf("Fail config IIC_1\r\n");
+    }
+    else {
+        xil_printf("Successfully config IIC_1\r\n");
+    }
     // Set I2C bus clock rates
-	XIicPs_SetSClk(&IicPs0, 100000);
-	XIicPs_SetSClk(&IicPs1, 100000);
+    XIicPs_SetSClk(&IicPs0, 100000);
+    XIicPs_SetSClk(&IicPs1, 100000);
+
+
+    //----------------------------------------------------------------------
+    // Detect FMC boards (Fpga Mezzanine Cards)
+    //----------------------------------------------------------------------
+    // Write port expander to make presence detect bits inputs P10, P11
+    iic_write_portexp_reg(IIC_ADDR_ZCU_PORT_EXP_U97, REG_PORT_EXP_CONFIG1, 0x03);
+    fmc0_detected = is_present_fmc(FMC_BOARD_0);
+    (void)xil_printf("fmc0_detected = %d\r\n", fmc0_detected);
+    fmc1_detected = is_present_fmc(FMC_BOARD_1);
+    (void)xil_printf("fmc1_detected = %d\r\n", fmc1_detected);
 
     // Set FMC DACs and Clock chip to 4-wire SPI mode so that they can be read
-    iic_set_fmc_spi4();
+    if (fmc0_detected == 1) {
+        iic_enable_fmc(0);
+        iic_set_fmc_spi4();
 
-	//----------------------------------------------------------------------
-    // Detect FMC boards (Fpga Mezzanine Cards)
-	//----------------------------------------------------------------------
-    fmc0_detected = is_present_fmc(FMC_BOARD_0);
-    fmc1_detected = is_present_fmc(FMC_BOARD_1);
+        // Lowest power dissipation
+        iic_dacs_sleep(0xF0);
+
+        // Enable temperature measurements
+        (void)iic_enable_fmc_temp();
+    }
+    if (fmc1_detected == 1) {
+        iic_enable_fmc(1);
+        iic_set_fmc_spi4();
+
+        // Lowest power dissipation
+        iic_dacs_sleep(0xF0);
+
+        // Enable temperature measurements
+        (void)iic_enable_fmc_temp();
+    }
+
+    //----------------------------------------------------------------------
+    // Write to the ZCU102 board I2C_1 mux. Set bit 0 to enable connection to FMC_0
+    //----------------------------------------------------------------------
+    if (fmc0_detected == 1) {
+        iic_enable_fmc(0);
+        iic_read_fmc_mux();
+    }
 
 
-	//----------------------------------------------------------------------
-	// Write to the ZCU102 board I2C_1 mux. Set bit 0 to enable connection to FMC_0
-	//----------------------------------------------------------------------
-    iic_enable_fmc(0);
-    iic_read_fmc_mux();
-
-    // Lowest power dissipation
-    iic_dacs_sleep(0xF0);
-
-	// Enable temperature measurements
-	(void)iic_enable_fmc_temp();
-
-	//----------------------------------------------------------------------
+    //----------------------------------------------------------------------
     // Command parser. Loops forever.
     //----------------------------------------------------------------------
     print("Ready>\r\n");
@@ -1616,7 +1923,15 @@ int main()
                         // Reset stuff
                         //---------------------------------------------------------
                         case 'R':
-                           nValue = 0;
+                        	// Reset DACs and clock chip using the CPLD REG_CTRL bits
+                        	// write 08 then 07
+                        	iic_write_cpld_reg(IIC_CPLD_REG_CTRL, 0x08);
+                        	iic_write_cpld_reg(IIC_CPLD_REG_CTRL, 0x07);
+
+                            // Clear a DACs error count registers (config100-config109)
+                            //for (int n = ADR_CONFIG_100 ; n < ADR_CONFIG_110 ; n++) {
+                            //    iic_write_dac_reg(nValue, n , 0xFFFF);
+                            //}
                         break;
 
 
@@ -1636,8 +1951,8 @@ int main()
                         case 's':
                             (void)xil_printf ("Set pulse seq length to %d\r\n", nValue);
 
- 						    Xil_Out32(ADR_PULSE_REG_SEQ_LEN, nValue);
- 						    nRdata = Xil_In32(ADR_PULSE_REG_SEQ_LEN);
+                            Xil_Out32(ADR_PULSE_REG_SEQ_LEN, nValue);
+                            nRdata = Xil_In32(ADR_PULSE_REG_SEQ_LEN);
                             (void)xil_printf ("Verify 0x%08X\r\n", nRdata);
 
                         break;
@@ -1646,10 +1961,10 @@ int main()
                         // Set Pulse block channel select register
                         //---------------------------------------------------------
                         case 'c':
-                        	if (nValue == 99)
-                        		set_pulse_chsel(0xFFFFFFFF);
-                        	else
-                        		set_pulse_chsel(nValue);
+                            if (nValue == 99)
+                                set_pulse_chsel(0xFFFFFFFF);
+                            else
+                                set_pulse_chsel(nValue);
                         break;
 
                         //---------------------------------------------------------
@@ -1662,73 +1977,73 @@ int main()
                             Xil_Out32(ADR_MISC_LEDS, nValue);
                         break;
 
-                    	//----------------------------------------------------------------------
-                    	// Read from the U61 and U97 port expanders on the ZCU102 board I2C_0 bus.
-                    	//----------------------------------------------------------------------
+                        //----------------------------------------------------------------------
+                        // Read from the U61 and U97 port expanders on the ZCU102 board I2C_0 bus.
+                        //----------------------------------------------------------------------
                         case 'x':
 
-                        	//----------------------------------------------------------------------
+                            //----------------------------------------------------------------------
                             // Read all Port Expander registers
-                        	//----------------------------------------------------------------------
+                            //----------------------------------------------------------------------
                             xil_printf("Read PortExp U61\r\n");
-                        	iic_read_portexp_reg(IIC_ADDR_ZCU_PORT_EXP_U61, 0);
-                        	iic_read_portexp_reg(IIC_ADDR_ZCU_PORT_EXP_U61, 1);
-                        	iic_read_portexp_reg(IIC_ADDR_ZCU_PORT_EXP_U61, 2);
-                        	iic_read_portexp_reg(IIC_ADDR_ZCU_PORT_EXP_U61, 3);
-                        	iic_read_portexp_reg(IIC_ADDR_ZCU_PORT_EXP_U61, 4);
-                        	iic_read_portexp_reg(IIC_ADDR_ZCU_PORT_EXP_U61, 5);
-                        	iic_read_portexp_reg(IIC_ADDR_ZCU_PORT_EXP_U61, 6);
-                        	iic_read_portexp_reg(IIC_ADDR_ZCU_PORT_EXP_U61, 7);
+                            iic_read_portexp_reg(IIC_ADDR_ZCU_PORT_EXP_U61, 0);
+                            iic_read_portexp_reg(IIC_ADDR_ZCU_PORT_EXP_U61, 1);
+                            iic_read_portexp_reg(IIC_ADDR_ZCU_PORT_EXP_U61, 2);
+                            iic_read_portexp_reg(IIC_ADDR_ZCU_PORT_EXP_U61, 3);
+                            iic_read_portexp_reg(IIC_ADDR_ZCU_PORT_EXP_U61, 4);
+                            iic_read_portexp_reg(IIC_ADDR_ZCU_PORT_EXP_U61, 5);
+                            iic_read_portexp_reg(IIC_ADDR_ZCU_PORT_EXP_U61, 6);
+                            iic_read_portexp_reg(IIC_ADDR_ZCU_PORT_EXP_U61, 7);
 
 
                             xil_printf("Read PortExp U97\r\n");
-                        	iic_read_portexp_reg(IIC_ADDR_ZCU_PORT_EXP_U97, 0);
-                        	iic_read_portexp_reg(IIC_ADDR_ZCU_PORT_EXP_U97, 1);
-                        	iic_read_portexp_reg(IIC_ADDR_ZCU_PORT_EXP_U97, 2);
-                        	iic_read_portexp_reg(IIC_ADDR_ZCU_PORT_EXP_U97, 3);
-                        	iic_read_portexp_reg(IIC_ADDR_ZCU_PORT_EXP_U97, 4);
-                        	iic_read_portexp_reg(IIC_ADDR_ZCU_PORT_EXP_U97, 5);
-                        	iic_read_portexp_reg(IIC_ADDR_ZCU_PORT_EXP_U97, 6);
-                        	iic_read_portexp_reg(IIC_ADDR_ZCU_PORT_EXP_U97, 7);
+                            iic_read_portexp_reg(IIC_ADDR_ZCU_PORT_EXP_U97, 0);
+                            iic_read_portexp_reg(IIC_ADDR_ZCU_PORT_EXP_U97, 1);
+                            iic_read_portexp_reg(IIC_ADDR_ZCU_PORT_EXP_U97, 2);
+                            iic_read_portexp_reg(IIC_ADDR_ZCU_PORT_EXP_U97, 3);
+                            iic_read_portexp_reg(IIC_ADDR_ZCU_PORT_EXP_U97, 4);
+                            iic_read_portexp_reg(IIC_ADDR_ZCU_PORT_EXP_U97, 5);
+                            iic_read_portexp_reg(IIC_ADDR_ZCU_PORT_EXP_U97, 6);
+                            iic_read_portexp_reg(IIC_ADDR_ZCU_PORT_EXP_U97, 7);
 
                         break;
 
                         //----------------------------------------------------------------------
-                    	// Read from the U97 port expander on the ZCU102 board I2C_0 bus.
+                        // Read from the IN1 reg U97 port expander on the ZCU102 board I2C_0 bus.
                         // Bit-7 and bit-6 are presence detect bits for the FMC216 boards
-                    	//----------------------------------------------------------------------
+                        //----------------------------------------------------------------------
                         case 'i':
 
-                        	//----------------------------------------------------------------------
+                            //----------------------------------------------------------------------
+                            // Detect FMC boards (Fpga Mezzanine Cards)
+                            //----------------------------------------------------------------------
+                            fmc0_detected = is_present_fmc(FMC_BOARD_0);
+                            (void)xil_printf("fmc0_detected = %d\r\n", fmc0_detected);
+                            fmc1_detected = is_present_fmc(FMC_BOARD_1);
+                            (void)xil_printf("fmc1_detected = %d\r\n", fmc1_detected);
+
+                        break;
+
+                        case 'p':
+                            //----------------------------------------------------------------------
                             // Read all CPLD registers
-                        	//----------------------------------------------------------------------
+                            //----------------------------------------------------------------------
                             xil_printf("Read FMC216 CPLD registers\r\n");
 
                             // Read 0 to 15
-                            for (int i=0; i < 15 ; i++) {
-                            	xil_printf("CPLD[%d] = 0x%02X\r\n", i, iic_read_cpld_reg((u8)i));
-
-                        	    //MsgWr[0] = (u8)i; // reg addr
-                        	    //nStatusIic = XIicPs_MasterSendPolled(&IicPs1, &MsgWr[0], 1, IIC_ADDR_ABA_CPLD);
-                        	    //if (nStatusIic != XST_SUCCESS)
-                        	    //	xil_printf("Status after Write CPLD = 0x%04X\r\n", nStatusIic);
-
-                        	    //MsgRd[0] =  0xCC;
-                        	    //nStatusIic = XIicPs_MasterRecvPolled(&IicPs1, &MsgRd[0], 1, IIC_ADDR_ABA_CPLD);
-                        	    //if (nStatusIic == XST_SUCCESS)
-                        	    //	xil_printf("Read CPLD[%2d] = 0x%02X\r\n", i, MsgRd[0]);
-                        	    //else
-                        	    //	xil_printf("** Read CPLD[%2d] = 0x%02X, nStatusIic = 0x%04X\r\n", i, MsgRd[0], nStatusIic);
+                            for (int i=0; i < 16 ; i++) 
+                            {
+                                xil_printf("CPLD[%d] = 0x%02X\r\n", i, iic_read_cpld_reg((u8)i));
                             }
                         break;
 
 
-                    	//----------------------------------------------------------------------
+                        //----------------------------------------------------------------------
                         // Write to the ZCU102 board I2C_1 mux.
                         // I2C mux setting to 'value'
                         // Set bit 0 to enable connection to FMC_0
                         // Set bit 1 to enable connection to FMC_1
-                    	//----------------------------------------------------------------------
+                        //----------------------------------------------------------------------
                         case 'm':
 
                             iic_enable_fmc(nValue);
@@ -1736,14 +2051,14 @@ int main()
 
                         break;
 
-                    	//----------------------------------------------------------------------
+                        //----------------------------------------------------------------------
                         // Read temp from FMC216 AD7291 voltage/temp monitor chip
-                    	//----------------------------------------------------------------------
+                        //----------------------------------------------------------------------
                         case 't':
                             iic_read_fmc_temp(0);
                             iic_read_fmc_temp(1);
-                            iic_read_fmc_temp(2);	// Tsense
-                            iic_read_fmc_temp(3);	// Averaged Temp
+                            iic_read_fmc_temp(2);   // Tsense
+                            iic_read_fmc_temp(3);   // Averaged Temp
                             iic_read_fmc_temp(4);
                             iic_read_fmc_temp(5);
                             iic_read_fmc_temp(6);
@@ -1751,61 +2066,68 @@ int main()
 
                             // Convert 11 LSB to degrees. Bits [15:12] should be 0x80
                             double dTemp = (double)(iic_read_fmc_temp(2) & 0xFFF)/4.0;
-                    	    printf("Temperature = %5.2f degrees C\r\n", dTemp);
+                            printf("Temperature = %5.2f degrees C\r\n", dTemp);
 
                         break;
 
-                    	//----------------------------------------------------------------------
+                        //----------------------------------------------------------------------
                         // Set sleep mode for DACs
-                    	//----------------------------------------------------------------------
+                        //----------------------------------------------------------------------
                         case 'S':
                             iic_dacs_sleep(0xF0);
                         break;
 
-                    	//----------------------------------------------------------------------
+                        //----------------------------------------------------------------------
                         // Set awake mode for DACs
-                    	//----------------------------------------------------------------------
+                        //----------------------------------------------------------------------
                         case 'A':
                             iic_dacs_sleep(0x0F);
                         break;
 
-                    	//----------------------------------------------------------------------
+                        //----------------------------------------------------------------------
                         // Read some registers from FMC board CPLD, DACs and Clock chip
-                    	//----------------------------------------------------------------------
+                        //----------------------------------------------------------------------
                         case 'd':
                             dump_regs_fmc();
                         break;
 
-                    	//----------------------------------------------------------------------
+                        //----------------------------------------------------------------------
                         // Set FMC DACs and Clock chip to 4-wire SPI mode so that they can be read
-                    	//----------------------------------------------------------------------
+                        //----------------------------------------------------------------------
                         case 'D':
                             iic_set_fmc_spi4();
                         break;
 
-                    	//----------------------------------------------------------------------
+                        //----------------------------------------------------------------------
                         // Test something
-                    	//----------------------------------------------------------------------
+                        //----------------------------------------------------------------------
                         case 'T':
-                        	if      (nValue == 0)
-                        		iic_cpld_test();
+                            // Read default values from DAC chips
+                            if      (nValue == 0)
+                                test_regs_default_dac(0);
+                            else if (nValue == 1)
+                                test_regs_default_dac(1);
+                            else if (nValue == 2)
+                                test_regs_default_dac(2);
+                            else if (nValue == 3)
+                                test_regs_default_dac(3);
 
-                        	// Read default values from DAC chips
-                        	else if (nValue == 1)
-                        		test_regs_default_dac(0);
-                        	else if (nValue == 2)
-                        		test_regs_default_dac(1);
-                        	else if (nValue == 3)
-                        		test_regs_default_dac(2);
-                        	else if (nValue == 4)
-                        		test_regs_default_dac(3);
+                            // Read default register values of clock generator
+                            else if (nValue == 4)
+                                test_regs_default_clk();
 
-                        	// Read default register values of clock generator
-                        	else if (nValue == 5)
-                        		test_regs_default_clk();
+                            // CPLD test R/W
+                            else if (nValue == 5)
+                                iic_cpld_test();
+
                         break;
 
-
+                        //----------------------------------------------------------------------
+                        // Test writes to a DAC reg and a clock reg
+                        //----------------------------------------------------------------------
+                        case 'y':
+                        	iic_test_write_dacs_clk();
+                        break;
                     }
                     nDigit = 0;
                 }
@@ -1827,7 +2149,7 @@ int main()
             // Add actions here
             if (g_nStateButtons == 0x1)     // Button 0 was pressed
             {
-            	xil_printf ("Button 1 \r\n");
+                xil_printf ("Button 1 \r\n");
             }
             nStateButtonsLast = g_nStateButtons;
         }
@@ -1842,17 +2164,17 @@ int main()
             // If SW1 is set then enable real messages
             //--------------------------------------------------------------
             if ((g_nStateSwitches & 0x2) == 2) {
-            	xil_printf ("Switch 2 \r\n");
+                xil_printf ("Switch 2 \r\n");
             }
             //--------------------------------------------------------------
             // If SW0 is set then enable dummy messages
             //--------------------------------------------------------------
             else if ((g_nStateSwitches & 0x1) == 1){
-            	xil_printf ("Switch 1 \r\n");
+                xil_printf ("Switch 1 \r\n");
 
             }
             else {
-            	xil_printf ("Switch ? \r\n");
+                xil_printf ("Switch ? \r\n");
 
             }
             nStateSwitchesLast = g_nStateSwitches;

@@ -23,8 +23,8 @@
 // Register map of Xilinx JESD204C IP block version 4.2 from document PG242
 // Registers that are not used in 8B10B TX-only, are commented out 
 //
-//          Register Name                   AXI4-Lite Addr                64B66B          8B10B
-//                                                                        TX      RX      TX      RX 
+//          Register Name           AXI4-Lite Addr      64B66B          8B10B
+//                                                     TX      RX      TX      RX 
 //----------------------------------------------------------------------------------------------------
 #define     REG_JESD_IP_VERSION         0x000    //    R       R       R       R
 #define     REG_JESD_IP_CONFIG          0x004    //    R       R       R       R
@@ -65,7 +65,7 @@
 #define LANE7   7
 
 //------------------------------------------------------------
-// Function for reading a register from a particular FMC interface 
+// Macro for reading a register from a particular FMC interface
 //------------------------------------------------------------
 // Read the JESD registers. e.g. ADR_JESD(FMC0, REG_JESD_IP_VERSION) 
 #define ADR_JESD(FMC, ADR_REG)          (ADR_BASE_JESD + (FMC * ADR_FMC_STEP) + ADR_REG)
@@ -87,6 +87,7 @@
 //  #define     ADR_JESD0_IP_VERSION         (ADR_BASE_JESD + 0x000)    //    R       R       R       R
 //  #define     ADR_JESD0_IP_CONFIG          (ADR_BASE_JESD + 0x004)    //    R       R       R       R
 //  #define     ADR_JESD0_RESET              (ADR_BASE_JESD + 0x020)    //    RW      RW      RW      RW
+//  #define     ADR_JESD0_CTRL_EN            (ADR_BASE_JESD + 0x024)    //    RW      RW      N/A     N/A
 //  #define     ADR_JESD0_CTRL_TX_SYNC       (ADR_BASE_JESD + 0x028)    //    N/A     N/A     RW      N/A
 //  #define     ADR_JESD0_CTRL_SUB_CLASS     (ADR_BASE_JESD + 0x034)    //    RW      RW      RW      RW
 //  #define     ADR_JESD0_CTRL_8B10B_CFG     (ADR_BASE_JESD + 0x03C)    //    N/A     N/A     RW      RW

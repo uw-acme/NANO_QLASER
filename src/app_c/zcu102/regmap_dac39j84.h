@@ -2,6 +2,7 @@
 //      Addr                       Name     Default  (MSB) Bit 15 Bit 14 Bit 13 Bit 12 Bit 11 Bit 10 Bit 9 Bit 8 Bit 7 Bit 6 Bit 5 Bit 4 Bit 3 Bit 2 Bit 1 Bit0 (LSB)
 //--------------------------------------------------------------------------------------------------------------------------------------------
 #define NUM_REGS_DAC_39J84  128 // Number of registers in the DAC
+
 #define ADR_CONFIG_0    0x00    // config0   0x0218 offsetab offsetcd qmc _corrab corrcd interp(3:0) os outsum zeros alarm_out alarm pap _ena inv_sinc inv_sinc _ena _ena _ena _ena _txenable _ena _jesd _ena _out_pol _ab _ena _cd_ena _ena data_ena sfrac_ sfrac_ lfrac_ lfrac_ sfrac_ daca_ dacb_ dacc_ dacd_
 #define ADR_CONFIG_1    0x01    // config1   0x0003 sfrac_ena_ab sfrac_ena_cd lfrac_ena_ab lfrac_ena_cd sfrac_sel_ab sfrac_sel_cd reserved reserved daca_compliment -- complime complime complime reserved reserved reserved reserved nt nt nt nt
 #define ADR_CONFIG_2    0x02    // config2   0x2002 dac_bitwidth(1:0) zer_invalid_data shorttest_ena reserved reserved reserved reserved sif4_ena mixer_ena mixer_gain nco_ena reserved reserved twos sif_reset 
@@ -100,40 +101,41 @@
 #define ADR_CONFIG_92   0x5C    // config92  0x1111 reserved(15:8) err_cnt_clr_link1 sysref_mode_link1(2:0) err_cnt sysref_mode_link0(2:0)  _clr_link0
 #define ADR_CONFIG_93   0x5D    // config93  0x0000 reserve(15:0)d
 #define ADR_CONFIG_94   0x5E    // config94  0x0000 res1(7:0) res2(7:0)
-#define ADR_CONFIG_95   0x60    // config95  0x0123 reserved octetpath_sel(0)(2:0) reserved octetpath_sel(1)(2:0) reserved octetpath_sel(2)(2:0) reserved octetpath_sel(3)(2:0)
-#define ADR_CONFIG_96   0x61    // config96  0x0456 reserved octetpath_sel(4)(2:0) reserved octetpath_sel(5)(2:0) reserved octetpath_sel(6)(2:0) reserved octetpath_sel(7)(2:0)
-#define ADR_CONFIG_97   0x62    // config97  0x000F syncn_pol reserved syncncd_sel(3:0) syncnab_sel(3:0) syncn_sel(3:0)
-#define ADR_CONFIG_98   0x63    // config98  0x0000 reserved reserved reserved reserved
-#define ADR_CONFIG_99   0x64    // config99  0x0000 reserved reserved reserved reserved Reserved
-#define ADR_CONFIG_100  0x65    // config100 0x0000 alarm_l_error(0)(7:0) reserved alarm_fifo_flags(0)(3:0)
-#define ADR_CONFIG_101  0x66    // config101 0x0000 alarm_l_error(1)(7:0) reserved alarm_fifo_flags(1)(3:0)
-#define ADR_CONFIG_102  0x67    // config102 0x0000 alarm_l_error(2)(7:0) reserved alarm_fifo_flags(2)(3:0)
-#define ADR_CONFIG_103  0x68    // config103 0x0000 alarm_l_error(3)(7:0) reserved alarm_fifo_flags(3)(3:0)
-#define ADR_CONFIG_104  0x69    // config104 0x0000 alarm_l_error(4)(7:0) reserved alarm_fifo_flags(4)(3:0)
-#define ADR_CONFIG_105  0x6A    // config105 0x0000 alarm_l_error(5)(7:0) reserved alarm_fifo_flags(5)(3:0)
-#define ADR_CONFIG_106  0x6B    // config106 0x0000 alarm_l_error(6)(7:0) reserved alarm_fifo_flags(6)(3:0)
-#define ADR_CONFIG_107  0x6C    // config107 0x0000 alarm_l_error(7)(7:0) reserved alarm_fifo_flags(7)(3:0)
-#define ADR_CONFIG_108  0x6D    // config108 0x0000 alarm_sysref_err(3:0) alarm_pap(3:0) reserved(7:4) alarm_rw0_pll alarm_rw1_pll reserved(1) alarm_from_pll   
-#define ADR_CONFIG_109  0x6E    // config109 0x00xx alarm_from_shorttest(7:0) memin_rw_losdct(7:0)
-#define ADR_CONFIG_110  0x6F    // config110 0x0000 sfrac_coef0_ab(1:0) sfrac_coef1_ab(4:0) sfrac_coef2_ab(7:0) Reserved
-#define ADR_CONFIG_111  0x70    // config111 0x0000 reserved sfrac_coef3_ab(9:0)
-#define ADR_CONFIG_112  0x71    // config112 0x0000 sfrac_coef4_ab(15:0)
-#define ADR_CONFIG_113  0x72    // config113 0x0000 sfrac_coef4_ab(18:16) reserved sfrac_coef5_ab(9:0)
-#define ADR_CONFIG_114  0x73    // config114 0x0000 reserved sfrac_coef6_ab(8:0)
-#define ADR_CONFIG_115  0x74    // config115 0x0000 sfrac_coef7_ab(6:0) sfrac_coef8_ab(4:0) sfrac_coef9_ab(1:0) Reserved
-#define ADR_CONFIG_116  0x75    // config116 0x0000 sfrac_invgain_ab(15:0)
-#define ADR_CONFIG_117  0x76    // config117 0x0000 sfrac_invgain_ab(19:16) reserved lfras_coefsel_a(2:0) lfras_coefsel_b(2:0)
-#define ADR_CONFIG_118  0x77    // config118 0x0000 sfrac_coef0_cd(1:0) sfrac_coef1_cd(4:0) sfrac_coef2_cd7:0) Reserved
-#define ADR_CONFIG_119  0x78    // config119 0x0000 reserved sfrac_coef3_cd(9:0)
-#define ADR_CONFIG_120  0x79    // config120 0x0000 sfrac_coef4_cd(15:0)
-#define ADR_CONFIG_121  0x7A    // config121 0x0000 sfrac_coef4_cd(18:16) reserved sfrac_coef5_cd(9:0)
-#define ADR_CONFIG_122  0x7B    // config122 0x0000 reserved sfrac_coef6_cd(8:0)
-#define ADR_CONFIG_123  0x7C    // config123 0x0000 sfrac_coef7_cd(6:0) sfrac_coef8_cd(4:0) sfrac_coef9_cd(1:0) Reserved
-#define ADR_CONFIG_124  0x7D    // config124 0x0000 sfrac_invgain_cd(15:0)
-#define ADR_CONFIG_125  0x7E    // config125 0x0000 sfrac_invgain_cd(19:16) reserved lfras_coefsel_c(2:0) lfras_coefsel_d(2:0)
-#define ADR_CONFIG_126  0x7F    // config126 0x0000 reserved(15:0) 
-#define ADR_CONFIG_127  0x80    // config127 0x0000 memin_efc memin_efc_error(4:0) reserved(9:5) vendorid(1:0) versionid(2:0) _autoload
-
+// WARNING The address table in the datasheet omits 0x5F and subseq addresses are 0x60 to 0x80 (???)
+#define ADR_CONFIG_95   0x5F    // config95  0x0123 reserved octetpath_sel(0)(2:0) reserved octetpath_sel(1)(2:0) reserved octetpath_sel(2)(2:0) reserved octetpath_sel(3)(2:0)
+#define ADR_CONFIG_96   0x60    // config96  0x4567 reserved octetpath_sel(4)(2:0) reserved octetpath_sel(5)(2:0) reserved octetpath_sel(6)(2:0) reserved octetpath_sel(7)(2:0)
+#define ADR_CONFIG_97   0x61    // config97  0x000F syncn_pol reserved syncncd_sel(3:0) syncnab_sel(3:0) syncn_sel(3:0)
+#define ADR_CONFIG_98   0x62    // config98  0x0000 reserved reserved reserved reserved
+#define ADR_CONFIG_99   0x63    // config99  0x0000 reserved reserved reserved reserved Reserved
+#define ADR_CONFIG_100  0x64    // config100 0x0000 alarm_l_error(0)(7:0) reserved alarm_fifo_flags(0)(3:0)
+#define ADR_CONFIG_101  0x65    // config101 0x0000 alarm_l_error(1)(7:0) reserved alarm_fifo_flags(1)(3:0)
+#define ADR_CONFIG_102  0x66    // config102 0x0000 alarm_l_error(2)(7:0) reserved alarm_fifo_flags(2)(3:0)
+#define ADR_CONFIG_103  0x67    // config103 0x0000 alarm_l_error(3)(7:0) reserved alarm_fifo_flags(3)(3:0)
+#define ADR_CONFIG_104  0x68    // config104 0x0000 alarm_l_error(4)(7:0) reserved alarm_fifo_flags(4)(3:0)
+#define ADR_CONFIG_105  0x69    // config105 0x0000 alarm_l_error(5)(7:0) reserved alarm_fifo_flags(5)(3:0)
+#define ADR_CONFIG_106  0x6A    // config106 0x0000 alarm_l_error(6)(7:0) reserved alarm_fifo_flags(6)(3:0)
+#define ADR_CONFIG_107  0x6B    // config107 0x0000 alarm_l_error(7)(7:0) reserved alarm_fifo_flags(7)(3:0)
+#define ADR_CONFIG_108  0x6C    // config108 0x0000 alarm_sysref_err(3:0) alarm_pap(3:0) reserved(7:4) alarm_rw0_pll alarm_rw1_pll reserved(1) alarm_from_pll   
+#define ADR_CONFIG_109  0x6D    // config109 0x00xx alarm_from_shorttest(7:0) memin_rw_losdct(7:0)
+#define ADR_CONFIG_110  0x6E    // config110 0x0000 sfrac_coef0_ab(1:0) sfrac_coef1_ab(4:0) sfrac_coef2_ab(7:0) Reserved
+#define ADR_CONFIG_111  0x6F    // config111 0x0000 reserved sfrac_coef3_ab(9:0)
+#define ADR_CONFIG_112  0x70    // config112 0x0000 sfrac_coef4_ab(15:0)
+#define ADR_CONFIG_113  0x71    // config113 0x0000 sfrac_coef4_ab(18:16) reserved sfrac_coef5_ab(9:0)
+#define ADR_CONFIG_114  0x72    // config114 0x0000 reserved sfrac_coef6_ab(8:0)
+#define ADR_CONFIG_115  0x73    // config115 0x0000 sfrac_coef7_ab(6:0) sfrac_coef8_ab(4:0) sfrac_coef9_ab(1:0) Reserved
+#define ADR_CONFIG_116  0x74    // config116 0x0000 sfrac_invgain_ab(15:0)
+#define ADR_CONFIG_117  0x75    // config117 0x0000 sfrac_invgain_ab(19:16) reserved lfras_coefsel_a(2:0) lfras_coefsel_b(2:0)
+#define ADR_CONFIG_118  0x76    // config118 0x0000 sfrac_coef0_cd(1:0) sfrac_coef1_cd(4:0) sfrac_coef2_cd7:0) Reserved
+#define ADR_CONFIG_119  0x77    // config119 0x0000 reserved sfrac_coef3_cd(9:0)
+#define ADR_CONFIG_120  0x78    // config120 0x0000 sfrac_coef4_cd(15:0)
+#define ADR_CONFIG_121  0x79    // config121 0x0000 sfrac_coef4_cd(18:16) reserved sfrac_coef5_cd(9:0)
+#define ADR_CONFIG_122  0x7A    // config122 0x0000 reserved sfrac_coef6_cd(8:0)
+#define ADR_CONFIG_123  0x7B    // config123 0x0000 sfrac_coef7_cd(6:0) sfrac_coef8_cd(4:0) sfrac_coef9_cd(1:0) Reserved
+#define ADR_CONFIG_124  0x7C    // config124 0x0000 sfrac_invgain_cd(15:0)
+#define ADR_CONFIG_125  0x7D    // config125 0x0000 sfrac_invgain_cd(19:16) reserved lfras_coefsel_c(2:0) lfras_coefsel_d(2:0)
+#define ADR_CONFIG_126  0x7E    // config126 0x0000 reserved(15:0) 
+#define ADR_CONFIG_127  0x7F    // config127 0x0000 memin_efc memin_efc_error(4:0) reserved(9:5) vendorid(1:0) versionid(2:0) _autoload
+                        
 //-- END --
 #define DEF_CONFIG_0    0x0218  //   offsetab offsetcd qmc _corrab corrcd interp(3:0) os outsum zeros alarm_out alarm pap _ena inv_sinc inv_sinc _ena _ena _ena _ena _txenable _ena _jesd _ena _out_pol _ab _ena _cd_ena _ena data_ena sfrac_ sfrac_ lfrac_ lfrac_ sfrac_ daca_ dacb_ dacc_ dacd_
 #define DEF_CONFIG_1    0x0003  //   sfrac_ena_ab sfrac_ena_cd lfrac_ena_ab lfrac_ena_cd sfrac_sel_ab sfrac_sel_cd reserved reserved daca_compliment -- complime complime complime reserved reserved reserved reserved nt nt nt nt
@@ -231,7 +233,7 @@
 #define DEF_CONFIG_93   0x0000  //   reserve(15:0)d
 #define DEF_CONFIG_94   0x0000  //   res1(7:0) res2(7:0)
 #define DEF_CONFIG_95   0x0123  //   reserved octetpath_sel(0)(2:0) reserved octetpath_sel(1)(2:0) reserved octetpath_sel(2)(2:0) reserved octetpath_sel(3)(2:0)
-#define DEF_CONFIG_96   0x0456  //   reserved octetpath_sel(4)(2:0) reserved octetpath_sel(5)(2:0) reserved octetpath_sel(6)(2:0) reserved octetpath_sel(7)(2:0)
+#define DEF_CONFIG_96   0x4567  //   reserved octetpath_sel(4)(2:0) reserved octetpath_sel(5)(2:0) reserved octetpath_sel(6)(2:0) reserved octetpath_sel(7)(2:0)
 #define DEF_CONFIG_97   0x000F  //   syncn_pol reserved syncncd_sel(3:0) syncnab_sel(3:0) syncn_sel(3:0)
 #define DEF_CONFIG_98   0x0000  //   reserved reserved reserved reserved
 #define DEF_CONFIG_99   0x0000  //   reserved reserved reserved reserved Reserved
