@@ -165,6 +165,10 @@ begin
         elsif rising_edge(clk) then
           
             cpu_tx_message_dv   <= '0';
+            cpu_tx_message      <= (others => '0');
+
+            cpu_rdata       <= (others=>'0');
+            cpu_rdata_dv    <= '0';
 
             -- CPU writes 
             if (cpu_wr = '1' and cpu_sel = '1') then

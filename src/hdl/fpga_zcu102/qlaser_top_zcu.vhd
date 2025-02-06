@@ -457,20 +457,20 @@ begin
     -------------------------------------------------------------
 	u_dac_pulse : entity work.qlaser_2pmods_pulse
 	port map (
-        clk             => clk                      , -- in  std_logic;
-        reset           => reset                    , -- in  std_logic;
+        clk             => clk                        , -- in  std_logic;
+        reset           => reset                      , -- in  std_logic;
 
         busy0            => pulse2pmod0_busy          , -- out std_logic;    -- Set to '1' while SPI interface is busy
         busy1            => pulse2pmod1_busy          , -- out std std_logic;    -- Set to '1' while SPI interface is busy
 
         -- CPU interface
-        cpu_addr        => cpu_addr( 5 downto 0)    , -- in  std_logic_vector( 5 downto 0);
-        cpu_wdata       => cpu_din(11 downto 0)     , -- in  std_logic_vector(11 downto 0);
-        cpu_wr          => cpu_wr                   , -- in  std_logic;
-        cpu_sel         => cpu_sels(SEL_SPARE)      , -- in  std_logic;
+        cpu_addr        => cpu_addr( 5 downto 0)      , -- in  std_logic_vector( 5 downto 0);
+        cpu_wdata       => cpu_din(11 downto 0)       , -- in  std_logic_vector(11 downto 0);
+        cpu_wr          => cpu_wr                     , -- in  std_logic;
+        cpu_sel         => cpu_sels(SEL_SPARE)        , -- in  std_logic;
 
-        cpu_rdata       => arr_cpu_dout(SEL_SPARE)  , -- out std_logic_vector(31 downto 0);
-        cpu_rdata_dv    => arr_cpu_dout_dv(SEL_SPARE), -- out std_logic; 
+        cpu_rdata       => arr_cpu_dout(SEL_SPARE)    , -- out std_logic_vector(31 downto 0);
+        cpu_rdata_dv    => arr_cpu_dout_dv(SEL_SPARE) , -- out std_logic; 
 
         -- AXI-Stream bus.  16-bit data.
         axis0_tready     => fifo_axis0_tready         , -- out std_logic;    -- axi_stream ready from downstream modules

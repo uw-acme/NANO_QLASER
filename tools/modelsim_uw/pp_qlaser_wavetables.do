@@ -7,12 +7,18 @@ add wave -noupdate -radix unsigned /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch
 add wave -noupdate -radix unsigned /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/busy
 add wave -noupdate -radix unsigned /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/clk
 add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/enable
-add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/reg_ch_en
+add wave -noupdate -radix hexadecimal /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/reg_ch_en
+add wave -noupdate -radix hexadecimal /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/reg_ch_sels
+add wave -noupdate -radix hexadecimal /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/reg_rdata
+add wave -noupdate -radix hexadecimal /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/reg_sequence_len
+add wave -noupdate -radix hexadecimal /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/reg_status
+add wave -noupdate -radix hexadecimal /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/reg_status_jesd
+add wave -noupdate -radix unsigned /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/reg_rdata_dv
+add wave -noupdate -expand /tb_qlaser_top/u_qlaser_top/cpu_addr
+add wave -noupdate /tb_qlaser_top/u_qlaser_top/cpu_din
+add wave -noupdate -radix unsigned /tb_qlaser_top/u_qlaser_top/cpu_sels
+add wave -noupdate /tb_qlaser_top/u_qlaser_top/cpu_wr
 add wave -noupdate -radix unsigned /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/cnt_time
-add wave -noupdate -radix unsigned /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/cpu_addr
-add wave -noupdate -radix unsigned /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/cpu_rdata
-add wave -noupdate -radix unsigned /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/cpu_rdata_dv
-add wave -noupdate -radix unsigned /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/cpu_wdata
 add wave -noupdate -radix unsigned /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/erros
 add wave -noupdate -radix unsigned /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/axis_tdata_small
 add wave -noupdate /tb_qlaser_top/u_qlaser_top/u_dacs_pulse/g_ch(0)/ch_full/u_ch/axis_tvalid
@@ -59,7 +65,7 @@ add wave -noupdate -radix unsigned /tb_qlaser_top/u_qlaser_top/u_dac_pulse/spi1_
 add wave -noupdate -radix unsigned /tb_qlaser_top/u_qlaser_top/u_dac_pulse/spi1_tx_message
 add wave -noupdate -radix unsigned /tb_qlaser_top/u_qlaser_top/u_dac_pulse/spi1_tx_message_dv
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {0 ps} 0}
+WaveRestoreCursors {{Cursor 1} {1407041951 ps} 0}
 quietly wave cursor active 1
 configure wave -namecolwidth 150
 configure wave -valuecolwidth 100
@@ -75,4 +81,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {0 ps} {1447099500 ps}
+WaveRestoreZoom {0 ps} {1447435500 ps}

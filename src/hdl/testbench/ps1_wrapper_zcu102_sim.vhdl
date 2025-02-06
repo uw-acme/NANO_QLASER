@@ -182,6 +182,7 @@ begin
         end loop;
 
         cpu_print_msg("##### Waves loaded! #####");
+        cpu_write(clk, ADR_REG_AC_CH_SEL    , X"00000001", rd, wr, addr, wdata);
 
         clk_delay(10, clk);
 
@@ -190,7 +191,6 @@ begin
 
         -- trigger
         cpu_print_msg("Enable Pulse");
-        -- gpio_int_o  <= std_logic_vector(to_unsigned(2, 32));
         cpu_write(clk, ADR_MISC_DEBUG_EN    , X"00000001", rd, wr, addr, wdata);
         clk_delay(0, clk);
 
@@ -208,6 +208,16 @@ begin
         cpu_print_msg("Current debug value: " & to_string(gpio_int_in_tri_i));
         cpu_print_msg("CPU done");
         -- clk_delay(5, clk);
+
+        cpu_read(clk, to_integer(unsigned(ADR_REG_AC_CH_SEL)), X"00000001", rd, wr, addr, wdata, rdata, rdata_dv);
+        cpu_print_msg("ADR_REG_AC_CH_SEL: " & to_string(to_bitvector(rdata),"%08X"));
+        cpu_read(clk, to_integer(unsigned(PMOD_ADDR_SPI0)), X"00000013", rd, wr, addr, wdata, rdata, rdata_dv);
+        cpu_print_msg("ADR_BASE_PULSE2PMOD: " & to_string(to_bitvector(rdata),"%08X"));
+
+        cpu_read(clk, to_integer(unsigned(ADR_REG_AC_CH_SEL)), X"00000001", rd, wr, addr, wdata, rdata, rdata_dv);
+        cpu_print_msg("ADR_REG_AC_CH_SEL: " & to_string(to_bitvector(rdata),"%08X"));
+        cpu_read(clk, to_integer(unsigned(PMOD_ADDR_SPI0)), X"00000013", rd, wr, addr, wdata, rdata, rdata_dv);
+        cpu_print_msg("ADR_BASE_PULSE2PMOD: " & to_string(to_bitvector(rdata),"%08X"));
 		
         sim_done    <= true;
         wait; 
