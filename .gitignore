@@ -24,3 +24,4 @@ tools/sim_pulsechannel/results/
 # ignore unisim library. It is a bit big and may not suppose be open sourced?
 unisim
 *.vstf
+~$*

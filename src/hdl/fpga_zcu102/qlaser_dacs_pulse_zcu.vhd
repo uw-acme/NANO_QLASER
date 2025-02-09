@@ -105,6 +105,7 @@ signal sm_cnt_time          : unsigned(23 downto 0);
 
 signal ch_busy              : std_logic_vector(31 downto 0);    -- Signal to indicate that a channel is not idle
 signal ch_errs_wave         : t_arr_ac_errors;                  -- Error signal
+signal reg_ch_errs          : std_logic_vector(C_ERRORS_TOTAL -1 downto 0);
 signal ch_errs_jesd         : std_logic_vector(31 downto 0);    -- JESD not sync'ed
 signal busy_i               : std_logic;
 signal any_errs_jesd        : std_logic;
