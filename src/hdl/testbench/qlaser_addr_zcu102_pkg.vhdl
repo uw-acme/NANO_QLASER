@@ -99,6 +99,11 @@ constant ADR_REG_AC_CH_EN       : std_logic_vector(17 downto 0) := ADR_BASE_PULS
 constant ADR_REG_AC_STATUS      : std_logic_vector(17 downto 0) := ADR_BASE_PULSE  & X"400C";   -- R/O Level status for output of each channel
 constant ADR_REG_AC_STATUS_JESD : std_logic_vector(17 downto 0) := ADR_BASE_PULSE  & X"4010";   -- R/O JESD status for output of each channel
 constant ADR_REG_AC_CNT_TIME    : std_logic_vector(17 downto 0) := ADR_BASE_PULSE  & X"4014";   -- R/O Current timer value (used by all channels)
+constant ADR_REG_ERR_RAM_OF     : std_logic_vector(17 downto 0) := ADR_BASE_PULSE  & X"4018";   -- Wave table RAM overflow (start address + length > 4096)
+constant ADR_REG_ERR_INVAL_LEN  : std_logic_vector(17 downto 0) := ADR_BASE_PULSE  & X"401C";   -- Invalid length of rise/fall (<=1)
+constant ADR_REG_ERR_BIG_STEP   : std_logic_vector(17 downto 0) := ADR_BASE_PULSE  & X"4020";   -- Step too big than the waveform length
+constant ADR_REG_ERR_BIG_GAIN   : std_logic_vector(17 downto 0) := ADR_BASE_PULSE  & X"4024";   -- Gain too big (>1)
+constant ADR_REG_ERR_SMALL_TIME : std_logic_vector(17 downto 0) := ADR_BASE_PULSE  & X"4028";   -- Time step too small (<1)
 ------------------------------------------------------------------------------------------------------------------------- 
 
 -------------------------------------------------------------------------------------------------------------------------- 
@@ -114,12 +119,12 @@ constant ADR_MISC_DEBUG_EN      : std_logic_vector(17 downto 0) := ADR_BASE_MISC
 -------------------------------------------------------------------------------------------------------------------------- 
 -- Pulse-to-Pmod block addresses -- double checked
 -------------------------------------------------------------------------------------------------------------------------- 
-constant ADR_BASE_PULSE2PMOD    	: std_logic_vector(17 downto 16) 	:= ADR_BASE_SPARE;             -- p2p uses 'spare' address range 
-constant PMOD_ADDR_SPI0	: std_logic_vector(17 downto 0) 	:= ADR_BASE_SPARE & X"0000";   
-constant PMOD_ADDR_SPI1	: std_logic_vector(17 downto 0) 	:= ADR_BASE_SPARE & X"0001";   
-constant PMOD_ADDR_INTERNAL_REF	: std_logic_vector(17 downto 0) 	:= ADR_BASE_SPARE & X"00A0";   
-constant PMOD_ADDR_POWER_ON	: std_logic_vector(17 downto 0) 	:= ADR_BASE_SPARE & X"00C0";   
-constant PMOD_ADDR_CTRL	: std_logic_vector(17 downto 0) 	:= ADR_BASE_SPARE & X"00E0";   
+constant ADR_BASE_PULSE2PMOD    : std_logic_vector(17 downto 16) := ADR_BASE_SPARE;             -- p2p uses 'spare' address range 
+constant PMOD_ADDR_SPI0	        : std_logic_vector(17 downto 0)  := ADR_BASE_SPARE & X"0000";   
+constant PMOD_ADDR_SPI1	        : std_logic_vector(17 downto 0)  := ADR_BASE_SPARE & X"0001";   
+constant PMOD_ADDR_INTERNAL_REF	: std_logic_vector(17 downto 0)  := ADR_BASE_SPARE & X"00A0";   
+constant PMOD_ADDR_POWER_ON	    : std_logic_vector(17 downto 0)  := ADR_BASE_SPARE & X"00C0";   
+constant PMOD_ADDR_CTRL	        : std_logic_vector(17 downto 0)  := ADR_BASE_SPARE & X"00E0";   
 -- constant ADR_REG_PULSE2PMOD_CTRL	: std_logic_vector(17 downto 0) 	:= ADR_BASE_SPARE & X"001C";   -- Control reg. Bit-0 =1 selects stream input
 -- constant ADR_REG_PULSE2PMOD_DAC0 	: std_logic_vector(17 downto 0) 	:= ADR_BASE_SPARE & X"0000";   -- Only DAC0 is used. We need full SPI bandwidth 
 

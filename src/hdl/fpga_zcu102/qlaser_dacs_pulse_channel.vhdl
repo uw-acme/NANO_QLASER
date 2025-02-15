@@ -360,9 +360,9 @@ architecture channel of qlaser_dacs_pulse_channel is
         -- Temp variables for waveform output
         variable v_ram_waveform_doutb_multiplied : std_logic_vector(C_BITS_GAIN_FACTOR + 15 downto 0);
         begin
-            if (reset = '1') then  -- TODO: Eric: tread done_seq as a reset signal?
+            if (reset = '1') then
     
-                sm_state            <= S_RESET;  -- TODO: Eric: Should this be S_RESET since we reset the JEDS interface as well?
+                sm_state            <= S_RESET;
                 ram_pulse_addrb     <= (others=>'0');
                 ram_waveform_addrb  <= (others=>'0');
                 wave_last_addr      <= (others=>'0');
@@ -494,7 +494,9 @@ architecture channel of qlaser_dacs_pulse_channel is
                             sm_wavedata             <= (others=>'0');
                             sm_wavedata_dv          <= '0';
                         end if;
+                        -- TODO: Incorrect check. the fraction bits are dropped using this method. need to shift wave length to the right
                         if (reg_scale_time(C_BITS_TIME_FACTOR - 1 downto BIT_FRAC) > reg_wave_length) then
+                        -- if (reg_scale_time > (reg_wave_length sll 8)) then
                             -- Time step bigger than the size of the rise
                             erros(C_ERR_BIG_STEP)   <= '1';
                             sm_wavedata             <= (others=>'0');
@@ -651,11 +653,9 @@ architecture channel of qlaser_dacs_pulse_channel is
     
         -- AXI-Stream output.
         -- TBD: This should come from a FIFO
-        -- TODO: the bits are not correct, should be top bits (C_BITS_GAIN_FACTOR + 16 downto C_BITS_GAIN_FACTOR), but for now just make it this way so modelsim can simulate
         axis_tdata          <= sm_wavedata;         -- axi stream output data, this output should be multiplied by the gain factor, then take the top 16 bits
-        -- axis_tvalid         <= sm_wavedata_dv;      -- axi_stream output data valid
-        -- axis_tvalid         <= '1' when not (sm_state = S_IDLE or sm_state = S_RESET) else '0';  -- always output valid data when not idle or reset so hopefully the fifo catch all.
-        axis_tvalid         <= '1' when (sm_state = S_LOAD or sm_state = S_WAIT or sm_state = S_WAVE_UP or sm_state = S_WAVE_FLAT or sm_state = S_WAVE_DOWN) else '0';  -- output when either waiting or outputting data
+        axis_tvalid         <= sm_wavedata_dv;      -- axi_stream output data valid
+        -- axis_tvalid         <= '1' when (sm_state = S_LOAD or sm_state = S_WAIT or sm_state = S_WAVE_UP or sm_state = S_WAVE_FLAT or sm_state = S_WAVE_DOWN) else '0';  -- output when either waiting or outputting data
     
         -- last valid data outputted. indicated by direct transision from wave_down to wait.
         -- axis_tlast          <= '1' when (sm_state_d1 = S_WAVE_DOWN) and (sm_state = S_WAIT) else '0';  -- axi_stream output last 

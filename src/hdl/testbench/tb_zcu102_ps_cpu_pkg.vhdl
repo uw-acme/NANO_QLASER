@@ -280,6 +280,8 @@ package body tb_zcu102_ps_cpu_pkg is
                 if (cpu_rdata /= exp_d) then
                     fprint(str_out, "Read  exp: 0x%s  actual: 0x%s\n", to_string(to_bitvector(exp_d),"%08X"), to_string(to_bitvector(cpu_rdata),"%08X"));
                     report str_out severity error;
+                else
+                    cpu_print_msg("OK");
                 end if;
                 v_bdone := true; 
                 cpu_rd      <= '0';

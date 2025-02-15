@@ -438,12 +438,44 @@ begin
 
                     -- Read registers
                     case cpu_addr(3 downto 0) is
-                        when "0000" =>  reg_rdata       <= X"00" & reg_sequence_len;
-                        when "0001" =>  reg_rdata       <= reg_ch_sels;
-                        when "0010" =>  reg_rdata       <= reg_ch_en;
-                        when "0011" =>  reg_rdata       <= reg_status;
-                        when "0100" =>  reg_rdata       <= reg_status_jesd;
-                        when "0101" =>  reg_rdata       <= X"00" & std_logic_vector(sm_cnt_time);
+                        when X"0" =>  reg_rdata       <= X"00" & reg_sequence_len;
+                        when X"1" =>  reg_rdata       <= reg_ch_sels;
+                        when X"2" =>  reg_rdata       <= reg_ch_en;
+                        when X"3" =>  reg_rdata       <= reg_status;
+                        when X"4" =>  reg_rdata       <= reg_status_jesd;
+                        when X"5" =>  reg_rdata       <= X"00" & std_logic_vector(sm_cnt_time);
+                        when X"6" =>
+                            for I in 0 to 31 loop
+                                reg_rdata(I) <= ch_errs_wave(I)(0);
+                            end loop;
+                        when X"7" =>
+                            for I in 0 to 31 loop
+                                reg_rdata(I) <= ch_errs_wave(I)(1);
+                            end loop;
+                        when X"8" =>
+                            for I in 0 to 31 loop
+                                reg_rdata(I) <= ch_errs_wave(I)(2);
+                            end loop;
+                        when X"9" =>
+                            for I in 0 to 31 loop
+                                reg_rdata(I) <= ch_errs_wave(I)(3);
+                            end loop;
+                        when X"A" =>
+                            for I in 0 to 31 loop
+                                reg_rdata(I) <= ch_errs_wave(I)(4);
+                            end loop;
+                        when X"B" =>
+                            for I in 0 to 31 loop
+                                reg_rdata(I) <= ch_errs_wave(I)(5);
+                            end loop;
+                        when X"C" =>
+                            for I in 0 to 31 loop
+                                reg_rdata(I) <= ch_errs_wave(I)(6);
+                            end loop;
+                        when X"D" =>
+                            for I in 0 to 31 loop
+                                reg_rdata(I) <= ch_errs_wave(I)(7);
+                            end loop;
                         when others =>  reg_rdata       <= (others=>'0');
                     end case;
                     reg_rdata_dv        <= '1';
