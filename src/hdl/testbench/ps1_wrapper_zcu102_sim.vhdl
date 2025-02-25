@@ -210,14 +210,10 @@ begin
         -- clk_delay(5, clk);
 
         cpu_read(clk, to_integer(unsigned(ADR_REG_AC_CH_SEL)), X"00000001", rd, wr, addr, wdata, rdata, rdata_dv);
-        cpu_print_msg("ADR_REG_AC_CH_SEL: " & to_string(to_bitvector(rdata),"%08X"));
         cpu_read(clk, to_integer(unsigned(PMOD_ADDR_SPI0)), X"00000013", rd, wr, addr, wdata, rdata, rdata_dv);
-        cpu_print_msg("ADR_BASE_PULSE2PMOD: " & to_string(to_bitvector(rdata),"%08X"));
 
         cpu_read(clk, to_integer(unsigned(ADR_REG_AC_CH_SEL)), X"00000001", rd, wr, addr, wdata, rdata, rdata_dv);
-        cpu_print_msg("ADR_REG_AC_CH_SEL: " & to_string(to_bitvector(rdata),"%08X"));
         cpu_read(clk, to_integer(unsigned(PMOD_ADDR_SPI0)), X"00000013", rd, wr, addr, wdata, rdata, rdata_dv);
-        cpu_print_msg("ADR_BASE_PULSE2PMOD: " & to_string(to_bitvector(rdata),"%08X"));
 		
         sim_done    <= true;
         wait; 

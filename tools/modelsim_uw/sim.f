@@ -49,8 +49,8 @@
 
 
 // Modify below line to for specific test case
-// ../../src/hdl/testbench/ps1_wrapper_zcu102_sim.vhdl
-../../src/hdl/testbench/tlv_cherros.vhdl
+../../src/hdl/testbench/ps1_wrapper_zcu102_sim.vhdl
+// ../../src/hdl/testbench/tlv_cherros.vhdl
 
 ../../src/hdl/fpga_zcu102/qlaser_top_zcu.vhd
 

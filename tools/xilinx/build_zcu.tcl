@@ -7,59 +7,30 @@
 #
 #*****************************************************************************************
 
+# Recursively search for files in a directory
+proc recursive_glob {dir} {
+    set files [glob -nocomplain -type f -directory $dir *_sim_netlist.vhdl]
+    foreach subdir [glob -nocomplain -type d -directory $dir *] {
+        lappend files {*}[recursive_glob $subdir]
+    }
+    return $files
+}
+
 # Check file required for this script exists
 proc checkRequiredFiles { origin_dir} {
   set status true
-  set files [list \
- "[file normalize "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_dacs_pulse_channel_pkg.vhd"]"\
- "[file normalize "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_dac_dc_pkg.vhd"]"\
- "[file normalize "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_pkg.vhd"]"\
- "[file normalize "$origin_dir/../../src/hdl/fpga_zcu102/blink.vhd"]"\
- "[file normalize "$origin_dir/../../src/hdl/fpga_zcu102/clkreset_zcu.vhd"]"\
- "[file normalize "$origin_dir/../../src/hdl/fpga_common/nc3_cpu2uart.vhd"]"\
- "[file normalize "$origin_dir/../../src/hdl/fpga_common/nc3_serial_pkg_100MHz.vhd"]"\
- "[file normalize "$origin_dir/../../src/hdl/fpga_common/nc3_uart.vhd"]"\
- "[file normalize "$origin_dir/../../src/hdl/fpga_common/nc3_uart2cpu.vhd"]"\
- "[file normalize "$origin_dir/../../src/hdl/fpga_common/qlaser_cpuint_serial.vhd"]"\
- "[file normalize "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_dac_pulse_pkg.vhd"]"\
- "[file normalize "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_spi.vhd"]"\
- "[file normalize "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_cif.vhd"]"\
- "[file normalize "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_axis_cpu_sel.vhdl"]"\
- "[file normalize "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_dacs_dc_zcu.vhd"]"\
- "[file normalize "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_2pmods_pulse.vhd"]"\
- "[file normalize "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_dacs_pulse_zcu.vhd"]"\
- "[file normalize "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_version_pkg_zcu.vhd"]"\
- "[file normalize "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_misc.vhd"]"\
- "[file normalize "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_top_zcu.vhd"]"\
- "[file normalize "$origin_dir/../constraint_zcu/fifo_data_to_stream/fifo_data_to_stream.xci"]"\
- "[file normalize "$origin_dir/../constraint_zcu/bram_waveform/bram_waveform.xci"]"\
- "[file normalize "$origin_dir/../constraint_zcu/bram_pulse_definition/bram_pulse_definition.xci"]"\
- "[file normalize "$origin_dir/../constraint_zcu/axis_data_fifo_32Kx16b/axis_data_fifo_32Kx16b.xci"]"\
- "[file normalize "$origin_dir/../constraint_zcu/bram_pulseposition/bram_pulseposition.xci"]"\
- "[file normalize "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_dacs_pulse_channel.vhdl"]"\
- "[file normalize "$origin_dir/../constraint_zcu/clkpll_zcu/clkpll_zcu.xci"]"\
- "[file normalize "$origin_dir/../constraint_zcu/pinout_zcu.xdc"]"\
- "[file normalize "$origin_dir/../constraint_zcu/qlaser_timing_zcu.xdc"]"\
- "[file normalize "$origin_dir/../constraint_zcu/set_usercode_zcu.xdc"]"\
- "[file normalize "$origin_dir/../constraint_zcu/cpubus_pulse.xdc"]"\
- "[file normalize "$origin_dir/../../src/hdl/testbench/tb_cpubus_dacs_pulse_channel.vhdl"]"\
- "[file normalize "$origin_dir/../../src/hdl/testbench/tb_qlaser_pkg.vhd"]"\
- "[file normalize "$origin_dir/../../src/hdl/testbench/gj_tb_driver_gpio.vhd"]"\
- "[file normalize "$origin_dir/../../src/hdl/testbench/gj_tb_pkg.vhd"]"\
- "[file normalize "$origin_dir/../../src/hdl/testbench/gj_tb_driver_analog.vhd"]"\
- "[file normalize "$origin_dir/../../src/hdl/testbench/gj_cpu_bfm_pkg.vhd"]"\
- "[file normalize "$origin_dir/../../src/hdl/testbench/gj_serif_uart2cpu.vhd"]"\
- "[file normalize "$origin_dir/../../src/hdl/testbench/qlaser_jesd_tx_tb.vhd"]"\
- "[file normalize "$origin_dir/../../src/hdl/testbench/gj_cpu_e.vhd"]"\
- "[file normalize "$origin_dir/../../src/hdl/testbench/gj_uart_tb.vhd"]"\
- "[file normalize "$origin_dir/../../src/hdl/testbench/gj_serif_cpu2uart.vhd"]"\
- "[file normalize "$origin_dir/../../src/hdl/testbench/gj_cpu_pkg.vhd"]"\
- "[file normalize "$origin_dir/../../src/hdl/testbench/qlaser_dacs_pulse_tb.vhd"]"\
- "[file normalize "$origin_dir/../../src/hdl/testbench/gj_serial_pkg.vhd"]"\
- "[file normalize "$origin_dir/../../src/hdl/testbench/tb_cpubus_dacs_dc.vhd"]"\
- "[file normalize "$origin_dir/../../src/hdl/testbench/gj_tb_driver_serif.vhd"]"\
- "[file normalize "$origin_dir/../../src/hdl/testbench/ps1_wrapper_sim.vhd"]"\
-  ]
+  # Source files
+  set src_files [recursive_glob $origin_dir/../../src/hdl/fpga_zcu102/]
+  # Constraint files
+  set constr_files [recursive_glob $origin_dir/../constraint_zcu/]
+  # Simulation files
+  set sim_files [recursive_glob $origin_dir/../../src/hdl/testbench/]
+  # Additional files
+  set addtional_files [list \
+  "[file normalize "$origin_dir/../../src/hdl/std_developerskit/iopakb.vhd"]"\
+  "[file normalize "$origin_dir/../../src/hdl/std_developerskit/iopakp.vhd"]"\
+  ]  
+  set files [concat $src_files $constr_files $sim_files $addtional_files]
   foreach ifile $files {
     if { ![file isfile $ifile] } {
       puts " Could not find remote file $ifile "
@@ -134,7 +105,7 @@ if { $::argc > 0 } {
 }
 
 # Set the directory path for the original project from where this script was exported
-set orig_proj_dir "[file normalize "$origin_dir/../../prj"]"
+set orig_proj_dir "[file normalize "$origin_dir/../../${_xil_proj_name_}"]"
 
 # Check for paths and files needed for project creation
 set validate_required 1
@@ -189,12 +160,6 @@ set files [list \
  [file normalize "${origin_dir}/../../src/hdl/fpga_zcu102/qlaser_dac_dc_pkg.vhd"] \
  [file normalize "${origin_dir}/../../src/hdl/fpga_zcu102/qlaser_pkg.vhd"] \
  [file normalize "${origin_dir}/../../src/hdl/fpga_zcu102/blink.vhd"] \
- [file normalize "${origin_dir}/../../src/hdl/fpga_zcu102/clkreset_zcu.vhd"] \
- [file normalize "${origin_dir}/../../src/hdl/fpga_common/nc3_cpu2uart.vhd"] \
- [file normalize "${origin_dir}/../../src/hdl/fpga_common/nc3_serial_pkg_100MHz.vhd"] \
- [file normalize "${origin_dir}/../../src/hdl/fpga_common/nc3_uart.vhd"] \
- [file normalize "${origin_dir}/../../src/hdl/fpga_common/nc3_uart2cpu.vhd"] \
- [file normalize "${origin_dir}/../../src/hdl/fpga_common/qlaser_cpuint_serial.vhd"] \
  [file normalize "${origin_dir}/../../src/hdl/fpga_zcu102/qlaser_dac_pulse_pkg.vhd"] \
  [file normalize "${origin_dir}/../../src/hdl/fpga_zcu102/qlaser_spi.vhd"] \
  [file normalize "${origin_dir}/../../src/hdl/fpga_zcu102/qlaser_cif.vhd"] \
@@ -209,7 +174,6 @@ set files [list \
  [file normalize "${origin_dir}/../constraint_zcu/bram_waveform/bram_waveform.xci"] \
  [file normalize "${origin_dir}/../constraint_zcu/bram_pulse_definition/bram_pulse_definition.xci"] \
  [file normalize "${origin_dir}/../constraint_zcu/axis_data_fifo_32Kx16b/axis_data_fifo_32Kx16b.xci"] \
- [file normalize "${origin_dir}/../constraint_zcu/bram_pulseposition/bram_pulseposition.xci"] \
  [file normalize "${origin_dir}/../../src/hdl/fpga_zcu102/qlaser_dacs_pulse_channel.vhdl"] \
 ]
 add_files -norecurse -fileset $obj $files
@@ -231,36 +195,6 @@ set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
 set_property -name "file_type" -value "VHDL" -objects $file_obj
 
 set file "$origin_dir/../../src/hdl/fpga_zcu102/blink.vhd"
-set file [file normalize $file]
-set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
-set_property -name "file_type" -value "VHDL" -objects $file_obj
-
-set file "$origin_dir/../../src/hdl/fpga_zcu102/clkreset_zcu.vhd"
-set file [file normalize $file]
-set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
-set_property -name "file_type" -value "VHDL" -objects $file_obj
-
-set file "$origin_dir/../../src/hdl/fpga_common/nc3_cpu2uart.vhd"
-set file [file normalize $file]
-set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
-set_property -name "file_type" -value "VHDL" -objects $file_obj
-
-set file "$origin_dir/../../src/hdl/fpga_common/nc3_serial_pkg_100MHz.vhd"
-set file [file normalize $file]
-set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
-set_property -name "file_type" -value "VHDL" -objects $file_obj
-
-set file "$origin_dir/../../src/hdl/fpga_common/nc3_uart.vhd"
-set file [file normalize $file]
-set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
-set_property -name "file_type" -value "VHDL" -objects $file_obj
-
-set file "$origin_dir/../../src/hdl/fpga_common/nc3_uart2cpu.vhd"
-set file [file normalize $file]
-set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
-set_property -name "file_type" -value "VHDL" -objects $file_obj
-
-set file "$origin_dir/../../src/hdl/fpga_common/qlaser_cpuint_serial.vhd"
 set file [file normalize $file]
 set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
 set_property -name "file_type" -value "VHDL" -objects $file_obj
@@ -351,15 +285,6 @@ if { ![get_property "is_locked" $file_obj] } {
   set_property -name "synth_checkpoint_mode" -value "Singular" -objects $file_obj
 }
 
-set file "$origin_dir/../constraint_zcu/bram_pulseposition/bram_pulseposition.xci"
-set file [file normalize $file]
-set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
-set_property -name "generate_files_for_reference" -value "0" -objects $file_obj
-set_property -name "registered_with_manager" -value "1" -objects $file_obj
-if { ![get_property "is_locked" $file_obj] } {
-  set_property -name "synth_checkpoint_mode" -value "Singular" -objects $file_obj
-}
-
 set file "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_dacs_pulse_channel.vhdl"
 set file [file normalize $file]
 set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
@@ -439,111 +364,19 @@ if {[string equal [get_filesets -quiet sim_1] ""]} {
 # Set 'sim_1' fileset object
 set obj [get_filesets sim_1]
 set files [list \
- [file normalize "${origin_dir}/../../src/hdl/testbench/tb_cpubus_dacs_pulse_channel.vhdl"] \
- [file normalize "${origin_dir}/../../src/hdl/testbench/tb_qlaser_pkg.vhd"] \
- [file normalize "${origin_dir}/../../src/hdl/testbench/gj_tb_driver_gpio.vhd"] \
- [file normalize "${origin_dir}/../../src/hdl/testbench/gj_tb_pkg.vhd"] \
- [file normalize "${origin_dir}/../../src/hdl/testbench/gj_tb_driver_analog.vhd"] \
- [file normalize "${origin_dir}/../../src/hdl/testbench/gj_cpu_bfm_pkg.vhd"] \
- [file normalize "${origin_dir}/../../src/hdl/testbench/gj_serif_uart2cpu.vhd"] \
- [file normalize "${origin_dir}/../../src/hdl/testbench/qlaser_jesd_tx_tb.vhd"] \
- [file normalize "${origin_dir}/../../src/hdl/testbench/gj_cpu_e.vhd"] \
- [file normalize "${origin_dir}/../../src/hdl/testbench/gj_uart_tb.vhd"] \
- [file normalize "${origin_dir}/../../src/hdl/testbench/gj_serif_cpu2uart.vhd"] \
- [file normalize "${origin_dir}/../../src/hdl/testbench/gj_cpu_pkg.vhd"] \
- [file normalize "${origin_dir}/../../src/hdl/testbench/qlaser_dacs_pulse_tb.vhd"] \
- [file normalize "${origin_dir}/../../src/hdl/testbench/gj_serial_pkg.vhd"] \
- [file normalize "${origin_dir}/../../src/hdl/testbench/tb_cpubus_dacs_dc.vhd"] \
- [file normalize "${origin_dir}/../../src/hdl/testbench/gj_tb_driver_serif.vhd"] \
- [file normalize "${origin_dir}/../../src/hdl/testbench/ps1_wrapper_sim.vhd"] \
+ [file normalize "${origin_dir}/../../src/hdl/std_developerskit/iopakp.vhd"] \
+ [file normalize "${origin_dir}/../../src/hdl/std_developerskit/iopakb.vhd"] \
+ [file normalize "${origin_dir}/../../src/hdl/testbench/qlaser_addr_zcu102_pkg.vhdl"] \
+ [file normalize "${origin_dir}/../../src/hdl/testbench/tb_zcu102_ps_cpu_pkg.vhdl"] \
+ [file normalize "${origin_dir}/../../src/hdl/testbench/ps1_wrapper_zcu102_sim.vhdl"] \
+ [file normalize "${origin_dir}/../../src/hdl/testbench/tb_qlaser_top_zcu.vhd"] \
+ [file normalize "${origin_dir}/../../src/hdl/testbench/model_ad5628.vhdl"] \
 ]
 add_files -norecurse -fileset $obj $files
 
-# Set 'sim_1' fileset file properties for remote files
-set file "$origin_dir/../../src/hdl/testbench/tb_cpubus_dacs_pulse_channel.vhdl"
-set file [file normalize $file]
-set file_obj [get_files -of_objects [get_filesets sim_1] [list "*$file"]]
-set_property -name "file_type" -value "VHDL" -objects $file_obj
-
-set file "$origin_dir/../../src/hdl/testbench/tb_qlaser_pkg.vhd"
-set file [file normalize $file]
-set file_obj [get_files -of_objects [get_filesets sim_1] [list "*$file"]]
-set_property -name "file_type" -value "VHDL" -objects $file_obj
-
-set file "$origin_dir/../../src/hdl/testbench/gj_tb_driver_gpio.vhd"
-set file [file normalize $file]
-set file_obj [get_files -of_objects [get_filesets sim_1] [list "*$file"]]
-set_property -name "file_type" -value "VHDL" -objects $file_obj
-
-set file "$origin_dir/../../src/hdl/testbench/gj_tb_pkg.vhd"
-set file [file normalize $file]
-set file_obj [get_files -of_objects [get_filesets sim_1] [list "*$file"]]
-set_property -name "file_type" -value "VHDL" -objects $file_obj
-
-set file "$origin_dir/../../src/hdl/testbench/gj_tb_driver_analog.vhd"
-set file [file normalize $file]
-set file_obj [get_files -of_objects [get_filesets sim_1] [list "*$file"]]
-set_property -name "file_type" -value "VHDL" -objects $file_obj
-
-set file "$origin_dir/../../src/hdl/testbench/gj_cpu_bfm_pkg.vhd"
-set file [file normalize $file]
-set file_obj [get_files -of_objects [get_filesets sim_1] [list "*$file"]]
-set_property -name "file_type" -value "VHDL" -objects $file_obj
-
-set file "$origin_dir/../../src/hdl/testbench/gj_serif_uart2cpu.vhd"
-set file [file normalize $file]
-set file_obj [get_files -of_objects [get_filesets sim_1] [list "*$file"]]
-set_property -name "file_type" -value "VHDL" -objects $file_obj
-
-set file "$origin_dir/../../src/hdl/testbench/qlaser_jesd_tx_tb.vhd"
-set file [file normalize $file]
-set file_obj [get_files -of_objects [get_filesets sim_1] [list "*$file"]]
-set_property -name "file_type" -value "VHDL" -objects $file_obj
-
-set file "$origin_dir/../../src/hdl/testbench/gj_cpu_e.vhd"
-set file [file normalize $file]
-set file_obj [get_files -of_objects [get_filesets sim_1] [list "*$file"]]
-set_property -name "file_type" -value "VHDL" -objects $file_obj
-
-set file "$origin_dir/../../src/hdl/testbench/gj_uart_tb.vhd"
-set file [file normalize $file]
-set file_obj [get_files -of_objects [get_filesets sim_1] [list "*$file"]]
-set_property -name "file_type" -value "VHDL" -objects $file_obj
-
-set file "$origin_dir/../../src/hdl/testbench/gj_serif_cpu2uart.vhd"
-set file [file normalize $file]
-set file_obj [get_files -of_objects [get_filesets sim_1] [list "*$file"]]
-set_property -name "file_type" -value "VHDL" -objects $file_obj
-
-set file "$origin_dir/../../src/hdl/testbench/gj_cpu_pkg.vhd"
-set file [file normalize $file]
-set file_obj [get_files -of_objects [get_filesets sim_1] [list "*$file"]]
-set_property -name "file_type" -value "VHDL" -objects $file_obj
-
-set file "$origin_dir/../../src/hdl/testbench/qlaser_dacs_pulse_tb.vhd"
-set file [file normalize $file]
-set file_obj [get_files -of_objects [get_filesets sim_1] [list "*$file"]]
-set_property -name "file_type" -value "VHDL" -objects $file_obj
-
-set file "$origin_dir/../../src/hdl/testbench/gj_serial_pkg.vhd"
-set file [file normalize $file]
-set file_obj [get_files -of_objects [get_filesets sim_1] [list "*$file"]]
-set_property -name "file_type" -value "VHDL" -objects $file_obj
-
-set file "$origin_dir/../../src/hdl/testbench/tb_cpubus_dacs_dc.vhd"
-set file [file normalize $file]
-set file_obj [get_files -of_objects [get_filesets sim_1] [list "*$file"]]
-set_property -name "file_type" -value "VHDL" -objects $file_obj
-
-set file "$origin_dir/../../src/hdl/testbench/gj_tb_driver_serif.vhd"
-set file [file normalize $file]
-set file_obj [get_files -of_objects [get_filesets sim_1] [list "*$file"]]
-set_property -name "file_type" -value "VHDL" -objects $file_obj
-
-set file "$origin_dir/../../src/hdl/testbench/ps1_wrapper_sim.vhd"
-set file [file normalize $file]
-set file_obj [get_files -of_objects [get_filesets sim_1] [list "*$file"]]
-set_property -name "file_type" -value "VHDL" -objects $file_obj
+# Set 'sim_1' fileset properties
+set obj [get_filesets sim_1]
+set_property -name "top" -value "tb_qlaser_top" -objects $obj
 
 # set IP repo
 set_property  ip_repo_paths  "$origin_dir/../../tools/ip_repo/axi_cpubus" [current_project]
@@ -554,14 +387,8 @@ regenerate_bd_layout
 make_wrapper -files [get_files "$proj_dir/${_xil_proj_name_}.srcs/sources_1/bd/ps1/ps1.bd"] -top
 add_files -norecurse "$proj_dir/${_xil_proj_name_}.gen/sources_1/bd/ps1/hdl/ps1_wrapper.vhd"
 
-# Set 'sim_1' fileset file properties for local files
-# None
-
-# Set 'sim_1' fileset properties
-set obj [get_filesets sim_1]
-set_property -name "top" -value "tb_cpubus_dacs_pulse_channel" -objects $obj
-set_property -name "top_auto_set" -value "0" -objects $obj
-set_property -name "top_lib" -value "xil_defaultlib" -objects $obj
+# Disable generated PS used in simulation
+set_property used_in_simulation false [get_files "$proj_dir/${_xil_proj_name_}.gen/sources_1/bd/ps1/hdl/ps1_wrapper.vhd"]
 
 # Set 'utils_1' fileset object
 set obj [get_filesets utils_1]
