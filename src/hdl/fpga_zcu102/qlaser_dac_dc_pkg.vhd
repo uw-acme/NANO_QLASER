@@ -21,6 +21,7 @@ constant C_ADDR_SPI3                : std_logic_vector(2 downto 0) := "011";
 constant C_ADDR_SPI_ALL             : std_logic_vector(2 downto 0) := "100";
 constant C_ADDR_INTERNAL_REF        : std_logic_vector(2 downto 0) := "101";
 constant C_ADDR_POWER_ON            : std_logic_vector(2 downto 0) := "110";
+constant C_ADDR_SPI_STATUS          : std_logic_vector(2 downto 0) := "111";
 
 -- Commands
 constant C_CMD_DAC_DC_WR            : std_logic_vector(3 downto 0) := "0011";

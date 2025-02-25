@@ -256,13 +256,13 @@ begin
 
                 -- cpu_rdata           <= X"0000000" & spi3_busy & spi2_busy & spi1_busy & spi0_busy;
                 -- cpu_rdata           <= X"0000000" & spi_busy(3) & spi_busy(2) & spi_busy(2) & spi_busy(0);
-                case cpu_addr(2 downto 0) is
-                    when "000"  =>  cpu_rdata  <= X"0000000" & spi_busy(3) & spi_busy(2) & spi_busy(2) & spi_busy(0);
-                    when "001"  =>  cpu_rdata  <= spi0_tx_message;
-                    when "010"  =>  cpu_rdata  <= spi1_tx_message;
-                    when "011"  =>  cpu_rdata  <= spi2_tx_message;
-                    when "100"  =>  cpu_rdata  <= spi3_tx_message;
-                    when others =>  cpu_rdata  <=(others=>'0');
+                case cpu_addr(5 downto 3) is
+                    when C_ADDR_SPI_STATUS  =>  cpu_rdata  <= X"0000000" & spi_busy(3) & spi_busy(2) & spi_busy(2) & spi_busy(0);
+                    when C_ADDR_SPI0        =>  cpu_rdata  <= spi0_tx_message;
+                    when C_ADDR_SPI1        =>  cpu_rdata  <= spi1_tx_message;
+                    when C_ADDR_SPI2        =>  cpu_rdata  <= spi2_tx_message;
+                    when C_ADDR_SPI3        =>  cpu_rdata  <= spi3_tx_message;
+                    when others =>  cpu_rdata  <= (others=>'0');
                 end case;
                 cpu_rdata_dv        <= '1';
 
