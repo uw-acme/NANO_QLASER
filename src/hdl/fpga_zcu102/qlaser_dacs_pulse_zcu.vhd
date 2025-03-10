@@ -444,6 +444,7 @@ begin
                         when X"3" =>  reg_rdata       <= reg_status;
                         when X"4" =>  reg_rdata       <= reg_status_jesd;
                         when X"5" =>  reg_rdata       <= X"00" & std_logic_vector(sm_cnt_time);
+                        -- Transpose the error signals
                         when X"6" =>
                             for I in 0 to 31 loop
                                 reg_rdata(I) <= ch_errs_wave(I)(0);

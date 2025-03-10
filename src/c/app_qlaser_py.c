@@ -62,6 +62,7 @@
 #define C_ADDR_SPI_ALL      (ADR_BASE_DACS_DC + 8*4*0x00004)
 #define C_ADDR_INTERNAL_REF (ADR_BASE_DACS_DC + 8*4*0x00005)
 #define C_ADDR_POWER_ON     (ADR_BASE_DACS_DC + 8*4*0x00006)
+#define C_ADDR_SPI_STATUS   (ADR_BASE_DACS_DC + 8*4*0x00007)
 
 
 #define PMOD_ADDR_SPI0         (ADR_BASE_P2PMOD + 8*4*0x00000)
@@ -85,9 +86,15 @@
 #define ADR_PULSE_REG_CHSTATUS   (ADR_BASE_PULSE_REGS + 4*0x03)    // Global status bit-0 = busy, '1' if any ch running, bit-4 error set if any JESD channel is not sync'ed
 #define ADR_PULSE_REG_JESDSTATUS (ADR_BASE_PULSE_REGS + 4*0x04)    // Channel JESD status. One bit per channel. Set if JESD not sync'ed.
 #define ADR_PULSE_REG_TIMER      (ADR_BASE_PULSE_REGS + 4*0x05)    // Current timer count since trigger
+// Errors
+#define ADR_REG_ERR_RAM_OF       (ADR_BASE_PULSE_REGS + 4*0x06)
+#define ADR_REG_ERR_INVAL_LEN    (ADR_BASE_PULSE_REGS + 4*0x07)
+#define ADR_REG_ERR_BIG_STEP     (ADR_BASE_PULSE_REGS + 4*0x08)
+#define ADR_REG_ERR_BIG_GAIN     (ADR_BASE_PULSE_REGS + 4*0x09)
+#define ADR_REG_ERR_SMALL_TIME   (ADR_BASE_PULSE_REGS + 4*0x0A)
 
 // RAM base address
-#define ADR_BASE_PULSE_WAVE     (ADR_BASE_DACS_AC + 0x2000)     // Either (512 x 32) for 1K table, or (2K x 32) for 4K tables
+#define ADR_BASE_PULSE_WAVE     (ADR_BASE_DACS_AC + 0x2000)       // Either (512 x 32) for 1K table, or (2K x 32) for 4K tables
 #define ADR_BASE_PULSE_DEFN     (ADR_BASE_DACS_AC + 0x0000)
 
 //----------------------------------------------------------------------
@@ -161,8 +168,9 @@ XIicPs_Config *IicConfig1;
 // 1.0.f More iic functions
 // 1.0.g Set FMC216 board DACs and Clk to use 4-wire SPI so CPLD readback works
 // 1.0.h Set LMK SPI output mux
+// 1.0.i AC+DC thru PMOD and set then thru Python CLI.
 //----------------------------------------------------------------
-char    g_strVersion[]          = "1.0.h";
+char    g_strVersion[]          = "1.0.i";
 int     g_nStateButtons 		= 0;
 int     g_nStateSwitches 		= 0;
 unsigned int address;
@@ -341,25 +349,32 @@ void print_regs()
     //int i=0;
 
     //xil_printf("%d\r\n", nValue);
-   (void)xil_printf ("ADR_PULSE_REG_SEQ_LEN              = %08X\r\n", Xil_In32(ADR_PULSE_REG_SEQ_LEN));
-   (void)xil_printf ("ADR_PULSE_REG_CHSEL                = %08X\r\n", Xil_In32(ADR_PULSE_REG_CHSEL  ));
-   (void)xil_printf ("ADR_PULSE_REG_CHEN                 = %08X\r\n", Xil_In32(ADR_PULSE_REG_CHEN));
-   (void)xil_printf ("ADR_PULSE_REG_CHSTATUS             = %08X\r\n", Xil_In32(ADR_PULSE_REG_CHSTATUS));
-   (void)xil_printf ("ADR_PULSE_REG_TIMER                = %08X\r\n", Xil_In32(ADR_PULSE_REG_TIMER  ));
-   (void)xil_printf ("\r\n");
-   (void)xil_printf ("ADR_BASE_DACS_DC                   = %08X\r\n", Xil_In32(ADR_BASE_DACS_DC     ));
-   (void)xil_printf ("\r\n");
-   (void)xil_printf ("ADR_BASE_P2PMOD                    = %08X\r\n", Xil_In32(ADR_BASE_P2PMOD      ));
-   (void)xil_printf ("\r\n");
-   (void)xil_printf ("ADR_MISC_TRIGGER                   = %08X\r\n", Xil_In32(ADR_MISC_TRIGGER     ));
-   (void)xil_printf ("ADR_MISC_VERSION                   = %08X\r\n", Xil_In32(ADR_MISC_VERSION     ));
-   (void)xil_printf ("ADR_MISC_LEDS                      = %08X\r\n", Xil_In32(ADR_MISC_LEDS        ));
-   (void)xil_printf ("ADR_MISC_LEDS_EN                   = %08X\r\n", Xil_In32(ADR_MISC_LEDS_EN     ));
-   (void)xil_printf ("ADR_MISC_DEBUG_CTRL                = %08X\r\n", Xil_In32(ADR_MISC_DEBUG_CTRL  ));
-   (void)xil_printf ("ADR_MISC_TRIGGER                   = %08X\r\n", Xil_In32(ADR_MISC_TRIGGER     ));
-   (void)xil_printf ("\r\n");
-   (void)xil_printf ("ADR_GPIO_IN                        = %08X\r\n", Xil_In32(ADR_GPIO_IN          ));
-   (void)xil_printf ("\r\n");
+   (void)xil_printf ("ADR_PULSE_REG_SEQ_LEN              = 0x%08X\r\n", Xil_In32(ADR_PULSE_REG_SEQ_LEN ));
+   (void)xil_printf ("ADR_PULSE_REG_CHSEL                = 0x%08X\r\n", Xil_In32(ADR_PULSE_REG_CHSEL   ));
+   (void)xil_printf ("ADR_PULSE_REG_CHEN                 = 0x%08X\r\n", Xil_In32(ADR_PULSE_REG_CHEN    ));
+   (void)xil_printf ("ADR_PULSE_REG_CHSTATUS             = 0x%08X\r\n", Xil_In32(ADR_PULSE_REG_CHSTATUS));
+   (void)xil_printf ("ADR_PULSE_REG_TIMER                = 0x%08X\r\n", Xil_In32(ADR_PULSE_REG_TIMER   ));
+   (void)xil_printf ("ERR_RAM_OF                         = 0x%08X\r\n", Xil_In32(ADR_REG_ERR_RAM_OF    ));
+   (void)xil_printf ("ERR_INVAL_LEN                      = 0x%08X\r\n", Xil_In32(ADR_REG_ERR_INVAL_LEN ));
+   (void)xil_printf ("ERR_BIG_STEP                       = 0x%08X\r\n", Xil_In32(ADR_REG_ERR_BIG_STEP  ));
+   (void)xil_printf ("ERR_BIG_GAIN                       = 0x%08X\r\n", Xil_In32(ADR_REG_ERR_BIG_GAIN  ));
+   (void)xil_printf ("ERR_SMALL_TIME                     = 0x%08X\r\n", Xil_In32(ADR_REG_ERR_SMALL_TIME));
+
+   (void)xil_printf ("ADR_BASE_DACS_DC_STATS             = 0x%08X\r\n", Xil_In32(C_ADDR_SPI_STATUS     ));
+   (void)xil_printf ("ADR_BASE_DACS_DC_SPI0_MSG          = 0x%08X\r\n", Xil_In32(C_ADDR_SPI0           ));
+   (void)xil_printf ("ADR_BASE_DACS_DC_SPI1_MSG          = 0x%08X\r\n", Xil_In32(C_ADDR_SPI1           ));
+   (void)xil_printf ("ADR_BASE_DACS_DC_SPI2_MSG          = 0x%08X\r\n", Xil_In32(C_ADDR_SPI2           ));
+   (void)xil_printf ("ADR_BASE_DACS_DC_SPI0_MSG          = 0x%08X\r\n", Xil_In32(C_ADDR_SPI3           ));
+
+   (void)xil_printf ("ADR_MISC_VERSION                   = 0x%08X\r\n", Xil_In32(ADR_MISC_VERSION      ));
+   (void)xil_printf ("ADR_MISC_LEDS                      = 0x%08X\r\n", Xil_In32(ADR_MISC_LEDS         ));
+   (void)xil_printf ("ADR_MISC_LEDS_EN                   = 0x%08X\r\n", Xil_In32(ADR_MISC_LEDS_EN      ));
+   (void)xil_printf ("ADR_MISC_DEBUG_CTRL                = 0x%08X\r\n", Xil_In32(ADR_MISC_DEBUG_CTRL   ));
+   (void)xil_printf ("ADR_MISC_TRIGGER                   = 0x%08X\r\n", Xil_In32(ADR_MISC_TRIGGER      ));
+
+   (void)xil_printf ("ADR_BLOCK_SPARE                    = 0x%08X\r\n", Xil_In32(ADR_BASE_P2PMOD       ));
+
+   (void)xil_printf ("ADR_GPIO_IN                        = 0x%08X\r\n", Xil_In32(ADR_GPIO_IN           ));
 }
 
 //---------------------------------------------------------
@@ -531,6 +546,7 @@ void load_pulse_defn(int nChannel)
 void set_pulse_chsel(int nValue)
 {
     //xil_printf ("Set channel select reg to 0x%08X\r\n", nValue);
+	// TODO: seperate those out
     Xil_Out32(ADR_PULSE_REG_CHSEL, nValue);
     Xil_Out32(ADR_PULSE_REG_CHEN, nValue);
 }
@@ -1404,6 +1420,7 @@ int main()
     // Command parser. Loops forever.
     //----------------------------------------------------------------------
     Xil_Out32(PMOD_ADDR_INTERNAL_REF, nRdata);
+    Xil_Out32(PMOD_ADDR_CTRL, 0x1);
     Xil_Out32(C_ADDR_INTERNAL_REF, 0x00000000);
 
     print("Ready>\r\n");
@@ -1485,17 +1502,47 @@ int main()
                     {
                     	// for python CLI, not meant to be directly accecible
 						//--------------------------------------------------------
+						// Set the data to be send to whatever GPIO device
+						//--------------------------------------------------------
+						case 0xDD:
+							nData = nValue;
+						break;
+						//--------------------------------------------------------
+						// SECTION I: GENERAL CPU2BLOCK SELECT FOR BLOCK LVL REGS
+						//--------------------------------------------------------
+						//--------------------------------------------------------
+						// Select DC Block
+						//--------------------------------------------------------
+						case 0xDC:
+//							Xil_Out32(ADR_BASE_DACS_DC + 4*nValue, nData);
+							nRdata = Xil_In32(ADR_BASE_DACS_DC + 4*nValue);
+							(void)xil_printf ("%d\r\n", nRdata);
+						break;
+						//--------------------------------------------------------
+						// Select AC Block
+						//--------------------------------------------------------
+						case 0xAC:
+//							Xil_Out32(ADR_BASE_DACS_AC + 4*nValue, nData);
+							nRdata = Xil_In32(ADR_BASE_DACS_AC + 4*nValue);
+							(void)xil_printf ("%d\r\n", nRdata);
+						break;
+						//--------------------------------------------------------
+						// Select Misc Block
+						//--------------------------------------------------------
+						case 0xBC:
+//							Xil_Out32(ADR_BASE_MISC + 4*nValue, nData);
+							nRdata = Xil_In32(ADR_BASE_MISC + 4*nValue);
+							(void)xil_printf ("%d\r\n", nRdata);
+						break;
+
+						//--------------------------------------------------------
+						// SECTION II: SPECIFIC BLOCK-LEVEL ACTIONS
+						//--------------------------------------------------------
+						//--------------------------------------------------------
 						// Sent value to the DC channel
 						//--------------------------------------------------------
                     	case 0x8D:
                     		Xil_Out32(ADR_BASE_DACS_DC + 4*nValue, nData);
-						break;
-						//--------------------------------------------------------
-						// Set the data to be send to whatever GPIO device
-						//--------------------------------------------------------
-                    	case 0xDD:
-                    		nData = nValue;
-//                    		(void)xil_printf ("Set data going to sent: %d\r\n", nData);
 						break;
 
 						//---------------------------------------------------------
@@ -1537,6 +1584,27 @@ int main()
 							Xil_Out32(ADR_GPIO_OUT, clr_bit(nRdata, C_GPIO_PS_TRIG));
 						break;
 
+						//---------------------------------------------------------
+						// Check AC channels errors. JSONfied for Python to decode
+						//---------------------------------------------------------
+						case 0xAE:
+							(void)xil_printf ("{\"wave table overflow\": %d,", Xil_In32(ADR_REG_ERR_RAM_OF    ));
+							(void)xil_printf ("\"rise size too small\": %d,", Xil_In32(ADR_REG_ERR_INVAL_LEN ));
+							(void)xil_printf ("\"time step bigger than rise\": %d,", Xil_In32(ADR_REG_ERR_BIG_STEP  ));
+							(void)xil_printf ("\"amplitude scale larger than 1\": %d,", Xil_In32(ADR_REG_ERR_BIG_GAIN));
+							(void)xil_printf ("\"time step smaller than 1\": %d}", Xil_In32(ADR_REG_ERR_SMALL_TIME));
+						break;
+
+						//----------------------------------------------------------------
+						// SECTION III: ASCII COMMANDS FOR OTHER GENERAL OR DEBUG PURPOSE
+						//----------------------------------------------------------------
+						//---------------------------------------------------------
+						// Get versions only
+						//---------------------------------------------------------
+						case 'v':
+							(void)xil_printf(" Firmware Version %s\r\n", g_strVersion);
+							(void)xil_printf(" FPGA version : %08X \r\n", Xil_In32(ADR_MISC_VERSION));
+						break;
                         //---------------------------------------------------------
                         // Help menu
                         //---------------------------------------------------------
@@ -1613,16 +1681,6 @@ int main()
  						    nRdata = Xil_In32(ADR_PULSE_REG_SEQ_LEN);
                             (void)xil_printf ("Verify 0x%08X\r\n", nRdata);
 
-                        break;
-
-                        //---------------------------------------------------------
-                        // Set Pulse block channel select register
-                        //---------------------------------------------------------
-                        case 'c':
-                        	if (nValue == 99)
-                        		set_pulse_chsel(0xFFFFFFFF);
-                        	else
-                        		set_pulse_chsel(nValue);
                         break;
 
                         //---------------------------------------------------------
@@ -1838,16 +1896,35 @@ int main()
                         case 'f':
                             Xil_Out32(PMOD_ADDR_INTERNAL_REF, nRdata);
                             Xil_Out32(C_ADDR_INTERNAL_REF, nRdata);
+                            (void)xil_printf ("Set PMOD internal reference\r\n");
 						break;
 
-                        case 'C':
-							Xil_Out32(PMOD_ADDR_CTRL, 0x1);
-							Xil_Out32(ADR_MISC_ENABLE, 0x1);
-//							Xil_Out32(C_ADDR_INTERNAL_REF, nRdata);
+                        //---------------------------------------------------------
+                        // Set Pulse block channel select register
+                        //---------------------------------------------------------
+                        case 'c':
+                        	if (nValue == 99) {
+                        		Xil_Out32(ADR_PULSE_REG_CHSEL, 0xFFFFFFFF);
+                        		(void)xil_printf ("Selected all Channels\r\n");
+                        	} else {
+                        		Xil_Out32(ADR_PULSE_REG_CHSEL, nValue);
+                        		(void)xil_printf ("Selected channel(s) 0x%08X\r\n", nValue);
+                        	}
+                        break;
 
-//							nRdata = Xil_In32(ADR_GPIO_IN);
-//
-//							Xil_Out32(ADR_GPIO_OUT, set_bit(nRdata, C_GPIO_PS_EN));
+                        //---------------------------------------------------------
+                        // Enable Pulse Generator
+                        //---------------------------------------------------------
+                        case 'C':
+							Xil_Out32(ADR_MISC_ENABLE, 0x1);
+
+                        	if (nValue == 99) {
+                        		Xil_Out32(ADR_PULSE_REG_CHEN, 0xFFFFFFFF);
+                        		(void)xil_printf ("Enable all channels\r\n");
+                        	} else {
+                        		Xil_Out32(ADR_PULSE_REG_CHEN, nValue);
+                        		(void)xil_printf ("Enable channel(s) 0x%08X\r\n", nValue);
+                        	}
 
 						break;
 
@@ -1855,66 +1932,18 @@ int main()
                         	trigger = !trigger;
                         	if (trigger) {
                         		Xil_Out32(ADR_MISC_TRIGGER, 0x1);
+                        		(void)xil_printf ("Trigger On\r\n");
 							} else {
 								Xil_Out32(ADR_MISC_TRIGGER, 0x0);
+								(void)xil_printf ("Trigger Off\r\n");
 							}
 
 
 						break;
 
                         case 'w':
-////                        	TODO: Way to listen a struct?
-////                        	set_pulse_chsel(0xFFFFFFFF);
-////                        	Xil_Out32(ADR_PULSE_REG_CHEN, 0xFFFFFFFF);
-//
-//                        	//	load_pulse_defn(1);
-//                        	set_pulse_chsel(1);
-////							entry_pulse_defn(0, 0x80,    0,     0x0200, 0x8000, 0x0100, 0x0100);
-//                        	entry_pulse_defn(0, 8,      0,  512, 0x8000, 0x0100, 4);
-////                        	entry_pulse_defn(1, 4096,     0, 512, 0x8000, 0x0100, 0);
-////							entry_pulse_defn(1, 10000,    0,     0x0200, 0x8000, 0x0100, 0x0010);
-//							set_pulse_chsel(2);
-//							entry_pulse_defn(0, 8,      0,  512, 0x4000, 0x0100, 4); // same as pmod00, but address doubled speed
-////							entry_pulse_defn(0, 128+512, 513, 512, 0x8000, 0x0100, 0);
-////							entry_pulse_defn(0, 0x80 + 0x0200 + 0x0200 + 0x0100 + 0x3E8, 1000,  0x0100, 0x8000, 0x0100, 0x0);
-
-
+                        	(void)xil_printf ("Load test waves\r\n");
 							load_pulse_wave(99, 0, 0);
-
-						break;
-
-                        case 'W':
-                        	// read what was written
-							set_pulse_chsel(0xFFFFFFFF);
-
-							nWaddrBase  = ADR_BASE_PULSE_WAVE;
-							nRdata = Xil_In32(nWaddrBase);
-							printf("1 Address: waaddr, Data: 0x%08X\n", nRdata);
-							nRdata = Xil_In32(nWaddrBase + 128);
-							printf("1 Address: waddr+128, Data: 0x%08X\n", nRdata);
-
-							set_pulse_chsel(0x1);
-
-							nWaddrBase  = ADR_BASE_PULSE_WAVE;
-							nRdata = Xil_In32(nWaddrBase);
-							printf("1 Address: waaddr, Data: 0x%08X\n", nRdata);
-							nRdata = Xil_In32(nWaddrBase + 128);
-							printf("1 Address: waddr+128, Data: 0x%08X\n", nRdata);
-
-							nWaddrBase = ADR_BASE_PULSE_DEFN;
-							nRdata = Xil_In32(nWaddrBase);
-							printf("1 Address: start time, Data: 0x%08X\n", nRdata);
-							nRdata = Xil_In32(nWaddrBase + 4);
-							printf("1 Address: start adddr, wave length, Data: 0x%08X\n", nRdata);
-							nRdata = Xil_In32(nWaddrBase + 8);
-							printf("1 Address: scale, gain, Data: 0x%08X\n", nRdata);
-							nRdata = Xil_In32(nWaddrBase + 12);
-							printf("1 Address: flat top, Data: 0x%08X\n", nRdata);
-
-						break;
-
-                        case 'z':
-
 						break;
 
 						// read virtual pins
@@ -1927,6 +1956,10 @@ int main()
                         case 'o':
                         	Xil_Out32(ADR_GPIO_OUT, nValue);
                         	(void)xil_printf ("Wrote GPIO Value: 0x%08X\r\n", nValue);
+						break;
+
+                        default:
+                        	(void)xil_printf ("*ERR*: Command 0x%02X is invalid!\r\n", cUartRx);
 						break;
 
                     }
