@@ -36,7 +36,7 @@ port (
     tick_msec       : out std_logic;                        -- Single cycle high every 1 msec. Used by SD interface debug registers
     tick_sec        : out std_logic;                        -- Single cycle high every 1 sec. 
     dbg_ctrl        : out std_logic_vector( 3 downto 0);    -- Select output to debug pins
-    trigger         : out std_logic;
+    trigger         : in std_logic;
     enable          : out std_logic
 );
 end qlaser_misc;
@@ -88,7 +88,7 @@ begin
     leds            <= reg_leds;
     leds_en         <= reg_leds_en;
     dbg_ctrl        <= reg_dbg_ctrl;
-    trigger         <= reg_trigger;
+    -- trigger         <= reg_trigger;
     enable          <= reg_enable;
 
    
@@ -119,7 +119,7 @@ begin
                     when ADR_REG_LEDS       => reg_leds         <= cpu_wdata( 3 downto 0);
                     when ADR_REG_LEDS_EN    => reg_leds_en      <= cpu_wdata( 3 downto 0);
                     when ADR_REG_DEBUG_CTRL => reg_dbg_ctrl     <= cpu_wdata( 3 downto 0);
-                    when ADR_REG_TRIGGER    => reg_trigger      <= cpu_wdata(0);
+                    when ADR_REG_TRIGGER    => reg_trigger      <= trigger;
                     when ADR_REG_EN         => reg_enable       <= cpu_wdata(0);
                     when others             => null;
                 end case;

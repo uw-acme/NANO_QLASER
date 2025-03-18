@@ -193,12 +193,12 @@ begin
         cpu_print_msg("Enable Pulse");
         cpu_write(clk, ADR_MISC_DEBUG_EN    , X"00000001", rd, wr, addr, wdata);
         clk_delay(0, clk);
-
+        gpio_int_o <= X"00000000";
         cpu_print_msg("Toggle trigger");
         clk_delay(0, clk);
-        cpu_write(clk, ADR_MISC_DEBUG_TRIGGER    , X"00000001", rd, wr, addr, wdata); -- start run
+        -- cpu_write(clk, ADR_MISC_DEBUG_TRIGGER    , X"00000001", rd, wr, addr, wdata); -- start run
         -- wait until rising_edge(clk);
-        -- cpu_write(clk, ADR_MISC_DEBUG_TRIGGER    , X"00000000", rd, wr, addr, wdata);
+        gpio_int_o <= X"00000001";
 
         clk_delay(SIM_DURATION, clk);
 
@@ -209,11 +209,22 @@ begin
         cpu_print_msg("CPU done");
         -- clk_delay(5, clk);
 
-        cpu_read(clk, to_integer(unsigned(ADR_REG_AC_CH_SEL)), X"00000001", rd, wr, addr, wdata, rdata, rdata_dv);
+        ----------------------------------------------------------------
+        -- SECTION IV: Read back GPIO and check CPU Values
+        ----------------------------------------------------------------
+        cpu_print_msg("Current debug value: " & to_string(gpio_int_in_tri_i));
+        
+        cpu_print_msg("Read back ADR_REG_AC_SEQ_LEN: ");
+        cpu_read(clk, to_integer(unsigned(ADR_REG_AC_SEQ_LEN)), std_logic_vector(to_unsigned(SEQ_LENGTH, 32)), rd, wr, addr, wdata, rdata, rdata_dv);
+        cpu_print_msg("Read back ERR_BIG_STEP: ");
+        cpu_read(clk, to_integer(unsigned(ADR_REG_ERR_BIG_STEP)), X"00000000", rd, wr, addr, wdata, rdata, rdata_dv);
+        cpu_print_msg("Read back ERR_INVAL_LEN: ");
+        cpu_read(clk, to_integer(unsigned(ADR_REG_ERR_INVAL_LEN)), X"00000000", rd, wr, addr, wdata, rdata, rdata_dv);
+        cpu_print_msg("Read back ADR_REG_AC_CH_EN: ");
+        cpu_read(clk, to_integer(unsigned(ADR_REG_AC_CH_EN)), X"FFFFFFFF", rd, wr, addr, wdata, rdata, rdata_dv);
+        cpu_print_msg("Read back PMOD_ADDR_SPI0: ");
         cpu_read(clk, to_integer(unsigned(PMOD_ADDR_SPI0)), X"00000013", rd, wr, addr, wdata, rdata, rdata_dv);
 
-        cpu_read(clk, to_integer(unsigned(ADR_REG_AC_CH_SEL)), X"00000001", rd, wr, addr, wdata, rdata, rdata_dv);
-        cpu_read(clk, to_integer(unsigned(PMOD_ADDR_SPI0)), X"00000013", rd, wr, addr, wdata, rdata, rdata_dv);
 		
         sim_done    <= true;
         wait; 

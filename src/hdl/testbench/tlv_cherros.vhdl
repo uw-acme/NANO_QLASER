@@ -221,13 +221,13 @@ begin
         ----------------------------------------------------------------
         cpu_print_msg("Current debug value: " & to_string(gpio_int_in_tri_i));
         
-        cpu_print_msg("Read back ADR_REG_AC_SEQ_LEN");
+        cpu_print_msg("Read back ADR_REG_AC_SEQ_LEN:");
         cpu_read(clk, to_integer(unsigned(ADR_REG_AC_SEQ_LEN)), std_logic_vector(to_unsigned(SEQ_LENGTH, 32)), rd, wr, addr, wdata, rdata, rdata_dv);
-        cpu_print_msg("Read back ERR_BIG_STEP");
+        cpu_print_msg("Read back ERR_BIG_STEP:");
         cpu_read(clk, to_integer(unsigned(ADR_REG_ERR_BIG_STEP)), X"00000003", rd, wr, addr, wdata, rdata, rdata_dv);
-        cpu_print_msg("Read back ERR_INVAL_LEN");
+        cpu_print_msg("Read back ERR_INVAL_LEN:");
         cpu_read(clk, to_integer(unsigned(ADR_REG_ERR_INVAL_LEN)), X"00000002", rd, wr, addr, wdata, rdata, rdata_dv);
-        cpu_print_msg("Read back ADR_REG_AC_CH_EN");
+        cpu_print_msg("Read back ADR_REG_AC_CH_EN:");
         cpu_read(clk, to_integer(unsigned(ADR_REG_AC_CH_EN)), X"00000003", rd, wr, addr, wdata, rdata, rdata_dv);
         -- cpu_read(clk, to_integer(unsigned(PMOD_ADDR_SPI0)), X"00000013", rd, wr, addr, wdata, rdata, rdata_dv);
 
