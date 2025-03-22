@@ -410,18 +410,20 @@ architecture channel of qlaser_dacs_pulse_channel is
                     -- Send a zero value to initialize the DAC then go to idle.
                     ------------------------------------------------------------------------
                     when  S_RESET   =>
-                        sm_wavedata     <= (others=>'0');
-                        sm_wavedata_dv  <= '0';
-                        sm_state        <= S_IDLE;
+                        -- TODO: get rid of the ifs
+                        if (enable = '1') and (enable_d1 = '0') then
+                            sm_wavedata     <= (others=>'0');
+                            sm_wavedata_dv  <= '0';
+                            sm_state        <= S_IDLE;
+                        end if;
                         sm_busy                         <= '0';
     
                     ------------------------------------------------------------------------
                     -- Wait for rising edge of 'start'.
-                    -- No data output. 
-                    -- Removed start_d1
+                    -- No data output.
                     ------------------------------------------------------------------------
                     when  S_IDLE    =>
-                        if (start = '1') and (enable = '1') then
+                        if (start = '1') and (start_d1 = '0') and (enable = '1') then
                             sm_state        <= S_LOAD;
                             sm_busy         <= '1';
                             sm_wavedata_dv  <= '1';
@@ -492,6 +494,7 @@ architecture channel of qlaser_dacs_pulse_channel is
                             sm_wavedata             <= (others=>'0');
                             sm_wavedata_dv          <= '0';
                         end if;
+                        -- TODO: Incorrect check. the fraction bits are dropped using this method. need to shift wave length to the right
                         if (reg_scale_time(C_BITS_TIME_FACTOR - 1 downto BIT_FRAC) > reg_wave_length) then
                         -- if (reg_scale_time > (reg_wave_length sll 8)) then
                             -- Time step bigger than the size of the rise
