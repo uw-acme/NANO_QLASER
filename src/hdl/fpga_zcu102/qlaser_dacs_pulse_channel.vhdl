@@ -265,12 +265,12 @@ architecture channel of qlaser_dacs_pulse_channel is
                         ram_waveform_dina   <= cpu_wdata;
     
                     else
-    
+                        -- TODO: enforce consecutive writes to the pulse definition RAM. Raise an error if not.
                         ram_pulse_addra     <= cpu_addr(9 downto 0);
                         ram_pulse_dina      <= cpu_wdata;
                         ram_pulse_we(0)     <= '1';
                         -- record the last non-zero pulse address. Assume pulse address is always incrementing
-                        if (unsigned(cpu_addr(9 downto 0)) > 0) then
+                        if (unsigned(cpu_addr(9 downto 0)) > 0) and (cpu_addr(9 downto 0) > ram_pulse_addra) then
                             pulse_written <= unsigned(cpu_addr(9 downto 0));
                         end if;
 
@@ -410,20 +410,18 @@ architecture channel of qlaser_dacs_pulse_channel is
                     -- Send a zero value to initialize the DAC then go to idle.
                     ------------------------------------------------------------------------
                     when  S_RESET   =>
-                        -- TODO: get rid of the ifs
-                        if (enable = '1') and (enable_d1 = '0') then
-                            sm_wavedata     <= (others=>'0');
-                            sm_wavedata_dv  <= '0';
-                            sm_state        <= S_IDLE;
-                        end if;
+                        sm_wavedata     <= (others=>'0');
+                        sm_wavedata_dv  <= '0';
+                        sm_state        <= S_IDLE;
                         sm_busy                         <= '0';
     
                     ------------------------------------------------------------------------
                     -- Wait for rising edge of 'start'.
-                    -- No data output.
+                    -- No data output. 
+                    -- Removed start_d1
                     ------------------------------------------------------------------------
                     when  S_IDLE    =>
-                        if (start = '1') and (start_d1 = '0') and (enable = '1') then
+                        if (start = '1') and (enable = '1') then
                             sm_state        <= S_LOAD;
                             sm_busy         <= '1';
                             sm_wavedata_dv  <= '1';
@@ -478,7 +476,7 @@ architecture channel of qlaser_dacs_pulse_channel is
                     -- Return to idle state if max time is reached. Output waveform value zero. 
                     ------------------------------------------------------------------------
                     when  S_WAIT    =>
-
+                        -- TODO: resolve the case where time already passed the pulse start time
                         ------------------------------------------------------------------------
                         -- Error checking
                         -- TODO: better to make a seperate process for error checking?
@@ -494,7 +492,6 @@ architecture channel of qlaser_dacs_pulse_channel is
                             sm_wavedata             <= (others=>'0');
                             sm_wavedata_dv          <= '0';
                         end if;
-                        -- TODO: Incorrect check. the fraction bits are dropped using this method. need to shift wave length to the right
                         if (reg_scale_time(C_BITS_TIME_FACTOR - 1 downto BIT_FRAC) > reg_wave_length) then
                         -- if (reg_scale_time > (reg_wave_length sll 8)) then
                             -- Time step bigger than the size of the rise
@@ -514,12 +511,18 @@ architecture channel of qlaser_dacs_pulse_channel is
                             sm_wavedata             <= (others=>'0');
                             sm_wavedata_dv          <= '0';
                         end if;
+                        if (reg_pulse_time(C_START_TIME - 1 downto 0) < cnt_time) and (sm_state_d1 = S_LOAD) then
+                            -- Pulse start time is in the past, and it is loaded with new pulse params
+                            erros(C_ERR_START_TIME) <= '1';
+                            sm_wavedata             <= (others=>'0');
+                            sm_wavedata_dv          <= '0';
+                        end if;
                         -- TODO: error when pulse size > cnt_time - should it immediately go to idle when done_seq is set?
 
                         -- read the last word of the pulse definition, the flat top value
                         reg_pulse_flattop               <= unsigned(ram_pulse_doutb(C_BITS_ADDR_TOP - 1 downto 0));
                         -- Start to output wave and increment pulse position RAM address. Don't if data valid is low, indicating somthing is wrong
-                        if (reg_pulse_time(C_START_TIME - 1 downto 0) = cnt_time) and sm_wavedata_dv = '1' then
+                        if (reg_pulse_time(C_START_TIME - 1 downto 0) = cnt_time) and sm_wavedata_dv = '1' and not (sm_state_d1 = S_WAVE_DOWN) then
                             sm_state                <= S_WAVE_UP;
                             
                             ram_waveform_addrb      <= reg_wave_start_addr & std_logic_vector(to_unsigned(0, 8));          -- set the wavetable's address to the starting address defined from the pulse ram
@@ -534,10 +537,10 @@ architecture channel of qlaser_dacs_pulse_channel is
                             v_ram_waveform_doutb_multiplied := std_logic_vector(unsigned(ram_waveform_doutb) * reg_scale_gain);
                             sm_wavedata             <= v_ram_waveform_doutb_multiplied(30 downto 15); 
                             sm_last                 <= '1';
-                        -- elsif sm_last = '1' then
-                        --     sm_last                 <= '0';  -- incase this flag not cleared and messed up valid
-                        --     sm_wavedata             <= (others=>'0');
-                        --     sm_wavedata_dv          <= '0';
+                        elsif sm_last = '1' then
+                            sm_last                 <= '0';  -- incase this flag not cleared and messed up valid
+                            sm_wavedata             <= (others=>'0');
+                            sm_wavedata_dv          <= '0';
                         end if;
 
                     ------------------------------------------------------------------------

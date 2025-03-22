@@ -26,6 +26,7 @@
 #define SIZERAM_PULSE_DEFN 1024			// Each entry consists of 4 32-bit words
 #define PDEF_NUM_ENTRY     (SIZERAM_PULSE_DEFN/4)
 #define C_BITS_ADDR_WAVE   16  			// Number of bits in address for waveform
+#define MAX_CHANNEL        32           // Numbers of AC channels
 
 #define ADR_BASE_GPIO_INT  XPAR_AXI_GPIO_INT_BASEADDR
 #define ADR_GPIO_IN        (ADR_BASE_GPIO_INT + 0x0)
@@ -169,11 +170,16 @@ XIicPs_Config *IicConfig1;
 // 1.0.g Set FMC216 board DACs and Clk to use 4-wire SPI so CPLD readback works
 // 1.0.h Set LMK SPI output mux
 // 1.0.i AC+DC thru PMOD and set then thru Python CLI.
+// 1.0.j Updated for second iteration of the Python API
 //----------------------------------------------------------------
-char    g_strVersion[]          = "1.0.i";
+char    g_strVersion[]          = "1.0.j";
 int     g_nStateButtons 		= 0;
 int     g_nStateSwitches 		= 0;
 unsigned int address;
+int g_pulseDefinitions[MAX_CHANNEL][SIZERAM_PULSE_DEFN];
+int g_waveformTables[MAX_CHANNEL][SIZERAM_PULSE_WAVE];
+int one_pd[SIZERAM_PULSE_DEFN];
+int ont_wt[SIZERAM_PULSE_WAVE];
 
 // UART I/O characters
 char    inbyte      (void);
@@ -186,6 +192,7 @@ int     clr_bit                 (int nData, u8 nBit);
 u8      get_bit                 (int nData, u8 nBit);
 u8      is_hex                  (char c);
 u8      hex2int                 (char c);
+u8 		is_only_one_bit			(int value);
 void    set_pulse_chsel         (int nValue);
 int     get_pulse_chsel         ();
 int     clear_all_pulse_rams    ();
@@ -256,6 +263,12 @@ u8 is_hex(char c)
         result = 1;
 
     return(result);
+}
+
+u8 is_only_one_bit(int value) {
+    // Check if value is non-zero and has only one bit set
+    // This uses the trick that (value & (value - 1)) clears the rightmost set bit
+    return value != 0 && (value & (value - 1)) == 0;
 }
 
 //----------------------------------------------------------------
@@ -375,6 +388,32 @@ void print_regs()
    (void)xil_printf ("ADR_BLOCK_SPARE                    = 0x%08X\r\n", Xil_In32(ADR_BASE_P2PMOD       ));
 
    (void)xil_printf ("ADR_GPIO_IN                        = 0x%08X\r\n", Xil_In32(ADR_GPIO_IN           ));
+}
+
+//--------------------------------------------------------------------------------------
+// Read all value from PD ram from a selected channel. Return the last non-zero address
+//--------------------------------------------------------------------------------------
+int read_pulse_dfn(int nChannel)
+{
+	if (nChannel > 31) {
+		(void) xil_printf ("*ERR*: Invalid channel number %d\r\n", nChannel);
+		return;
+	}
+
+	// Enable access to one selected channel
+	Xil_Out32(ADR_PULSE_REG_CHSEL, 1 << nChannel);
+
+	u32 nData = Xil_In32(ADR_BASE_PULSE_DEFN);
+
+	int chAddr = 0;
+
+	while (nData != 0) {  // Read only the nonzeros... save a bit speed
+		g_pulseDefinitions[nChannel][chAddr] = nData;
+		chAddr++;
+		nData = Xil_In32(ADR_BASE_PULSE_DEFN + 4*chAddr);  // Update to next addr
+	}
+
+	return chAddr - 1;
 }
 
 //---------------------------------------------------------
@@ -539,7 +578,6 @@ void load_pulse_defn(int nChannel)
     }
 }
 
-
 //---------------------------------------------------------
 // Set channel select reg
 //---------------------------------------------------------
@@ -578,6 +616,13 @@ int clear_all_pulse_rams()
     u32 nRaddr      = 0;
     u32 nRdata      = 0;
     u32 nErrors     = 0;
+
+    // Clearing out the fake pd mem
+    for (int channel = 0; channel < MAX_CHANNEL; channel++) {
+        for (int i = 0; i < SIZERAM_PULSE_DEFN; i++) {
+            g_pulseDefinitions[channel][i] = 0;
+        }
+    }
 
     // Enable access to all channels.
     // Each channel should be written with same data.
@@ -1347,7 +1392,7 @@ int main()
     char    cUartRx;    // Data from UART
 
     u8      nDigit  = 0;
-    int     nValue  = 0;
+    u64     nValue  = 0;
     int		nData   = 0;
 
     int     nStateButtonsLast   = 0;
@@ -1416,12 +1461,16 @@ int main()
 //	// Enable temperature measurements
 //	(void)iic_enable_fmc_temp();
 
-	//----------------------------------------------------------------------
-    // Command parser. Loops forever.
-    //----------------------------------------------------------------------
     Xil_Out32(PMOD_ADDR_INTERNAL_REF, nRdata);
     Xil_Out32(PMOD_ADDR_CTRL, 0x1);
     Xil_Out32(C_ADDR_INTERNAL_REF, 0x00000000);
+
+    // Initialize the fake PD memories
+    for (int channel = 0; channel < MAX_CHANNEL; channel++) {
+        for (int i = 0; i < SIZERAM_PULSE_DEFN; i++) {
+            g_pulseDefinitions[channel][i] = 0;
+        }
+    }
 
     print("Ready>\r\n");
 
@@ -1457,7 +1506,9 @@ int main()
 	int nScaleAddr = 0x0100;
 
 
-
+	//----------------------------------------------------------------------
+	// Command parser. Loops forever.
+	//----------------------------------------------------------------------
     while (1)
     {
         nRdata = Xil_In32(ADR_GPIO_BTN);
@@ -1514,15 +1565,29 @@ int main()
 						// Select DC Block
 						//--------------------------------------------------------
 						case 0xDC:
-//							Xil_Out32(ADR_BASE_DACS_DC + 4*nValue, nData);
 							nRdata = Xil_In32(ADR_BASE_DACS_DC + 4*nValue);
 							(void)xil_printf ("%d\r\n", nRdata);
 						break;
+						//-----------------------------------------------------------------
+						// Read Pulse defn addr from given addr in AC block
+						//-----------------------------------------------------------------
+						case 0xAA:
+							nRdata = Xil_In32(ADR_BASE_PULSE_DEFN + 4*nValue);
+							(void)xil_printf ("%d\r\n", nRdata);
+						break;
+						//-----------------------------------------------------------------
+						// Read Pulse wave addr from given addr in AC block
+						// Right now I assume values in WT are the same, so OR them wont
+						// hurt anything so checking on channel select not implement
+						//-----------------------------------------------------------------
+						case 0xAB:
+							nRdata = Xil_In32(ADR_BASE_PULSE_WAVE + 4*nValue);
+							(void)xil_printf ("%d\r\n", nRdata);
+						break;
 						//--------------------------------------------------------
-						// Select AC Block
+						// Select AC Block. Generic
 						//--------------------------------------------------------
 						case 0xAC:
-//							Xil_Out32(ADR_BASE_DACS_AC + 4*nValue, nData);
 							nRdata = Xil_In32(ADR_BASE_DACS_AC + 4*nValue);
 							(void)xil_printf ("%d\r\n", nRdata);
 						break;
@@ -1530,49 +1595,38 @@ int main()
 						// Select Misc Block
 						//--------------------------------------------------------
 						case 0xBC:
-//							Xil_Out32(ADR_BASE_MISC + 4*nValue, nData);
 							nRdata = Xil_In32(ADR_BASE_MISC + 4*nValue);
 							(void)xil_printf ("%d\r\n", nRdata);
 						break;
 
+
 						//--------------------------------------------------------
-						// SECTION II: SPECIFIC BLOCK-LEVEL ACTIONS
+						// SECTION II: BLOCK-LEVEL Write ACTIONS
 						//--------------------------------------------------------
 						//--------------------------------------------------------
-						// Sent value to the DC channel
+						// Write to the DC channel
 						//--------------------------------------------------------
                     	case 0x8D:
-                    		Xil_Out32(ADR_BASE_DACS_DC + 4*nValue, nData);
+                    		Xil_Out32(ADR_BASE_DACS_DC + 4*((u16)(nValue >> 32)), (u32)(nValue & 0xFFFFFFFF));
 						break;
 
 						//---------------------------------------------------------
-						// Set the address for PD ram. Need to set the data first
+						// Write PD ram.
 						//---------------------------------------------------------
 						case 0x8A:
-//							(void)xil_printf ("PD addr:  0x%08X\r\n", nValue);
-							Xil_Out32(ADR_BASE_PULSE_DEFN + 4*nValue, nData);
+							Xil_Out32(ADR_BASE_PULSE_DEFN + 4*((u16)(nValue >> 32)), (u32)(nValue & 0xFFFFFFFF));
 						break;
 						//-----------------------------------------------------------------
-						// Set the address to the waveform ram. Need to set the data first
+						// Write to the waveform ram.
 						//-----------------------------------------------------------------
 						case 0x9A:
-							Xil_Out32(ADR_BASE_PULSE_WAVE + 4*nValue, nData);
+							Xil_Out32(ADR_BASE_PULSE_WAVE + 4*((u16)(nValue >> 32)), (u32)(nValue & 0xFFFFFFFF));
 						break;
-
 						//-----------------------------------------------------------------
-						// Read Pulse defn addr from given addr
+						// Generic Write to Misc block
 						//-----------------------------------------------------------------
-						case 0xAA:
-							nRdata = Xil_In32(ADR_BASE_PULSE_DEFN + 4*nValue);
-							(void)xil_printf ("%d\r\n", nRdata);
-						break;
-
-						//-----------------------------------------------------------------
-						// Read Pulse wave addr from given addr
-						//-----------------------------------------------------------------
-						case 0xBA:
-							nRdata = Xil_In32(ADR_BASE_PULSE_WAVE + 4*nValue);
-							(void)xil_printf ("%d\r\n", nRdata);
+						case 0x8B:
+							Xil_Out32(ADR_BASE_MISC + 4*((u16)(nValue >> 32)), (u32)(nValue & 0xFFFFFFFF));
 						break;
 
 						//--------------------------------------------------------
@@ -1588,11 +1642,12 @@ int main()
 						// Check AC channels errors. JSONfied for Python to decode
 						//---------------------------------------------------------
 						case 0xAE:
-							(void)xil_printf ("{\"wave table overflow\": %d,", Xil_In32(ADR_REG_ERR_RAM_OF    ));
-							(void)xil_printf ("\"rise size too small\": %d,", Xil_In32(ADR_REG_ERR_INVAL_LEN ));
-							(void)xil_printf ("\"time step bigger than rise\": %d,", Xil_In32(ADR_REG_ERR_BIG_STEP  ));
-							(void)xil_printf ("\"amplitude scale larger than 1\": %d,", Xil_In32(ADR_REG_ERR_BIG_GAIN));
-							(void)xil_printf ("\"time step smaller than 1\": %d}", Xil_In32(ADR_REG_ERR_SMALL_TIME));
+							(void)xil_printf("{\"wave table overflow\": %d, \"rise size too small\": %d, \"time step bigger than rise\": %d, \"amplitude scale larger than 1\": %d, \"time step smaller than 1\": %d}",
+							                Xil_In32(ADR_REG_ERR_RAM_OF),
+							                Xil_In32(ADR_REG_ERR_INVAL_LEN),
+							                Xil_In32(ADR_REG_ERR_BIG_STEP),
+							                Xil_In32(ADR_REG_ERR_BIG_GAIN),
+							                Xil_In32(ADR_REG_ERR_SMALL_TIME));
 						break;
 
 						//----------------------------------------------------------------
@@ -1619,7 +1674,6 @@ int main()
 								echo = true;
 								xil_printf("Command Echo On!");
 							}
-//							xil_printf( "Echo %s\r\n", echo ? "ON" : "OFF");
 						break;
 
 
@@ -1855,21 +1909,23 @@ int main()
 						break;
 
 
-//						case 'I':
-//							for (address = 0xA0000000; address <= 0xA001FFFF; address += 4) {
-//								nRdata = Xil_In32(address);
-//								if (nRdata != 0 && nRdata != 0xFFFFFFFF) {
-//									printf("Address: 0x%08X, Data: 0x%08X\n", address, nRdata);
-//								}
-//							}
-//							nRdata = Xil_In32(0xA0010000);
-//							if (nRdata != 0 && nRdata != 0xFFFFFFFF) {
-//								printf("1 Address: 0xA0010000, Data: 0x%08X\n", nRdata);
-//							}
-//							printf("2 Address: 0xA0010000, Data: 0x%08X\n", nRdata);
-//							nRdata = Xil_In32(ADR_GPIO_LED);
-//							printf("3 Address: 0x%08X, Data: 0x%08X\n", ADR_GPIO_LED, nRdata);
-//						break;
+						case 'I':
+							for (address = 0xA0000000; address <= 0xA001FFFF; address += 4) {
+								nRdata = Xil_In32(address);
+								if (nRdata != 0 && nRdata != 0xFFFFFFFF) {
+									printf("Address: 0x%08X, Data: 0x%08X\n", address, nRdata);
+								}
+							}
+							nRdata = Xil_In32(0xA0010000);
+							if (nRdata != 0 && nRdata != 0xFFFFFFFF) {
+								printf("1 Address: 0xA0010000, Data: 0x%08X\n", nRdata);
+							}
+							printf("2 Address: 0xA0010000, Data: 0x%08X\n", nRdata);
+							nRdata = Xil_In32(ADR_GPIO_LED);
+							printf("3 Address: 0x%08X, Data: 0x%08X\n", ADR_GPIO_LED, nRdata);
+
+							(void)xil_printf ("Last PD adddress on selected channel: %d\r\n", read_pulse_dfn(nValue));
+						break;
 
 						case 'p':
 							on = !on;
@@ -1930,12 +1986,13 @@ int main()
 
                         case 't':
                         	trigger = !trigger;
+                            nRdata = Xil_In32(ADR_GPIO_IN);
                         	if (trigger) {
-                        		Xil_Out32(ADR_MISC_TRIGGER, 0x1);
-                        		(void)xil_printf ("Trigger On\r\n");
+                                Xil_Out32(ADR_GPIO_OUT, set_bit(nRdata, C_GPIO_PS_TRIG));
+                                (void)xil_printf ("Trigger On\r\n");
 							} else {
 								Xil_Out32(ADR_MISC_TRIGGER, 0x0);
-								(void)xil_printf ("Trigger Off\r\n");
+								Xil_Out32(ADR_GPIO_OUT, clr_bit(nRdata, C_GPIO_PS_TRIG));
 							}
 
 
@@ -1944,6 +2001,25 @@ int main()
                         case 'w':
                         	(void)xil_printf ("Load test waves\r\n");
 							load_pulse_wave(99, 0, 0);
+						break;
+
+						// Read Nonzero Pulse Definition RAM from a selected channel. Should provide channel number
+                        case 'W':
+                        	// Update fakemem. TODO: make it only require 1 print only.
+                        	read_pulse_dfn(nValue);
+
+                        	if (nValue < 32) {
+                            	(void)xil_printf ("[%d", g_pulseDefinitions[nValue][0]);
+
+                            	int pdAddr = 1;
+
+                            	while (g_pulseDefinitions[nValue][pdAddr] != 0) {
+                            		(void)xil_printf (",%d", g_pulseDefinitions[nValue][pdAddr]);
+                            		pdAddr++;
+                            	}
+                            	(void)xil_printf ("]\r\n");
+                        	}
+
 						break;
 
 						// read virtual pins

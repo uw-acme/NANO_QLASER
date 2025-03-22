@@ -339,7 +339,7 @@ begin
             v_pulseaddr := v_pulseaddr + 1;
 
             uniform(seed1, seed2, x);
-            v_pulsetime := v_pulsetime + 2 * (1 + integer(floor(real(v_wavesteps - 1) / v_timefactor))) + v_wavetopwidth + integer(ceil(x + 4.0));
+            v_pulsetime := v_pulsetime + 2 * (1 + integer(floor(real(v_wavesteps - 1) / v_timefactor))) + v_wavetopwidth + integer(ceil(x + 5.0));
         end loop;
 
         cpu_print_msg("Done generating random polynomials");
@@ -401,6 +401,8 @@ begin
 
             -- exit on any error
             if or_reduce(erros) = '1' then
+                cpu_print_msg("    ""status"":       ""ERROR"",");
+                cpu_print_msg("}");
                 cpu_print_msg("Hardware error detected: " & to_string(erros));
                 exit;
             end if; 
@@ -409,7 +411,8 @@ begin
             if (start_times(v_pulseaddr + 1) = real(to_integer(unsigned(cnt_time)))) or axis_tlast = '1' then
                 v_pulseaddr := v_pulseaddr + 1;  -- force increment the pulse address
                 if max_error/mx_err_delta > RATIO_THRESH then
-                    cpu_print_msg("    ""status"":       ""FAILED""");
+                    cpu_print_msg("    ""status"":       ""FAILED"",");
+                    cpu_print_msg("    ""max diff/delta"":" & to_string(max_error/mx_err_delta));
                 else
                     cpu_print_msg("    ""status"":       ""PASS""");
                 end if;
@@ -468,7 +471,6 @@ begin
         -- Export max errors, step size, max errors/step size…. Add stuff needed to know what causes the error
         fputs(to_string(int_seed) & ", " & to_string(real(mx_sim_time / 1 ns)) & ", " & to_string(max_error) & ", " & to_string(mx_err_delta) & ", " & to_string(max_error/mx_err_delta) & ", " & to_string(mx_err_pulse) & ", " & to_string(mx_err_time), err_out);
 
-        clear_errors <= '1';  -- assert clear errors to clear errors
         clk_delay(5);
         done_seq <= '1';
 

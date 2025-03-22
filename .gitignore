@@ -25,3 +25,4 @@ tools/sim_pulsechannel/results/
 unisim
 *.vstf
 ~$*
+*ws/

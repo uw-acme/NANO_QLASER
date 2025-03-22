@@ -41,6 +41,7 @@ constant C_INVAL_LENGTH     : integer    := 1;                                  
 constant C_ERR_BIG_STEP     : integer    := 2;                                    -- Step too big than the waveform length
 constant C_ERR_BIG_GAIN     : integer    := 3;                                    -- Gain too big (>1)
 constant C_ERR_SMALL_TIME   : integer    := 4;                                    -- Time step too small (<1)
+constant C_ERR_START_TIME   : integer    := 5;                                    -- Start time too early (<5 from last pulse)
 
 
 

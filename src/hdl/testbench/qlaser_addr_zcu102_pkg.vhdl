@@ -104,6 +104,7 @@ constant ADR_REG_ERR_INVAL_LEN  : std_logic_vector(17 downto 0) := ADR_BASE_PULS
 constant ADR_REG_ERR_BIG_STEP   : std_logic_vector(17 downto 0) := ADR_BASE_PULSE  & X"4020";   -- Step too big than the waveform length
 constant ADR_REG_ERR_BIG_GAIN   : std_logic_vector(17 downto 0) := ADR_BASE_PULSE  & X"4024";   -- Gain too big (>1)
 constant ADR_REG_ERR_SMALL_TIME : std_logic_vector(17 downto 0) := ADR_BASE_PULSE  & X"4028";   -- Time step too small (<1)
+constant ADR_REG_ERR_START_TIME : std_logic_vector(17 downto 0) := ADR_BASE_PULSE  & X"402C";   -- Start time too early (<5 from last pulse)
 ------------------------------------------------------------------------------------------------------------------------- 
 
 -------------------------------------------------------------------------------------------------------------------------- 
