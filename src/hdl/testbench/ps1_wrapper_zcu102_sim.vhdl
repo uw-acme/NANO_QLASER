@@ -225,7 +225,7 @@ begin
         cpu_print_msg("Read back ADR_REG_ERR_START_TIME: ");
         cpu_read(clk, to_integer(unsigned(ADR_REG_ERR_START_TIME)), X"00000000", rd, wr, addr, wdata, rdata, rdata_dv);
         cpu_print_msg("Read back ADR_MISC_DEBUG_TRIGGER: ");
-        cpu_read(clk, to_integer(unsigned(ADR_MISC_DEBUG_TRIGGER)), X"00000000", rd, wr, addr, wdata, rdata, rdata_dv);
+        cpu_read(clk, to_integer(unsigned(ADR_MISC_DEBUG_TRIGGER)), X"00000001", rd, wr, addr, wdata, rdata, rdata_dv);
         -- cpu_print_msg("Read back PMOD_ADDR_SPI0: ");
         -- cpu_read(clk, to_integer(unsigned(PMOD_ADDR_SPI0)), X"00000013", rd, wr, addr, wdata, rdata, rdata_dv);
 
