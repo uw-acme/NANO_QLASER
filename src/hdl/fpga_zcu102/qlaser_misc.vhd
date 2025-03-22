@@ -36,6 +36,7 @@ port (
     tick_msec       : out std_logic;                        -- Single cycle high every 1 msec. Used by SD interface debug registers
     tick_sec        : out std_logic;                        -- Single cycle high every 1 sec. 
     dbg_ctrl        : out std_logic_vector( 3 downto 0);    -- Select output to debug pins
+    ext_trigger     : in  std_logic;                        -- External TTL trigger
     trigger         : out std_logic;
     enable          : out std_logic
 );
@@ -88,8 +89,11 @@ begin
     leds            <= reg_leds;
     leds_en         <= reg_leds_en;
     dbg_ctrl        <= reg_dbg_ctrl;
-    trigger         <= reg_trigger;
+    -- trigger         <= reg_trigger;
+    trigger         <= '0';  -- ground it for now
     enable          <= reg_enable;
+
+    reg_trigger     <= ext_trigger;
 
    
     ---------------------------------------------------------------------------------
@@ -108,7 +112,7 @@ begin
                 reg_leds            <= X"0";
                 reg_leds_en         <= X"0";
                 reg_dbg_ctrl        <= (others=>'1');   -- Debug outputs driven to zero. Power reduction.
-                reg_trigger         <= '0';
+                -- reg_trigger         <= '0';
                 reg_enable          <= '0';
                 
             -- Write registers
@@ -119,7 +123,7 @@ begin
                     when ADR_REG_LEDS       => reg_leds         <= cpu_wdata( 3 downto 0);
                     when ADR_REG_LEDS_EN    => reg_leds_en      <= cpu_wdata( 3 downto 0);
                     when ADR_REG_DEBUG_CTRL => reg_dbg_ctrl     <= cpu_wdata( 3 downto 0);
-                    when ADR_REG_TRIGGER    => reg_trigger      <= cpu_wdata(0);
+                    -- when ADR_REG_TRIGGER    => reg_trigger      <= cpu_wdata(0);
                     when ADR_REG_EN         => reg_enable       <= cpu_wdata(0);
                     when others             => null;
                 end case;

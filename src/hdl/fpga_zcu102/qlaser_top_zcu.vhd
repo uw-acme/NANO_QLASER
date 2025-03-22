@@ -220,8 +220,8 @@ begin
     resetn  <= not(reset);
     cif_reset <= not(ps_resetn0);
 
-    -- Combine p_btn trigger (from pad) with misc block trigger and ps_gpout(0) to create internal trigger
-    trigger_dacs_pulse      <= (p_btn_c or misc_trigger or ps_gpout(C_GPIO_PS_TRIG) or p_debug_out(0)) and not(p2p0_active) and not(p2p1_active) and not(dacs_pulse_busy);  -- ensure ALL resources are available 
+    -- Combine p_btn trigger (from pad) with misc block trigger and ps_gpout(0) to create internal trigger. TODO: make a separate signal to take all triggers?
+    trigger_dacs_pulse      <= (p_btn_c or ps_gpout(C_GPIO_PS_TRIG) or p_debug_out(0)) and not(p2p0_active) and not(p2p1_active) and not(dacs_pulse_busy);  -- ensure ALL resources are available 
     ps_enable_dacs_pulse    <= ps_gpout(C_GPIO_PS_EN) or misc_enable;
     any_dacs_busy           <= dacs_dc_busy(0) or dacs_dc_busy(1) or dacs_dc_busy(2) or dacs_dc_busy(3) or dacs_pulse_busy;
 
@@ -524,6 +524,7 @@ begin
         tick_sec            => tick_sec                 , -- out std_logic;                        -- Single cycle high every N msec. 
 
         dbg_ctrl            => misc_dbg_ctrl            , -- out std_logic_vector( 3 downto 0);
+        ext_trigger         => trigger_dacs_pulse       , -- in  std_logic;     -- External trigger input
         trigger             => misc_trigger             , -- out std_logic
         enable              => misc_enable                -- out std_logic
     );

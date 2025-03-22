@@ -154,7 +154,6 @@ end procedure cpu_print_msg;
 
 
 begin
-
     -------------------------------------------------------------
 	-- Unit Under Test
     -------------------------------------------------------------
@@ -257,17 +256,16 @@ begin
         p_btn_n <= '0';
         p_btn_w <= '0';
         p_btn_c <= '0';
+        p_debug_out(0) <= '0';
         vref0   <= 3.3;
         vref1   <= 3.3;
         clk_delay(5);
         
-        cpu_print_msg("Simulation start");
         p_reset <= '0';
 
 
         clk_delay(SIM_DURATION);
         
-        cpu_print_msg("Simulation done");
         clk_delay(10);
 		
         sim_done    <= true;
