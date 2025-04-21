@@ -256,7 +256,7 @@ begin
         p_btn_n <= '0';
         p_btn_w <= '0';
         p_btn_c <= '0';
-        p_debug_out(0) <= '0';
+        -- p_debug_out(0) <= '0';
         vref0   <= 3.3;
         vref1   <= 3.3;
         clk_delay(5);

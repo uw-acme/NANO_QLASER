@@ -390,7 +390,9 @@ architecture channel of qlaser_dacs_pulse_channel is
                 -- Pipeline delays to use for rising edge detection
                 enable_d1       <= enable;  
                 start_d1        <= start;
-                sm_state_d1     <= sm_state;
+                sm_state_d1     <= sm_state; 
+                -- Activly apply the factor to the waveform data output
+                v_ram_waveform_doutb_multiplied := std_logic_vector(unsigned(ram_waveform_doutb) * reg_scale_gain);
     
                 -- Default 
                 sm_wavedata     <= (others=>'0');
@@ -439,7 +441,7 @@ architecture channel of qlaser_dacs_pulse_channel is
                         -- Load the pulse channel RAM addresses and start the waveform output
                         sm_busy                         <= '1';
                         if (sm_state_d1 = S_WAVE_DOWN) then  -- output the last pulse definition address for one more clock cycle
-                            v_ram_waveform_doutb_multiplied := std_logic_vector(unsigned(ram_waveform_doutb) * reg_scale_gain);
+                            -- v_ram_waveform_doutb_multiplied := std_logic_vector(unsigned(ram_waveform_doutb) * reg_scale_gain);
                             sm_wavedata                     <= v_ram_waveform_doutb_multiplied(30 downto 15); 
                         else
                             sm_wavedata                     <= (others=>'0');
@@ -534,7 +536,7 @@ architecture channel of qlaser_dacs_pulse_channel is
                             ram_pulse_addrb         <= (others=>'0');
                             sm_wavedata             <= (others=>'0');
                         elsif (sm_state_d1 = S_WAVE_DOWN) then  -- output the last pulse definition address for one more clock cycle
-                            v_ram_waveform_doutb_multiplied := std_logic_vector(unsigned(ram_waveform_doutb) * reg_scale_gain);
+                            -- v_ram_waveform_doutb_multiplied := std_logic_vector(unsigned(ram_waveform_doutb) * reg_scale_gain);
                             sm_wavedata             <= v_ram_waveform_doutb_multiplied(30 downto 15); 
                             sm_last                 <= '1';
                         elsif sm_last = '1' then
@@ -557,6 +559,7 @@ architecture channel of qlaser_dacs_pulse_channel is
                             --     ram_waveform_addrb  <= std_logic_vector(reg_wave_end_addr);                               -- pad the address pointer to the end address
                             -- end if;
                             wave_last_addr      <= std_logic_vector(unsigned(ram_waveform_addrb));                           -- hold the last address of the wavetable
+                            sm_wavedata         <= v_ram_waveform_doutb_multiplied(30 downto 15); 
                             -- skip the flat top state if the flat top value is zero
                             if (reg_pulse_flattop = 0) then
                                 sm_state            <= S_WAVE_DOWN;
@@ -574,12 +577,21 @@ architecture channel of qlaser_dacs_pulse_channel is
                         else
                             ram_waveform_addrb  <= std_logic_vector(unsigned(ram_waveform_addrb) + reg_scale_time);
                             wave_last_addr      <= std_logic_vector(unsigned(ram_waveform_addrb) + reg_scale_time);    -- hold the last address of the wavetable
+                            if (sm_state_d1 = S_WAIT) then  -- supress the output for one more clock cycle
+                                sm_wavedata         <= (others=>'0');
+                            else
+                                sm_wavedata         <= v_ram_waveform_doutb_multiplied(30 downto 15); 
+                            end if;
                         end if;
                         -- sm_wavedata         <= std_logic_vector(unsigned(ram_waveform_doutb) * reg_scale_gain)(31 downto 16); 
                         -- Modelsim Cannot synthesize this above line, so we *have to* seperate them into two lines
                         -- # ** Error: Prefix of slice name cannot be type conversion (STD_LOGIC_VECTOR) expression.
-                        v_ram_waveform_doutb_multiplied := std_logic_vector(unsigned(ram_waveform_doutb) * reg_scale_gain);
-                        sm_wavedata                     <= v_ram_waveform_doutb_multiplied(30 downto 15); 
+                        -- v_ram_waveform_doutb_multiplied := std_logic_vector(unsigned(ram_waveform_doutb) * reg_scale_gain);
+                        -- if (sm_state_d1 = S_WAIT) then  -- supress the output for one more clock cycle
+                        --     sm_wavedata         <= (others=>'0');
+                        -- else
+                        --     sm_wavedata         <= v_ram_waveform_doutb_multiplied(30 downto 15); 
+                        -- end if;
                         
                     ------------------------------------------------------------------------
                     -- Hold the last address and output its data
@@ -591,6 +603,7 @@ architecture channel of qlaser_dacs_pulse_channel is
                             sm_state            <= S_WAVE_DOWN;
                             ram_waveform_addrb  <= wave_last_addr;                                                     -- get the last address of the wavetable
                             cnt_wave_top        <= (others=>'0');                                                      -- reset the counter for the next transition
+                            sm_wavedata         <= v_ram_waveform_doutb_multiplied(30 downto 15); 
                         elsif (done_seq = '1') then  -- force to go to idle if done_seq is set
                             sm_state            <= S_IDLE;
                             -- reset everything
@@ -600,9 +613,10 @@ architecture channel of qlaser_dacs_pulse_channel is
                         else
                             ram_waveform_addrb  <= std_logic_vector(reg_wave_end_addr);                                -- pad the address pointer to the end address
                             cnt_wave_top        <= cnt_wave_top + 1;
+                            sm_wavedata         <= v_ram_waveform_doutb_multiplied(30 downto 15); 
                         end if;
-                        v_ram_waveform_doutb_multiplied := std_logic_vector(unsigned(ram_waveform_doutb) * reg_scale_gain);
-                        sm_wavedata                     <= v_ram_waveform_doutb_multiplied(30 downto 15);
+                        -- v_ram_waveform_doutb_multiplied := std_logic_vector(unsigned(ram_waveform_doutb) * reg_scale_gain);
+                        -- sm_wavedata                     <= v_ram_waveform_doutb_multiplied(30 downto 15);
                         
                     ------------------------------------------------------------------------
                     -- Output the falling edge of a waveform
@@ -620,6 +634,7 @@ architecture channel of qlaser_dacs_pulse_channel is
                                 ram_pulse_addrb     <= (others=>'0');
                                 pc                  <= (others=>'0');
                                 sm_state            <= S_IDLE;
+                                sm_wavedata         <= v_ram_waveform_doutb_multiplied(30 downto 15); 
                             elsif (done_seq = '1') then  -- force to go to idle if done_seq is set
                                 sm_state            <= S_IDLE;
                                 -- reset everything
@@ -633,14 +648,16 @@ architecture channel of qlaser_dacs_pulse_channel is
                                 else
                                     sm_state            <= S_LOAD;
                                 end if;
+                                sm_wavedata         <= v_ram_waveform_doutb_multiplied(30 downto 15); 
                             end if;
                                 
                         -- Output waveform from RAM with decremented address
                         else
                             ram_waveform_addrb          <= std_logic_vector(unsigned(ram_waveform_addrb) - reg_scale_time);
+                            sm_wavedata                 <= v_ram_waveform_doutb_multiplied(30 downto 15); 
                         end if;
-                        v_ram_waveform_doutb_multiplied := std_logic_vector(unsigned(ram_waveform_doutb) * reg_scale_gain);
-                        sm_wavedata                     <= v_ram_waveform_doutb_multiplied(30 downto 15); 
+                        -- v_ram_waveform_doutb_multiplied := std_logic_vector(unsigned(ram_waveform_doutb) * reg_scale_gain);
+                        -- sm_wavedata                     <= v_ram_waveform_doutb_multiplied(30 downto 15); 
     
                     ------------------------------------------------------------------------
                     -- Default

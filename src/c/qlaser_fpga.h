@@ -97,30 +97,14 @@
 #define C_MODE_CMD      0   // single char commands. 0-9 are characters are used to build a decimal value
 
 
-//----------------------------------------------------------------
-// 1.0.a Initial version.
-// 1.0.b Test RAMs in pulse channel 0.
-// 1.0.c Test RAMs in all pulse channels.
-// 1.0.d Test all channel clear
-// 1.0.e Start I2C dev
-// 1.0.f More iic functions
-// 1.0.g Set FMC216 board DACs and Clk to use 4-wire SPI so CPLD readback works
-// 1.0.h Set LMK SPI output mux
-// 1.0.i AC+DC thru PMOD and set then thru Python CLI.
-// 1.0.j Updated for second iteration of the Python API
-//----------------------------------------------------------------
-char    g_strVersion[]          = "1.0.j";
-int     g_nStateButtons 		= 0;
-int     g_nStateSwitches 		= 0;
-unsigned int address;
-int g_pulseDefinitions[MAX_CHANNEL][SIZERAM_PULSE_DEFN];
-int g_waveformTables[MAX_CHANNEL][SIZERAM_PULSE_WAVE];
-int one_pd[SIZERAM_PULSE_DEFN];
-int ont_wt[SIZERAM_PULSE_WAVE];
-
-// // External variable declarations if needed
-// extern u32 g_pulseDefinitions[MAX_CHANNEL][SIZERAM_PULSE_DEFN];
-// extern char g_strVersion[];
+extern char    g_strVersion[];
+extern int     g_nStateButtons;
+extern int     g_nStateSwitches;
+extern unsigned int address;
+extern int g_pulseDefinitions[MAX_CHANNEL][SIZERAM_PULSE_DEFN];
+extern int g_waveformTables[MAX_CHANNEL][SIZERAM_PULSE_WAVE];
+extern int one_pd[SIZERAM_PULSE_DEFN];
+extern int ont_wt[SIZERAM_PULSE_WAVE];
 
 // UART I/O characters
 char    inbyte      (void);
@@ -138,6 +122,9 @@ u8 is_hex(char c);
 u8 is_only_one_bit(int value);
 u8 hex2int(char c);
 
+// Pointer manipulation functions
+u32 findZeroIndex(const void *src, int step);
+
 // GPIO functions
 void gpo_toggle(int nBit, int addr);
 void gpo_set(int nBit, int addr);
@@ -148,14 +135,15 @@ void print_help(void);
 void print_regs(void);
 
 // Pulse definition and manipulation functions
-int read_pulse_dfn(int nChannel);
+void read_pulse_dfn(int nValue);
+void read_pulse_wave(int nValue);
 void load_pulse_wave(int nChannel, int nAddrStart, int nSize);
 void entry_pulse_defn(int nEntry, int nStartTime, int nWaveAddr, int nWaveLen, 
                      int nScaleGain, int nScaleAddr, int nFlattop);
 void load_pulse_defn(int nChannel);
+void single_pulse_chsel(int nChannel);
 void set_pulse_chsel(int nValue);
-int get_pulse_chsel(void);
-int clear_all_pulse_rams(void);
+int clear_rams(int memsel);
 int test_pulse_channels(int nChanValid);
 
 #endif // __QLASER_FPGA_H_

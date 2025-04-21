@@ -86,7 +86,7 @@ begin
     pr_main : process
      -- variables for loading the waveform RAM
      variable v_ndata32        : integer     := 0;
-     variable v_ndata16        : integer     := 0;
+     variable v_ndata16        : integer     := 1;
      variable v_ndata32_upper  : integer     := 0;
      variable v_ndata32_lower  : integer     := 0;
     begin
@@ -159,7 +159,10 @@ begin
         -- cpu_write(clk, ADR_BASE_PULSE_DEFN or "00" & X"0008", X"80000100", rd, wr, addr, wdata); -- scale addr, scale gain
         -- cpu_write(clk, ADR_BASE_PULSE_DEFN or "00" & X"000C", X"00000004", rd, wr, addr, wdata); -- flat top
 
-        cpu_write_pdef(clk, 0,  5, 4, 5, 4, 1.0, 1.0, rd, wr, addr, wdata);
+        
+        cpu_write_pdef(clk, 0,  5, 2, 2, 4, 1.0, 1.0, rd, wr, addr, wdata);
+        -- cpu_write_pdef(clk, 1, 25, 0, 5, 4, 1.0, 1.0, rd, wr, addr, wdata);
+        -- cpu_write_pdef(clk, 2, 45, 4, 5, 4, 1.0, 1.0, rd, wr, addr, wdata);
         -- cpu_write_pdef(clk, 1, 31, 0, 4, 4, 1.0, 1.0, rd, wr, addr, wdata);
         
         clk_delay(10, clk);
@@ -199,6 +202,8 @@ begin
         -- cpu_write(clk, ADR_MISC_DEBUG_TRIGGER    , X"00000001", rd, wr, addr, wdata); -- start run
         -- wait until rising_edge(clk);
         gpio_int_o <= X"00000001";
+        clk_delay(1, clk);
+        gpio_int_o <= X"00000000";
 
         clk_delay(SIM_DURATION, clk);
 
@@ -225,7 +230,7 @@ begin
         cpu_print_msg("Read back ADR_REG_ERR_START_TIME: ");
         cpu_read(clk, to_integer(unsigned(ADR_REG_ERR_START_TIME)), X"00000000", rd, wr, addr, wdata, rdata, rdata_dv);
         cpu_print_msg("Read back ADR_MISC_DEBUG_TRIGGER: ");
-        cpu_read(clk, to_integer(unsigned(ADR_MISC_DEBUG_TRIGGER)), X"00000001", rd, wr, addr, wdata, rdata, rdata_dv);
+        cpu_read(clk, to_integer(unsigned(ADR_MISC_DEBUG_TRIGGER)), X"00000000", rd, wr, addr, wdata, rdata, rdata_dv);
         -- cpu_print_msg("Read back PMOD_ADDR_SPI0: ");
         -- cpu_read(clk, to_integer(unsigned(PMOD_ADDR_SPI0)), X"00000013", rd, wr, addr, wdata, rdata, rdata_dv);
 

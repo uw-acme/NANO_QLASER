@@ -6,7 +6,7 @@ TOP = tb_qlaser_top
 # Length of one sequence
 SEQ_LENGTH = 1872
 # Duration of the simulation in clock cycles. 131072 for ILA depth
-SIM_DURATION = 131072
+SIM_DURATION = 4096
 
 all: compile sim
 

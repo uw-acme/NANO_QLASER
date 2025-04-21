@@ -151,16 +151,6 @@ signal p2p_spi1_sclk             : std_logic;    -- Clock (50 MHz?)
 signal p2p_spi1_mosi             : std_logic;    -- Master out, Slave in. (Data to DAC)
 signal p2p_spi1_cs_n             : std_logic;    -- Active low chip select (sync_n)
 
--- New block selects
-signal cpu_sel_p2p0         : std_logic; 
-signal cpu_sel_p2p1         : std_logic; 
-
--- New readout signals
-signal p2p0_cpu_rdata       : std_logic_vector(31 downto 0);
-signal p2p0_cpu_rdata_dv    : std_logic; 
-signal p2p1_cpu_rdata       : std_logic_vector(31 downto 0);
-signal p2p1_cpu_rdata_dv    : std_logic; 
-
 signal p2pmodBusy0D1: std_logic;
 signal p2pmodBusy0D2: std_logic;
 signal p2pmodBusy0D3: std_logic;
@@ -212,6 +202,8 @@ signal fifo_almost_empty1            : std_logic;
 signal pulse2pmod0_busy              : std_logic;
 signal pulse2pmod1_busy              : std_logic;
 
+signal ttl_trigger                  : std_logic;
+
 
 begin
 
@@ -221,14 +213,11 @@ begin
     cif_reset <= not(ps_resetn0);
 
     -- Combine p_btn trigger (from pad) with misc block trigger and ps_gpout(0) to create internal trigger.
-    trigger_i               <= p_btn_c or ps_gpout(C_GPIO_PS_TRIG) or p_debug_out(0);  -- Only this portion stored to the trigger register, tell user if they every send ttl
+    ttl_trigger             <= '1' when p_debug_out(0)='1' else '0';  -- TODO: temporary solution for unclear ttl trigger. Need to figure out proper way of ttl trigger
+    trigger_i               <= p_btn_c or ps_gpout(C_GPIO_PS_TRIG);  -- Only this portion stored to the trigger register, tell user if they ever send ttl
     trigger_dacs_pulse      <= trigger_i and not(p2p0_active) and not(p2p1_active) and not(dacs_pulse_busy);  -- ensure ALL resources are available 
     ps_enable_dacs_pulse    <= ps_gpout(C_GPIO_PS_EN) or misc_enable;
     any_dacs_busy           <= dacs_dc_busy(0) or dacs_dc_busy(1) or dacs_dc_busy(2) or dacs_dc_busy(3) or dacs_pulse_busy;
-
-    -- Split 'SEL_SPARE' block select into two
-    cpu_sel_p2p0 <= cpu_sels(SEL_SPARE) and not cpu_addr(15); 
-    cpu_sel_p2p1 <= cpu_sels(SEL_SPARE) and     cpu_addr(15); 
 
     -- clear pulse errors
     -- TODO: Should we have it sync'd across all 32 channels should we control one by one?
@@ -537,9 +526,8 @@ begin
     pulse(3)              <= trigger_dacs_pulse;
 
     p_leds(0)             <= misc_flash or gpio_btns(0);
-    -- Geoff drops lower two bits of cpu_addr, so we connect those two to LED so we know if we have wrong address
-    p_leds(1)             <= ps_cpu_addr(0) or ps_cpu_addr(1);
-    p_leds(2)             <= cpu_sels(SEL_DAC_DC);
+    p_leds(1)             <= ttl_trigger;
+    p_leds(2)             <= trigger_i;
     p_leds(3)             <= p2p0_active;
     p_leds(4)             <= p2p1_active;
     p_leds(5)             <= (not ps_resetn0) or ps_leds(0) or dacs_pulse_busy;  
@@ -569,6 +557,17 @@ begin
     ---------------------------------------------------------------------------------
     p2p0_busy <= pulse2pmod0_busy and not(fifo_almost_empty0);  -- Set to '1' while SPI interface is busy and FIFO is not empty (just in case...)
     p2p1_busy <= pulse2pmod1_busy and not(fifo_almost_empty1);  -- Set to '1' while SPI interface is busy and FIFO is not empty (just in case...)
+
+    p_debug_out(1)              <= or_reduce(dacs_pulse_axis_tdatas(0));
+    p_debug_out(2)              <= or_reduce(dacs_pulse_axis_tdatas(1));
+    p_debug_out(3)              <= dacs_pulse_axis_tvalids(0);
+    p_debug_out(4)              <= dacs_pulse_axis_tvalids(1);
+    p_debug_out(5)              <= or_reduce(fifo_axis0_tdata);
+    p_debug_out(6)              <= or_reduce(fifo_axis1_tdata);
+    p_debug_out(7)              <= fifo_axis0_tvalid;
+    p_debug_out(8)              <= fifo_axis1_tvalid;
+    p_debug_out(9)              <= trigger_dacs_pulse;
+
     pr_dbg_mux : process (clk)
     begin
         if reset = '1' then
@@ -604,19 +603,27 @@ begin
          p2p0_active <= p2p0_busy or p2pmodBusy0D4;
          p2p1_active <= p2p1_busy or p2pmodBusy1D4;
 
-        if rising_edge(clk) then
+        -- if rising_edge(clk) then
 
-            -- p_debug_out(0)              <= p2p_spi0_sclk;
-            -- p_debug_out(1)              <= p2p_spi0_mosi;
-            -- p_debug_out(2)              <= p2p_spi0_cs_n;
-            -- p_debug_out(3)              <= p2p_spi1_sclk;
-            -- p_debug_out(4)              <= p2p_spi1_mosi;
-            -- p_debug_out(5)              <= p2p_spi1_cs_n;
-            -- p_debug_out(6)              <= fifo_axis0_tvalid;
-            -- p_debug_out(7)              <= fifo_axis1_tvalid;
-            p_debug_out(8)              <= tick_msec;
-            p_debug_out(9)              <= trigger_dacs_pulse;
-        end if;
+        --     -- p_debug_out(0)              <= p2p_spi0_sclk;
+        --     -- p_debug_out(1)              <= p2p_spi0_mosi;
+        --     -- p_debug_out(2)              <= p2p_spi0_cs_n;
+        --     -- p_debug_out(3)              <= p2p_spi1_sclk;
+        --     -- p_debug_out(4)              <= p2p_spi1_mosi;
+        --     -- p_debug_out(5)              <= p2p_spi1_cs_n;
+        --     -- p_debug_out(6)              <= fifo_axis0_tvalid;
+        --     -- p_debug_out(7)              <= fifo_axis1_tvalid;
+        --     -- p_debug_out(8)              <= tick_msec;
+        --     p_debug_out(1)              <= or_reduce(dacs_pulse_axis_tdatas(0));
+        --     p_debug_out(2)              <= or_reduce(dacs_pulse_axis_tdatas(1));
+        --     p_debug_out(3)              <= dacs_pulse_axis_tvalids(0);
+        --     p_debug_out(4)              <= dacs_pulse_axis_tvalids(1);
+        --     p_debug_out(5)              <= or_reduce(fifo_axis0_tdata);
+        --     p_debug_out(6)              <= or_reduce(fifo_axis1_tdata);
+        --     p_debug_out(7)              <= fifo_axis0_tvalid;
+        --     p_debug_out(8)              <= fifo_axis1_tvalid;
+        --     p_debug_out(9)              <= trigger_dacs_pulse;
+        -- end if;
     end process;
 
 end zc102;
