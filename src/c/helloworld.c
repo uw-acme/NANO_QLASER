@@ -5,16 +5,6 @@
 // 
 // 'XPAR' addresses are from xparameter.h (vitis generated file)
 //----------------------------------------------------------------------
-#include "xparameters.h"
-#include <stdio.h>
-#include "stdbool.h"
-#include "platform.h"
-#include "xil_printf.h"
-#include "xil_io.h"
-#include "xuartps_hw.h"
-
-#include "xiicps.h"
-
 #include "qlaser_fpga.h"
 
 int main()
@@ -25,11 +15,8 @@ int main()
 
     bool    echo = false; // Echo the received char
 
-    u8      nDigit  = 0;
     u64     nValue  = 0;
 
-    int     nStateButtonsLast   = 0;
-    int     nStateSwitchesLast  = 0;
     int     nMode = C_MODE_CMD;
 
     init_platform();
@@ -37,9 +24,9 @@ int main()
     Xil_Out32(PMOD_ADDR_INTERNAL_REF, nRdata);
     Xil_Out32(PMOD_ADDR_CTRL, 0x1);
     Xil_Out32(C_ADDR_INTERNAL_REF, 0x00000000);
-    // Initialize the temp memories
-    memset(g_pulseDefinitions, 0, sizeof(g_pulseDefinitions));
-    memset(g_waveformTables, 0, sizeof(g_waveformTables));
+    // initialize the RAMs
+    clear_rams(0);
+    clear_rams(1);
 
 
     (void)xil_printf("---------------------------------------------------------------------\r\n");
@@ -47,9 +34,6 @@ int main()
     (void)xil_printf("---------------------------------------------------------------------\r\n");
     nRdata = Xil_In32(ADR_MISC_VERSION);
     (void)xil_printf("FPGA Version = 0x%08X\r\n", nRdata);
-    // initialize the RAMs
-    clear_rams(0);
-    clear_rams(1);
     print("Ready\n\r");
 
 
@@ -218,7 +202,6 @@ int main()
                         case 'R':
                             nRdata = 0;
                             echo = false; // Echo the received char
-                            nDigit  = 0;
                             nValue  = 0;
                             // // Turn off trigger
                             // trigger = false;
@@ -240,9 +223,7 @@ int main()
                             // Clear RAMs
                             clear_rams(0);
                             clear_rams(1);
-                            // clear the temp memories
-                            memset(g_pulseDefinitions, 0, sizeof(g_pulseDefinitions));
-                            memset(g_waveformTables, 0, sizeof(g_waveformTables));
+
                             // Clear all DC channels
                             Xil_Out32(C_ADDR_SPI_ALL, 0x10000000);
                             Xil_Out32(C_ADDR_INTERNAL_REF, 0x00000000);
@@ -327,7 +308,7 @@ int main()
                         // empty entry, as it is invalid anyways
                         //-------------------------------------------------------------
                         case 'i':
-                            nRdata = ((nValue & 0x1) == 1) ? findZeroIndex(ADR_BASE_PULSE_WAVE, 1) : findZeroIndex(ADR_BASE_PULSE_DEFN, 4);
+                            nRdata = ((nValue & 0x1) == 1) ? findZeroIndex(ADR_BASE_PULSE_WAVE, 1) * 2 : findZeroIndex(ADR_BASE_PULSE_DEFN, 4);
                             (void)xil_printf ("%d\r\n", nRdata);
                         break;
                         //---------------------------------------------------------
