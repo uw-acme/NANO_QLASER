@@ -6,6 +6,7 @@
 // 'XPAR' addresses are from xparameter.h (vitis generated file)
 //----------------------------------------------------------------------
 #include "qlaser_fpga.h"
+#include "platform.h"
 
 int main()
 {
@@ -200,24 +201,15 @@ int main()
                         // TODO: Properly reset the FPGA itself from here?
                         //---------------------------------------------------------
                         case 'R':
-                            nRdata = 0;
-                            echo = false; // Echo the received char
-                            nValue  = 0;
-                            // // Turn off trigger
-                            // trigger = false;
-                            // on = false;
                             // psu_ps_pl_reset_config_data();
+                            nRdata = 0;
+                            echo = false;
+                            nValue  = 0;
+
+                            // Use vGPIO MSB pin for FPGA reset
                             Xil_Out32(ADR_GPIO_OUT, 1 << 31);
-                            // Xil_Out32(ADR_GPIO_OUT, 0);
 
-                            // // Clear errors
-                            // // TODO: BUG: if not using the channel at all error false positive
-                            // nRdata = Xil_In32(ADR_GPIO_IN);
-                            // Xil_Out32(ADR_GPIO_OUT, set_bit(nRdata, C_GPIO_PS_ERR_CLR));
-                            // nRdata = Xil_In32(ADR_GPIO_IN);
-                            // Xil_Out32(ADR_GPIO_OUT, clr_bit(nRdata, C_GPIO_PS_ERR_CLR));
-
-                            // Clear GPIO
+                            // Clear vGPIOs
                             Xil_Out32(ADR_GPIO_OUT, 0);
 
                             // Clear RAMs

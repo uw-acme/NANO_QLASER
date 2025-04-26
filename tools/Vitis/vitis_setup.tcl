@@ -1,16 +1,21 @@
 # Scipt to setup the PS firmware development environment
-# variables definition
+# if the program stucks, please exit/kill the process. Then run this script in the the Vitis GUI
+# make sure you have the right file paths and names before running this script
 set ws ../../qlaser_ws
-set plat_name pl_qlaser
 set xsa ../../prj/qlaser_top.xsa
-set domain_name_apu ql_standalone
-set app_name_apu app_qlaser
 set src_path ../../src/c
-# modify below line for main application source file
+
+# Set the application name and main arc
+set app_name_apu app_qlaser
+# Set the main file name
 set main_arc helloworld.c
+# Set the domain name
+set domain_name_apu ql_standalone
+# set the platform name
+set plat_name pl_qlaser
 
 # DO Not modify below this line unless you know what you are doing
-setws [file normalize $ws]
+catch {setws [file normalize $ws]}
 app create -name  $app_name_apu -hw [file normalize $xsa] -os standalone -proc psu_cortexa53_0 -template {Hello World}
 app config -name $app_name_apu -add include-path [file normalize ${ws}/${app_name_apu}/src]
 

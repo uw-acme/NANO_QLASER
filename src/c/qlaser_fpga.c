@@ -537,6 +537,14 @@ int clear_rams(int memsel)
         }        
     }
 
+    // clear errors as well if pulse definition cleared
+    if ((memsel & 0x1) == 0) {
+        nRdata = Xil_In32(ADR_GPIO_IN);
+        Xil_Out32(ADR_GPIO_OUT, set_bit(nRdata, C_GPIO_PS_ERR_CLR));
+        nRdata = Xil_In32(ADR_GPIO_IN);
+        Xil_Out32(ADR_GPIO_OUT, clr_bit(nRdata, C_GPIO_PS_ERR_CLR));
+    }
+
 
     // Report pass/fail
     if (nErrors == 0)
