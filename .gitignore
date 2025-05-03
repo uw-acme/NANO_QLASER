@@ -18,9 +18,9 @@ __pycache__/
 .vscode/settings.json
 .vscode/c_cpp_properties.json
 .vscode/property.json
-tools/sim_pulsechannel/*.txt
-tools/sim_pulsechannel/*.csv
-tools/sim_pulsechannel/results/
+tools/modelsim/*/*.txt
+tools/modelsim/*/*.csv
+tools/modelsim/*/results/
 # ignore unisim library. It is a bit big and may not suppose be open sourced?
 unisim
 *.vstf

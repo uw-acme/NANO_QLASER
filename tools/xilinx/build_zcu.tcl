@@ -9,7 +9,7 @@
 
 # Recursively search for files in a directory
 proc recursive_glob {dir} {
-    set files [glob -nocomplain -type f -directory $dir *_sim_netlist.vhdl]
+    set files [glob -nocomplain -type f -directory $dir *.vhdl]
     foreach subdir [glob -nocomplain -type d -directory $dir *] {
         lappend files {*}[recursive_glob $subdir]
     }
@@ -21,16 +21,15 @@ proc checkRequiredFiles { origin_dir} {
   set status true
   # Source files
   set src_files [recursive_glob $origin_dir/../../src/hdl/fpga_zcu102/]
-  # Constraint files
-  set constr_files [recursive_glob $origin_dir/../constraint_zcu/]
   # Simulation files
   set sim_files [recursive_glob $origin_dir/../../src/hdl/testbench/]
+  # std_developerskit files
+  set iopak [recursive_glob $origin_dir/../../src/hdl/std_developerskit/]
   # Additional files
   set addtional_files [list \
-  "[file normalize "$origin_dir/../../src/hdl/std_developerskit/iopakb.vhd"]"\
-  "[file normalize "$origin_dir/../../src/hdl/std_developerskit/iopakp.vhd"]"\
+
   ]  
-  set files [concat $src_files $constr_files $sim_files $addtional_files]
+  set files [concat $src_files $iopak $sim_files $addtional_files]
   foreach ifile $files {
     if { ![file isfile $ifile] } {
       puts " Could not find remote file $ifile "
@@ -170,10 +169,9 @@ set files [list \
  [file normalize "${origin_dir}/../../src/hdl/fpga_zcu102/qlaser_version_pkg_zcu.vhd"] \
  [file normalize "${origin_dir}/../../src/hdl/fpga_zcu102/qlaser_misc.vhd"] \
  [file normalize "${origin_dir}/../../src/hdl/fpga_zcu102/qlaser_top_zcu.vhd"] \
- [file normalize "${origin_dir}/../constraint_zcu/fifo_data_to_stream/fifo_data_to_stream.xci"] \
- [file normalize "${origin_dir}/../constraint_zcu/bram_waveform/bram_waveform.xci"] \
- [file normalize "${origin_dir}/../constraint_zcu/bram_pulse_definition/bram_pulse_definition.xci"] \
- [file normalize "${origin_dir}/../constraint_zcu/axis_data_fifo_32Kx16b/axis_data_fifo_32Kx16b.xci"] \
+ [file normalize "${origin_dir}/../../tools/xilinx/ip/bram_waveform/bram_waveform.xci"] \
+ [file normalize "${origin_dir}/../../tools/xilinx/ip/bram_pulse_definition/bram_pulse_definition.xci"] \
+ [file normalize "${origin_dir}/../../tools/xilinx/ip/axis_data_fifo_32Kx16b/axis_data_fifo_32Kx16b.xci"] \
  [file normalize "${origin_dir}/../../src/hdl/fpga_zcu102/qlaser_dacs_pulse_channel.vhdl"] \
 ]
 add_files -norecurse -fileset $obj $files
@@ -249,60 +247,12 @@ set file [file normalize $file]
 set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
 set_property -name "file_type" -value "VHDL" -objects $file_obj
 
-set file "$origin_dir/../constraint_zcu/fifo_data_to_stream/fifo_data_to_stream.xci"
-set file [file normalize $file]
-set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
-set_property -name "generate_files_for_reference" -value "0" -objects $file_obj
-set_property -name "registered_with_manager" -value "1" -objects $file_obj
-if { ![get_property "is_locked" $file_obj] } {
-  set_property -name "synth_checkpoint_mode" -value "Singular" -objects $file_obj
-}
-
-set file "$origin_dir/../constraint_zcu/bram_waveform/bram_waveform.xci"
-set file [file normalize $file]
-set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
-set_property -name "generate_files_for_reference" -value "0" -objects $file_obj
-set_property -name "registered_with_manager" -value "1" -objects $file_obj
-if { ![get_property "is_locked" $file_obj] } {
-  set_property -name "synth_checkpoint_mode" -value "Singular" -objects $file_obj
-}
-
-set file "$origin_dir/../constraint_zcu/bram_pulse_definition/bram_pulse_definition.xci"
-set file [file normalize $file]
-set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
-set_property -name "generate_files_for_reference" -value "0" -objects $file_obj
-set_property -name "registered_with_manager" -value "1" -objects $file_obj
-if { ![get_property "is_locked" $file_obj] } {
-  set_property -name "synth_checkpoint_mode" -value "Singular" -objects $file_obj
-}
-
-set file "$origin_dir/../constraint_zcu/axis_data_fifo_32Kx16b/axis_data_fifo_32Kx16b.xci"
-set file [file normalize $file]
-set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
-set_property -name "generate_files_for_reference" -value "0" -objects $file_obj
-set_property -name "registered_with_manager" -value "1" -objects $file_obj
-if { ![get_property "is_locked" $file_obj] } {
-  set_property -name "synth_checkpoint_mode" -value "Singular" -objects $file_obj
-}
-
 set file "$origin_dir/../../src/hdl/fpga_zcu102/qlaser_dacs_pulse_channel.vhdl"
 set file [file normalize $file]
 set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
 set_property -name "file_type" -value "VHDL" -objects $file_obj
 
-
-# Set synthesis top module
-set obj [get_filesets sources_1]
-set_property -name "top" -value "qlaser_top" -objects $obj
-
-# Set ClockPLL IP (no longer used for PS-PL version)
-set obj [get_filesets sources_1]
-set files [list \
- [file normalize "${origin_dir}/../constraint_zcu/clkpll_zcu/clkpll_zcu.xci"] \
-]
-add_files -norecurse -fileset $obj $files
-
-set file "$origin_dir/../constraint_zcu/clkpll_zcu/clkpll_zcu.xci"
+set file "$origin_dir/../../tools/xilinx/ip/bram_waveform/bram_waveform.xci"
 set file [file normalize $file]
 set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
 set_property -name "generate_files_for_reference" -value "0" -objects $file_obj
@@ -311,7 +261,27 @@ if { ![get_property "is_locked" $file_obj] } {
   set_property -name "synth_checkpoint_mode" -value "Singular" -objects $file_obj
 }
 
+set file "$origin_dir/../../tools/xilinx/ip/bram_pulse_definition/bram_pulse_definition.xci"
+set file [file normalize $file]
+set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
+set_property -name "generate_files_for_reference" -value "0" -objects $file_obj
+set_property -name "registered_with_manager" -value "1" -objects $file_obj
+if { ![get_property "is_locked" $file_obj] } {
+  set_property -name "synth_checkpoint_mode" -value "Singular" -objects $file_obj
+}
 
+set file "$origin_dir/../../tools/xilinx/ip/axis_data_fifo_32Kx16b/axis_data_fifo_32Kx16b.xci"
+set file [file normalize $file]
+set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
+set_property -name "generate_files_for_reference" -value "0" -objects $file_obj
+set_property -name "registered_with_manager" -value "1" -objects $file_obj
+if { ![get_property "is_locked" $file_obj] } {
+  set_property -name "synth_checkpoint_mode" -value "Singular" -objects $file_obj
+}
+
+# Set synthesis top module
+set obj [get_filesets sources_1]
+set_property -name "top" -value "qlaser_top" -objects $obj
 
 # Create 'constrs_1' fileset (if not found)
 if {[string equal [get_filesets -quiet constrs_1] ""]} {
@@ -322,36 +292,28 @@ if {[string equal [get_filesets -quiet constrs_1] ""]} {
 set obj [get_filesets constrs_1]
 
 # Add/Import constrs file and set constrs file properties
-set file "[file normalize "$origin_dir/../constraint_zcu/pinout_zcu.xdc"]"
+set file "[file normalize "$origin_dir/../../tools/xilinx/constraints/pinout_zcu.xdc"]"
 set file_added [add_files -norecurse -fileset $obj [list $file]]
-set file "$origin_dir/../constraint_zcu/pinout_zcu.xdc"
+set file "$origin_dir/../../tools/xilinx/constraints/pinout_zcu.xdc"
 set file [file normalize $file]
 set file_obj [get_files -of_objects [get_filesets constrs_1] [list "*$file"]]
 set_property -name "file_type" -value "XDC" -objects $file_obj
 
 # Add/Import constrs file and set constrs file properties
-set file "[file normalize "$origin_dir/../constraint_zcu/qlaser_timing_zcu.xdc"]"
+set file "[file normalize "$origin_dir/../../tools/xilinx/constraints/qlaser_timing_zcu.xdc"]"
 set file_added [add_files -norecurse -fileset $obj [list $file]]
-set file "$origin_dir/../constraint_zcu/qlaser_timing_zcu.xdc"
+set file "$origin_dir/../../tools/xilinx/constraints/qlaser_timing_zcu.xdc"
 set file [file normalize $file]
 set file_obj [get_files -of_objects [get_filesets constrs_1] [list "*$file"]]
 set_property -name "file_type" -value "XDC" -objects $file_obj
 
 # Add/Import constrs file and set constrs file properties
-set file "[file normalize "$origin_dir/../constraint_zcu/set_usercode_zcu.xdc"]"
+set file "[file normalize "$origin_dir/../../tools/xilinx/constraints/set_usercode_zcu.xdc"]"
 set file_added [add_files -norecurse -fileset $obj [list $file]]
-set file "$origin_dir/../constraint_zcu/set_usercode_zcu.xdc"
+set file "$origin_dir/../../tools/xilinx/constraints/set_usercode_zcu.xdc"
 set file [file normalize $file]
 set file_obj [get_files -of_objects [get_filesets constrs_1] [list "*$file"]]
 set_property -name "file_type" -value "XDC" -objects $file_obj
-
-# # Add/Import constrs file and set constrs file properties
-# set file "[file normalize "$origin_dir/../constraint_zcu/cpubus_pulse.xdc"]"
-# set file_added [add_files -norecurse -fileset $obj [list $file]]
-# set file "$origin_dir/../constraint_zcu/cpubus_pulse.xdc"
-# set file [file normalize $file]
-# set file_obj [get_files -of_objects [get_filesets constrs_1] [list "*$file"]]
-# set_property -name "file_type" -value "XDC" -objects $file_obj
 
 # Set 'constrs_1' fileset properties
 set obj [get_filesets constrs_1]
@@ -379,7 +341,7 @@ set obj [get_filesets sim_1]
 set_property -name "top" -value "tb_qlaser_top" -objects $obj
 
 # set IP repo
-set_property  ip_repo_paths  "$origin_dir/../../tools/ip_repo/axi_cpubus" [current_project]
+set_property  ip_repo_paths  "$origin_dir/../../tools/xilinx/ip/axi_cpubus" [current_project]
 update_ip_catalog -rebuild
 
 source "$origin_dir/../../tools/xilinx/ps1_zcu.tcl"
@@ -710,11 +672,6 @@ move_dashboard_gadget -name {utilization_2} -row 1 -col 1
 move_dashboard_gadget -name {methodology_1} -row 2 -col 1
 
 puts "Attempt to build the project"
-
-# Launch runs, exit on failure
-launch_runs impl_1 -to_step write_bitstream -jobs 16 -verbose -force
-wait_on_run impl_1 -verbose
-# Attempt to build vitis platform
-catch {write_hw_platform -fixed -include_bit -force -file $orig_proj_dir/qlaser_top.xsa}
+catch {source $origin_dir/../../tools/xilinx/compile.tcl}
 
 exi

@@ -1,1 +1,0 @@
-Deprecated. Please use Pulse Definition instead.

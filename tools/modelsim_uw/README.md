@@ -1,2 +1,0 @@
-This directory contains all the ModelSim's scripts (.do) files to simulate the designs based on UW's lab assignments workflows. Please run any Modelsim commands in this directory for waveform simulations. (Note for: modify the runlab.do files to include all files) To actually make ModelSim compiles the IP files, you will need to export vivado libraries in vivado and place the 
-`modelsim.ini` file in the same directory as the `.do` file.
