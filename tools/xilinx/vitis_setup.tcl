@@ -1,4 +1,5 @@
 # Scipt to setup the PS firmware development environment
+# Command line usage: xsct vitis_setup.tcl
 # if the program stucks, please exit/kill the process. Then run this script in the the Vitis GUI
 # make sure you have the right file paths and names before running this script
 set ws ../../qlaser_ws
@@ -13,6 +14,9 @@ set main_arc helloworld.c
 set domain_name_apu ql_standalone
 # set the platform name
 set plat_name pl_qlaser
+
+# "cd" to the directory where this script is located
+cd [file dirname [info script]]
 
 # DO Not modify below this line unless you know what you are doing
 catch {setws [file normalize $ws]}

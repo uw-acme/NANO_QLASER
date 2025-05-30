@@ -1,4 +1,4 @@
-# Run the poly testbech for N numbers of times
+# Run the poly testbech for N numbers of times. Automated regeression testing.
 import os
 import sys
 import time
