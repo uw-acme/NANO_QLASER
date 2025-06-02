@@ -212,7 +212,7 @@ begin
     resetn  <= not(reset);
     cif_reset <= not(ps_resetn0);
 
-    -- Combine p_btn trigger (from pad) with misc block trigger and ps_gpout(0) to create internal trigger.
+    -- Combine p_btn trigger (from pad) with misc block trigger and ps_gpout(0) to create internal trigger. TODO: edit this to use proper ttl trigger
     ttl_trigger             <= '1' when p_debug_out(0)='1' else '0';  -- TODO: temporary solution for unclear ttl trigger. Need to figure out proper way of ttl trigger
     trigger_i               <= p_btn_c or ps_gpout(C_GPIO_PS_TRIG);  -- Only this portion stored to the trigger register, tell user if they ever send ttl
     trigger_dacs_pulse      <= trigger_i and not(p2p0_active) and not(p2p1_active) and not(dacs_pulse_busy);  -- ensure ALL resources are available 

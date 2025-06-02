@@ -268,6 +268,11 @@ int main()
                         case 't':
                         	nRdata = Xil_In32(ADR_GPIO_IN);
                         	if ((nValue & 0x1) == 1) {  // LSB of nValue
+                                // clear error flags before setting trigger
+                                nRdata = set_bit(nRdata, C_GPIO_PS_ERR_CLR);
+                                Xil_Out32(ADR_GPIO_OUT, nRdata);
+                                nRdata = clr_bit(nRdata, C_GPIO_PS_ERR_CLR);
+                                Xil_Out32(ADR_GPIO_OUT, nRdata);
                                 Xil_Out32(ADR_GPIO_OUT, set_bit(nRdata, C_GPIO_PS_TRIG));
                             } else {
                                 Xil_Out32(ADR_GPIO_OUT, clr_bit(nRdata, C_GPIO_PS_TRIG));
