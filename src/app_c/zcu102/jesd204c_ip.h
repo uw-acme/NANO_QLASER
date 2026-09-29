@@ -15,8 +15,9 @@
 // #define XPAR_JESD_FMC1_JESD204C_BASEADDR 0xA2000000
 // #define XPAR_JESD_FMC1_JESD204C_HIGHADDR 0xA200FFFF
 
-#define ADR_BASE_JESD      XPAR_JESD_FMC0_JESD204C_BASEADDR 
-#define ADR_FMC_STEP      (XPAR_JESD_FMC0_JESD204C_BASEADDR - XPAR_JESD_FMC0_JESD204C_BASEADDR)   // This is the base address difference between the JESD interfaces
+#define ADR_BASE_JESD       XPAR_JESD_FMC0_JESD204C_BASEADDR 
+#define ADR_FMC_STEP       (XPAR_JESD_FMC1_JESD204C_BASEADDR - XPAR_JESD_FMC0_JESD204C_BASEADDR)   // This is the base address difference between the JESD interfaces
+#define ADR_LANE_STEP       0x0100            // This is the address difference between the registers for each individual lane in a JESD interfaces
 
                                         
 //----------------------------------------------------------------------------------------------------
@@ -45,7 +46,7 @@
 #define     REG_JESD_CTRL_TX_ILA_CFG4   0x080    //    N/A     N/A     RW      N/A
 
 //------------------------------------------------------------
-// Per Lane status regs (TX only)
+// Per Lane regs (TX only)
 //------------------------------------------------------------
 #define     REG_JESD_CTRL_TX_ILA_LID   0x404    //    N/A     N/A     RW      N/A
 #define     REG_JESD_CTRL_TX_GT        0x460    //    RW      RW      RW      RW
@@ -71,10 +72,11 @@
 #define ADR_JESD(FMC, ADR_REG)          (ADR_BASE_JESD + (FMC * ADR_FMC_STEP) + ADR_REG)
 
 // Read the per-lane registers. e.g. ADR_JESD_LANE(FMC1, LANE3, REG_JESD_CTRL_TX_ILA_LID) 
-#define ADR_LANE_STEP 0x0100            // This is the address difference between the registers for each individual lane in a JESD interfaces
 #define ADR_JESD_LANE(FMC, LANE, ADR_REG)    (ADR_BASE_JESD + (FMC * ADR_FMC_STEP) + (LANE * ADR_LANE_STEP) + ADR_REG)
 
-
+#define SUBCLASS0  0
+#define SUBCLASS1  1
+#define SUBCLASS2  2
 
 
 //  //----------------------------------------------------------------------------------------------------

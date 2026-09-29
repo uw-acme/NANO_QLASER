@@ -48,7 +48,8 @@
 #define ADR_BASE_DACS_DC    (ADR_BASE_CPUINT + 0x00000)
 #define ADR_BASE_DACS_AC    (ADR_BASE_CPUINT + 0x10000)
 #define ADR_BASE_MISC       (ADR_BASE_CPUINT + 0x20000)
-#define ADR_BASE_P2PMOD     (ADR_BASE_CPUINT + 0x30000)
+#define ADR_BASE_SWITCH     (ADR_BASE_CPUINT + 0x30000)
+//#define ADR_BASE_P2PMOD     (ADR_BASE_CPUINT + 0x30000)
 
 // MISC block registers (32-bit word addresses)
 #define ADR_MISC_VERSION    (ADR_BASE_MISC + 4*0x0000)
@@ -73,9 +74,9 @@
 
 // DAC AC (Pulse) block sub-blocks.  
 // Block contains 32 channels. Channels are accessed by first setting bit to '1' in the channel select reg. REG_CH_SEL)
-#define ADR_BASE_PULSE_REGS     (ADR_BASE_DACS_AC + 0x2000)
+#define ADR_BASE_PULSE_REGS     (ADR_BASE_DACS_AC + 0x4000)
 #define ADR_PULSE_REG_SEQ_LEN   (ADR_BASE_PULSE_REGS + 4*0x00)
-#define ADR_PULSE_REG_CHSEL     (ADR_BASE_PULSE_REGS + 4*0x01)    // Channel select
+#define ADR_PULSE_REG_CHSEL     (ADR_BASE_PULSE_REGS + 4*0x01)    // Channel select for CPU writes. One bit per channel. Can have multiple bits set
 #define ADR_PULSE_REG_GSTATUS   (ADR_BASE_PULSE_REGS + 4*0x02)    // Global status bit-0 = busy, '1' if any ch running, bit-4 error set if any JESD channel is not sync'ed
 #define ADR_PULSE_REG_CHSTATUS  (ADR_BASE_PULSE_REGS + 4*0x03)    // Channel JESD status. One bit per channel. Set if JESD not sync'ed.
 #define ADR_PULSE_REG_TIMER     (ADR_BASE_PULSE_REGS + 4*0x04)    // Current timer count since trigger
@@ -83,6 +84,18 @@
 // RAM base address
 #define ADR_BASE_PULSE_WAVE     (ADR_BASE_DACS_AC + 0x0800)     // Either (512 x 32) for 1K table, or (2K x 32) for 4K tables
 #define ADR_BASE_PULSE_DEFN     (ADR_BASE_DACS_AC + 0x0000)
+
+#define ADR_PULSE_RAMP_RATE     (ADR_BASE_DACS_AC + 0x0000)     // The 'ramp' arch of the pulse generator channel has one register to set the ramp increment rate
+
+// Registers in the AXI-Stream switch block.
+// Enables any pulse output 0-15 to be sent to any FMC0 DAC
+// Enables any pulse output 16-31 to be sent to any FMC1 DAC
+#define ADR_SW_MUX7_0           (ADR_BASE_SWITCH + 4*0x00)      // 8, 4-bit mux selects 
+#define ADR_SW_MUX15_8          (ADR_BASE_SWITCH + 4*0x01)
+#define ADR_SW_MUX23_16         (ADR_BASE_SWITCH + 4*0x02)
+#define ADR_SW_MUX31_24         (ADR_BASE_SWITCH + 4*0x03)
+#define ADR_SW_INV              (ADR_BASE_SWITCH + 4*0x04)      // Invert chN if bit N is set
+#define ADR_SW_ZERO             (ADR_BASE_SWITCH + 4*0x05)      // Zero chN if bit N is set
 
 // Mode defines how subsequent characters are handled
 #define C_MODE_CMD      0   // single char commands. 0-9 are characters are used to build a decimal value
@@ -153,8 +166,9 @@ XIicPs_Config *IicConfig1;
 // 1.0.g Set FMC216 board DACs and Clk to use 4-wire SPI so CPLD readback works
 // 1.0.h Set LMK SPI output mux
 // 1.0.i Add readout of JESD registers. Two JESD204c IP blocks added to PS
+// 1.0.j Functions to set jesd_ip, pulse ramps and jesd axi switch
 //----------------------------------------------------------------
-char    g_strVersion[]          = "1.0.i4";
+char    g_strVersion[]          = "1.0.j";
 int     g_nStateButtons         = 0;
 int     g_nStateSwitches        = 0;
 
@@ -168,10 +182,14 @@ int     clr_bit                 (int nData, u8 nBit);
 u8      get_bit                 (int nData, u8 nBit);
 u8      is_hex                  (char c);
 u8      hex2int                 (char c);
-void    set_pulse_chsel         (int nValue);
-int     get_pulse_chsel         ();
-int     clear_all_pulse_rams    ();
-int     test_pulse_channels     (int nChanValid);
+void    pulse_chsel_set         (int nValue);
+int     pulse_chsel_get         ();
+int     pulse_rams_all_clear    ();
+int     pulse_channels_test     (int nChanValid);
+int     is_present_fmc          (int nFMC);
+int     iic_enable_fmc          (int nFMC0);
+int		iic_enable_fmc_temp		();
+
 
 
 //----------------------------------------------------------------
@@ -305,6 +323,7 @@ void print_help()
    (void)xil_printf(" FPGA version : %08X \r\n", Xil_In32(ADR_MISC_VERSION));
    (void)xil_printf("---------------------------------------------------------------------\r\n");
    (void)xil_printf(" h   : Print this message\r\n");
+   (void)xil_printf(" R   : Reset DACs/PLL, clear axi switch\r\n");
    (void)xil_printf(" 0-9 : Enter a 'Value'\r\n");
    (void)xil_printf(" P   : Print registers\r\n");
    (void)xil_printf(" c   : Set current pulse channel to 'Value'.  (99 = all channels)\r\n");
@@ -317,9 +336,15 @@ void print_help()
    (void)xil_printf(" S   : DAC sleep\r\n");
    (void)xil_printf(" A   : DAC awaken\r\n");
    (void)xil_printf(" d   : Dump FMC registers\r\n");
-   (void)xil_printf(" D   : Set FMC devices to 4-wire SPI\r\n");
+   (void)xil_printf(" k   : Set FMC devices to 4-wire SPI\r\n");
    (void)xil_printf(" m   : (value = fmc) Select FMC board to talk to (0  or 1)\r\n");
    (void)xil_printf(" T   : Test default regs (0-3 = DACs, 4 = CLK LMK, 5 = CPLD\r\n");
+   (void)xil_printf(" I   : AXI-switch : Set Invert 1,0\r\n");
+   (void)xil_printf(" Z   : AXI-switch : Set Zero 1,0\r\n");
+   (void)xil_printf(" D   : AXI-switch : Set DAC 0-31\r\n");
+   (void)xil_printf(" W   : AXI-switch : Set Pulse Source 0-31\r\n");
+   (void)xil_printf(" y   : Test writes to a DAC reg and a clock reg\r\n");
+   (void)xil_printf(" F   : Init any connected FMC DACs and PLL\r\n");
    (void)xil_printf("\r\n");
 }
 
@@ -327,199 +352,273 @@ void print_help()
 //----------------------------------------------------------------
 // Print a set of registers
 //----------------------------------------------------------------
-void print_regs(int nValue)
+void print_regs(int nValue) // 0=jesd0, 1=jesd1, 2=pulse gen and misc
 {
-	//int i=0;
-	int nRdata=0;
+    int nRdata=0;
 
-    //xil_printf("%d\r\n", nValue);
-   (void)xil_printf ("ADR_PULSE_REG_SEQ_LEN              = %08X\r\n", Xil_In32(ADR_PULSE_REG_SEQ_LEN));
-   (void)xil_printf ("ADR_PULSE_REG_CHSEL                = %08X\r\n", Xil_In32(ADR_PULSE_REG_CHSEL  ));
-   (void)xil_printf ("ADR_PULSE_REG_GSTATUS              = %08X\r\n", Xil_In32(ADR_PULSE_REG_GSTATUS));
-   (void)xil_printf ("ADR_PULSE_REG_CHSTATUS             = %08X\r\n", Xil_In32(ADR_PULSE_REG_CHSTATUS));
-   (void)xil_printf ("ADR_PULSE_REG_TIMER                = %08X\r\n", Xil_In32(ADR_PULSE_REG_TIMER  ));
+    if (nValue == 2) 
+    {
+        (void)xil_printf ("Pulse generator registers\r\n");
+        (void)xil_printf ("ADR_PULSE_REG_SEQ_LEN              = %08X\r\n", Xil_In32(ADR_PULSE_REG_SEQ_LEN));
+        (void)xil_printf ("ADR_PULSE_REG_CHSEL                = %08X\r\n", Xil_In32(ADR_PULSE_REG_CHSEL  ));
+        (void)xil_printf ("ADR_PULSE_REG_GSTATUS              = %08X\r\n", Xil_In32(ADR_PULSE_REG_GSTATUS));
+        (void)xil_printf ("ADR_PULSE_REG_CHSTATUS             = %08X\r\n", Xil_In32(ADR_PULSE_REG_CHSTATUS));
+        (void)xil_printf ("ADR_PULSE_REG_TIMER                = %08X\r\n", Xil_In32(ADR_PULSE_REG_TIMER  ));
 
-   (void)xil_printf ("ADR_MISC_VERSION                   = %08X\r\n", Xil_In32(ADR_MISC_VERSION     ));
-   (void)xil_printf ("ADR_MISC_LEDS                      = %08X\r\n", Xil_In32(ADR_MISC_LEDS        ));
-   (void)xil_printf ("ADR_MISC_LEDS_EN                   = %08X\r\n", Xil_In32(ADR_MISC_LEDS_EN     ));
-   (void)xil_printf ("ADR_MISC_DEBUG_CTRL                = %08X\r\n", Xil_In32(ADR_MISC_DEBUG_CTRL  ));
-   (void)xil_printf ("ADR_MISC_TRIGGER                   = %08X\r\n", Xil_In32(ADR_MISC_TRIGGER     ));
-   (void)xil_printf("\r\n");
-
-   (void)xil_printf ("ADR_JESD_FMC0_JESD_IP_VERSION            	= %08X\r\n", Xil_In32(ADR_JESD(FMC0, REG_JESD_IP_VERSION) ));
-
-   nRdata = Xil_In32(ADR_JESD(FMC0, REG_JESD_IP_CONFIG));
-   (void)xil_printf ("ADR_JESD_FMC0_JESD_IP_CONFIG             	= %08X\r\n", nRdata);
-   (void)xil_printf ("                      18   FEC=1              = %d\r\n", (nRdata & 0x40000)>>18);
-   (void)xil_printf ("                      17   64B66B=1/8B10B=0   = %d\r\n", (nRdata & 0x20000)>>17);
-   (void)xil_printf ("                      16   TX=1/RX=0     		= %d\r\n", (nRdata & 0x10000)>>16);
-   (void)xil_printf ("                    [3:0]  LANES             	= %d\r\n", (nRdata & 0xF));
-
-   nRdata = Xil_In32(ADR_JESD(FMC0, REG_JESD_RESET));
-   (void)xil_printf ("ADR_JESD_FMC0_JESD_RESET                 = %08X\r\n", nRdata);
-   (void)xil_printf ("                       7   GTs are still reset= %d\r\n", (nRdata & 0x80)>>7);
-   (void)xil_printf ("                       5   tx/rx_reset        = %d\r\n", (nRdata & 0x20)>>5);
-   (void)xil_printf ("                       4   tx/rx_core_reset   = %d\r\n", (nRdata & 0x10)>>4);
-   (void)xil_printf ("                       0   RESET          	= %d\r\n", (nRdata & 0x1));
-
-   (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_SYNC          = %08X\r\n", Xil_In32(ADR_JESD(FMC0, REG_JESD_CTRL_TX_SYNC     ) ));
-   (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_SUB_CLASS        = %08X\r\n", Xil_In32(ADR_JESD(FMC0, REG_JESD_CTRL_SUB_CLASS   ) ));
-
-   nRdata = Xil_In32(ADR_JESD(FMC0, REG_JESD_CTRL_8B10B_CFG));
-   (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_8B10B_CFG        = %08X\r\n", nRdata);
-   (void)xil_printf ("                   [31:24] ILA multiframes    = %d\r\n",((nRdata & 0xFF000000)>>24)+1);
-   (void)xil_printf ("                   [21:20] Reserved 00        = %d\r\n", (nRdata & 0x00300000)>>20);
-   (void)xil_printf ("                      19   Enable LinkErrCnts = %d\r\n", (nRdata & 0x00080000)>>19);
-   (void)xil_printf ("                      18   Err rpt using SYNC = %d\r\n", (nRdata & 0x00040000)>>18);
-   (void)xil_printf ("                      17   Enable ILA Support = %d\r\n", (nRdata & 0x00020000)>>17);
-   (void)xil_printf ("                      16   Enable Scrambling  = %d\r\n", (nRdata & 0x00010000)>>16);
-   (void)xil_printf ("                   [12:8]  Frames per Multifr (K) = %d\r\n",((nRdata & 0x00001F00)>> 8)+1);
-   (void)xil_printf ("                   [ 7:0]  Octets per Frame   = %d\r\n", (nRdata & 0x000000FF)+1  );
-
-   (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_LANE_ENA (0xFF)  = %08X\r\n", Xil_In32(ADR_JESD(FMC0, REG_JESD_CTRL_LANE_ENA    ) ));
-
-   (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TEST_MODE        = %08X\r\n", Xil_In32(ADR_JESD(FMC0, REG_JESD_CTRL_TEST_MODE   ) ));
-   (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_SYSREF           = %08X\r\n", Xil_In32(ADR_JESD(FMC0, REG_JESD_CTRL_SYSREF      ) ));
-   (void)xil_printf ("ADR_JESD_FMC0_JESD_STAT_STATUS           = %08X\r\n", Xil_In32(ADR_JESD(FMC0, REG_JESD_STAT_STATUS      ) ));
-   (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_IRQ              = %08X\r\n", Xil_In32(ADR_JESD(FMC0, REG_JESD_CTRL_IRQ         ) ));
-   (void)xil_printf ("ADR_JESD_FMC0_JESD_STAT_IRQ              = %08X\r\n", Xil_In32(ADR_JESD(FMC0, REG_JESD_STAT_IRQ         ) ));
+        (void)xil_printf("\r\n");
+        (void)xil_printf ("ADR_PULSE_RAMP_RATE                = %08X\r\n", Xil_In32(ADR_PULSE_RAMP_RATE  ));
+        (void)xil_printf("\r\n");
 
 
-   //----------------------------------------------------------------
-   // Config0
-   //----------------------------------------------------------------
-   nRdata = Xil_In32(ADR_JESD(FMC0, REG_JESD_CTRL_TX_ILA_CFG0));
-   (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_ILA_CFG0      = %08X\r\n", nRdata);
-   (void)xil_printf ("                   [11:8]  Bank ID         	= 0x%01X\r\n", (nRdata & 0x00000F00)>>8  );
-   (void)xil_printf ("                   [ 7:0]  Device ID       	= 0x%02X\r\n", (nRdata & 0x000000FF)  );
+        (void)xil_printf ("Misc registers\r\n");
+        (void)xil_printf ("ADR_MISC_VERSION                   = %08X\r\n", Xil_In32(ADR_MISC_VERSION     ));
+        (void)xil_printf ("ADR_MISC_LEDS                      = %08X\r\n", Xil_In32(ADR_MISC_LEDS        ));
+        (void)xil_printf ("ADR_MISC_LEDS_EN                   = %08X\r\n", Xil_In32(ADR_MISC_LEDS_EN     ));
+        (void)xil_printf ("ADR_MISC_DEBUG_CTRL                = %08X\r\n", Xil_In32(ADR_MISC_DEBUG_CTRL  ));
+        (void)xil_printf ("ADR_MISC_TRIGGER                   = %08X\r\n", Xil_In32(ADR_MISC_TRIGGER     ));
+        (void)xil_printf("\r\n");
+    }
+    else if (nValue == 3) 
+    {
+        (void)xil_printf ("Switch registers (%d)\r\n", nValue);
+        (void)xil_printf ("ADR_SW_MUX7_0               = %08X\r\n", Xil_In32(ADR_SW_MUX7_0  ));
+        (void)xil_printf ("ADR_SW_MUX15_8              = %08X\r\n", Xil_In32(ADR_SW_MUX15_8 ));
+        (void)xil_printf ("ADR_SW_MUX23_16             = %08X\r\n", Xil_In32(ADR_SW_MUX23_16));
+        (void)xil_printf ("ADR_SW_MUX31_24             = %08X\r\n", Xil_In32(ADR_SW_MUX31_24));
+        (void)xil_printf ("ADR_SW_INV                  = %08X\r\n", Xil_In32(ADR_SW_INV     ));
+        (void)xil_printf ("ADR_SW_ZERO                 = %08X\r\n", Xil_In32(ADR_SW_ZERO    ));
+        (void)xil_printf("\r\n");
+    }
+    else if (nValue == 0) 
+    {
+        (void)xil_printf ("Xilinx JESD_0 block (%d)\r\n", nValue);
+        (void)xil_printf ("ADR_JESD_FMC0_JESD_IP_VERSION                = %08X\r\n", Xil_In32(ADR_JESD(FMC0, REG_JESD_IP_VERSION) ));
 
-   //----------------------------------------------------------------
-   // Config1
-   //----------------------------------------------------------------
-   // 31:26 –   Reserved
-   // 25:24 0x0 CS (Control bits per Sample). Binary value.
-   // 23:21 –   Reserved
-   // 20:16 0x0 N' (Totals bits per Sample). Binary value minus 1.
-   // 15:13 –   Reserved
-   // 12:8 0x0  N (Converter Resolution). Binary value minus 1.
-   //  7:0 0x0  M (Converters per Device). Binary value minus 1.
-   nRdata = Xil_In32(ADR_JESD(FMC0, REG_JESD_CTRL_TX_ILA_CFG1));
-   (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_ILA_CFG1      = %08X\r\n", nRdata);
-   (void)xil_printf ("                   [25:24]  CS Bits/sample     = %d\r\n", ((nRdata & 0x03000000)>>24)    );
-   (void)xil_printf ("                   [20:16]  Bits/sample N'     = %d\r\n", ((nRdata & 0x001F0000)>>16)+1  );
-   (void)xil_printf ("                   [12: 8]  Conv resolution    = %d\r\n", ((nRdata & 0x0001FF00)>> 8)+1  );
-   (void)xil_printf ("                   [ 7: 0]  Conv per dev (M)   = %d\r\n", ((nRdata & 0x000000FF)    )+1  );
+        nRdata = Xil_In32(ADR_JESD(FMC0, REG_JESD_IP_CONFIG));
+        (void)xil_printf ("ADR_JESD_FMC0_JESD_IP_CONFIG                 = %08X\r\n", nRdata);
+        (void)xil_printf ("                      18   FEC=1              = %d\r\n", (nRdata & 0x40000)>>18);
+        (void)xil_printf ("                      17   64B66B=1/8B10B=0   = %d\r\n", (nRdata & 0x20000)>>17);
+        (void)xil_printf ("                      16   TX=1/RX=0             = %d\r\n", (nRdata & 0x10000)>>16);
+        (void)xil_printf ("                    [3:0]  LANES                 = %d\r\n", (nRdata & 0xF));
 
-   //----------------------------------------------------------------
-   // Config2
-   //----------------------------------------------------------------
-   // 28:24 0x0 CF (Control Words per Frame). Binary value.
-   // 16      0 HD (High Density format)
-   // 12:8  0x0  S (Samples per Converter per Frame). Binary value minus 1.
-   nRdata = Xil_In32(ADR_JESD(FMC0, REG_JESD_CTRL_TX_ILA_CFG2));
-   (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_ILA_CFG2      = %08X\r\n", nRdata);
-   (void)xil_printf ("                   [28:24] Ctrl Words/Frame  (S) = %d\r\n", ((nRdata & 0x1F000000)>>24)    );
-   (void)xil_printf ("                       16  HD format             = %d\r\n", ((nRdata & 0x00010000)>>16)    );
-   (void)xil_printf ("                   [12: 8] Sample/Conv/Frame (S) = %d\r\n", ((nRdata & 0x00001F00)>> 8)+1  );
+        nRdata = Xil_In32(ADR_JESD(FMC0, REG_JESD_RESET));
+        (void)xil_printf ("ADR_JESD_FMC0_JESD_RESET                 = %08X\r\n", nRdata);
+        (void)xil_printf ("                       7   GTs are still reset= %d\r\n", (nRdata & 0x80)>>7);
+        (void)xil_printf ("                       5   tx/rx_reset        = %d\r\n", (nRdata & 0x20)>>5);
+        (void)xil_printf ("                       4   tx/rx_core_reset   = %d\r\n", (nRdata & 0x10)>>4);
+        (void)xil_printf ("                       0   RESET             = %d\r\n", (nRdata & 0x1));
 
-   (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_ILA_CFG3      = %08X\r\n", Xil_In32(ADR_JESD(FMC0, REG_JESD_CTRL_TX_ILA_CFG3 ) ));
-   (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_ILA_CFG4      = %08X\r\n", Xil_In32(ADR_JESD(FMC0, REG_JESD_CTRL_TX_ILA_CFG4 ) ));
-   (void)xil_printf("\r\n");
+        (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_SYNC          = %08X\r\n", Xil_In32(ADR_JESD(FMC0, REG_JESD_CTRL_TX_SYNC     ) ));
+        (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_SUB_CLASS        = %08X\r\n", Xil_In32(ADR_JESD(FMC0, REG_JESD_CTRL_SUB_CLASS   ) ));
 
-   //----------------------------------------------------------------
-   // Config3 (per lane)
-   //----------------------------------------------------------------
-   // 31:21 – Reserved
-   // 20:16 L Number of lanes per link (binary value minus 1). The default value for all lanes is L (total number of lanes minus 1).
-   // These values should be programmed when:
-   // • Not all lanes in the generated IP core are enabled.
-   // • A single TX core is used to drive multiple DAC devices.
-   // • Multiple TX cores are combined to create links with more than eight lanes.
-   // 15:5 – Reserved
-   // 4:0 N ID of lane N. Value can be anywhere between 0 and 31. The default value N is set to the lane number.
-   // For interfaces using more than 8 lanes and hence multiple JESD204C cores, this register should be programmed to
-   // ensure each lane has the correct identifier.
-   nRdata = Xil_In32(ADR_JESD_LANE(FMC0, LANE0, REG_JESD_CTRL_TX_ILA_LID) );
-   (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_ILA_LID   0   = %08X\r\n", nRdata);
-   (void)xil_printf ("                   [20:16] L Number of lanes per link L-1 = %d\r\n", ((nRdata & 0x001F0000)>>20)+1    );
-   (void)xil_printf ("                   [ 4:0 ] ID for Lane                    = %d\r\n", ((nRdata & 0x0000001F))    );
+        nRdata = Xil_In32(ADR_JESD(FMC0, REG_JESD_CTRL_8B10B_CFG));
+        (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_8B10B_CFG        = %08X\r\n", nRdata);
+        (void)xil_printf ("                   [31:24] ILA multiframes    = %d\r\n",((nRdata & 0xFF000000)>>24)+1);
+        (void)xil_printf ("                   [21:20] Reserved 00        = %d\r\n", (nRdata & 0x00300000)>>20);
+        (void)xil_printf ("                      19   Enable LinkErrCnts = %d\r\n", (nRdata & 0x00080000)>>19);
+        (void)xil_printf ("                      18   Err rpt using SYNC = %d\r\n", (nRdata & 0x00040000)>>18);
+        (void)xil_printf ("                      17   Enable ILA Support = %d\r\n", (nRdata & 0x00020000)>>17);
+        (void)xil_printf ("                      16   Enable Scrambling  = %d\r\n", (nRdata & 0x00010000)>>16);
+        (void)xil_printf ("                   [12:8]  Frames per Multifr (K) = %d\r\n",((nRdata & 0x00001F00)>> 8)+1);
+        (void)xil_printf ("                   [ 7:0]  Octets per Frame   = %d\r\n", (nRdata & 0x000000FF)+1  );
 
-   //----------------------------------------------------------------
-   // Config4 (per lane)
-   //----------------------------------------------------------------
-   //   4  0 	TXINHIBIT   Set High to inhibit transmission of TX data
-   //   3  0 	TXELECIDLE  Set High to force idle signal on transmitter output
-   // 2:1  0x0 	TXPD   		TX power down
-   //   0  0 	TXPOLARITY  Set High to invert the polarity of the outgoing TX data
-   nRdata = Xil_In32(ADR_JESD_LANE(FMC0, LANE0, REG_JESD_CTRL_TX_GT ) );
-   (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_GT        0   = %08X\r\n", nRdata);
-   (void)xil_printf ("                   [4] TXINHIBIT             	= %d\r\n", ((nRdata & 0x00000010)>>4)    );
-   (void)xil_printf ("                   [3] TXELECIDLE 			= %d\r\n", ((nRdata & 0x00000008)>>3)    );
-   (void)xil_printf ("                 [2:1] TXPD      				= %d\r\n", ((nRdata & 0x00000006)>>2)    );
-   (void)xil_printf ("                   [0] TXPOLARITY      		= %d\r\n", ((nRdata & 0x00000001))       );
+        // Enable all lanes
+        (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_LANE_ENA (0xFF)  = %08X\r\n", Xil_In32(ADR_JESD(FMC0, REG_JESD_CTRL_LANE_ENA    ) ));
+
+        //----------------------------------------------------------------
+        // Test mode. Only bits 2:0 are used in TX 8B10B mode
+        //----------------------------------------------------------------
+        // Test mode select (8B10B mode):
+        // 000 = Normal operation
+        // 001 = Transmit receive /K28.5/ indefinitely2
+        // 010 = Synchronize as normal then transmit/receive repeated ILA sequences.2
+        // 101 = Transmit Modified Random Pattern RPAT (TX only)1
+        // 111 = Transmit Scrambled Jitter Pattern JSPAT (TX only)1
+        (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TEST_MODE        = %08X\r\n", Xil_In32(ADR_JESD(FMC0, REG_JESD_CTRL_TEST_MODE   ) ));
 
 
-   (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_ILA_LID   1   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC0, LANE1, REG_JESD_CTRL_TX_ILA_LID) ));
-   (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_GT        1   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC0, LANE1, REG_JESD_CTRL_TX_GT ) ));
-   (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_ILA_LID   2   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC0, LANE2, REG_JESD_CTRL_TX_ILA_LID) ));
-   (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_GT        2   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC0, LANE2, REG_JESD_CTRL_TX_GT ) ));
-   (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_ILA_LID   3   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC0, LANE3, REG_JESD_CTRL_TX_ILA_LID) ));
-   (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_GT        3   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC0, LANE3, REG_JESD_CTRL_TX_GT ) ));
-   (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_ILA_LID   4   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC0, LANE4, REG_JESD_CTRL_TX_ILA_LID) ));
-   (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_GT        4   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC0, LANE4, REG_JESD_CTRL_TX_GT ) ));
-   (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_ILA_LID   5   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC0, LANE5, REG_JESD_CTRL_TX_ILA_LID) ));
-   (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_GT        5   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC0, LANE5, REG_JESD_CTRL_TX_GT ) ));
-   (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_ILA_LID   6   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC0, LANE6, REG_JESD_CTRL_TX_ILA_LID) ));
-   (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_GT        6   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC0, LANE6, REG_JESD_CTRL_TX_GT ) ));
-   (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_ILA_LID   7   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC0, LANE7, REG_JESD_CTRL_TX_ILA_LID) ));
-   (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_GT        7   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC0, LANE7, REG_JESD_CTRL_TX_GT ) ));
+        //----------------------------------------------------------------
+        // 23:16 0x0 (For 64b66b cores only) SYSREF Delay: Add additional delay to SYSREF alignment LEMC. 
+        // 0xFF = 255 core_clk cycles delay  ....  0x00 = 0 core_clk cycles delay
+        // This register field is used to retard the phase of the LEMC.
+        //----------------------------------------------------------------
+        // 19:16 0x0 SYSREF Delay:  Add additional delay to SYSREF alignment of LMFC.
+        // 1111 = 15 core_clk cycles delay  ....  0000 = 0 core_clk cycles delay
+        // This register is used to retard the phase of the LMFC.
+        //----------------------------------------------------------------
+        // 10:8 0x0 SYSREF Tolerance:
+        // Specify a tolerance value in core_clk cycles for SYSREF detection when in
+        // SYSREF Always mode. If a SYSREF event is detected within +/- tolerance
+        // core_clk cycles from its expected position, no error signal will be issued.
+        //----------------------------------------------------------------
+        // bit-1 SYSREF Required on Re-Sync. Default 0
+        // 1 = Following a Link Re-Sync event, a SYSREF event is required to re-align
+        // the local LMFC/LEMC before the link will operate.
+        // 0 = No SYSREF is required to restart a link after a Re-sync event.
+        //----------------------------------------------------------------
+        // bit-0 SYSREF Always. Default 0
+        // 1 = The core will align the LMFC/LEMC counter on all SYSREF events.
+        // 0 = The core will only align the LMFC/LEMC counter on the first SYSREF
+        // event following a reset, all subsequent SYSREF events will be ignored.
+        (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_SYSREF           = %08X\r\n", Xil_In32(ADR_JESD(FMC0, REG_JESD_CTRL_SYSREF      ) ));
+        (void)xil_printf ("                  [19:16]  Sysref dly        = 0x%02X\r\n", (nRdata & 0x000F0000) >> 16);
+        (void)xil_printf ("                  [10: 8]  Sysref toler.     = 0x%01X\r\n", (nRdata & 0x00000700) >>  8);
+        (void)xil_printf ("                      [1]  Sysref reqd       = %d\r\n",     (nRdata & 0x00000002) >>  1);
+        (void)xil_printf ("                      [0]  Sysref always     = %d\r\n",     (nRdata & 0x00000001)      );
 
-   (void)xil_printf("\r\n");
-   (void)xil_printf ("ADR_JESD_FMC1_JESD_IP_VERSION      = %08X\r\n", Xil_In32(ADR_JESD(FMC1, REG_JESD_IP_VERSION) ));
-   (void)xil_printf ("ADR_JESD_FMC1_JESD_IP_CONFIG             = %08X\r\n", Xil_In32(ADR_JESD(FMC1, REG_JESD_IP_CONFIG        ) ));
-   (void)xil_printf ("ADR_JESD_FMC1_JESD_RESET                 = %08X\r\n", Xil_In32(ADR_JESD(FMC1, REG_JESD_RESET            ) ));
-   (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_SYNC          = %08X\r\n", Xil_In32(ADR_JESD(FMC1, REG_JESD_CTRL_TX_SYNC     ) ));
-   (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_SUB_CLASS        = %08X\r\n", Xil_In32(ADR_JESD(FMC1, REG_JESD_CTRL_SUB_CLASS   ) ));
-   (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_8B10B_CFG        = %08X\r\n", Xil_In32(ADR_JESD(FMC1, REG_JESD_CTRL_8B10B_CFG   ) ));
-   (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_LANE_ENA         = %08X\r\n", Xil_In32(ADR_JESD(FMC1, REG_JESD_CTRL_LANE_ENA    ) ));
-   (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TEST_MODE        = %08X\r\n", Xil_In32(ADR_JESD(FMC1, REG_JESD_CTRL_TEST_MODE   ) ));
-   (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_SYSREF           = %08X\r\n", Xil_In32(ADR_JESD(FMC1, REG_JESD_CTRL_SYSREF      ) ));
-   (void)xil_printf ("ADR_JESD_FMC1_JESD_STAT_STATUS           = %08X\r\n", Xil_In32(ADR_JESD(FMC1, REG_JESD_STAT_STATUS      ) ));
-   (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_IRQ              = %08X\r\n", Xil_In32(ADR_JESD(FMC1, REG_JESD_CTRL_IRQ         ) ));
-   (void)xil_printf ("ADR_JESD_FMC1_JESD_STAT_IRQ              = %08X\r\n", Xil_In32(ADR_JESD(FMC1, REG_JESD_STAT_IRQ         ) ));
-   (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_ILA_CFG0      = %08X\r\n", Xil_In32(ADR_JESD(FMC1, REG_JESD_CTRL_TX_ILA_CFG0 ) ));
-   (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_ILA_CFG1      = %08X\r\n", Xil_In32(ADR_JESD(FMC1, REG_JESD_CTRL_TX_ILA_CFG1 ) ));
-   (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_ILA_CFG2      = %08X\r\n", Xil_In32(ADR_JESD(FMC1, REG_JESD_CTRL_TX_ILA_CFG2 ) ));
-   (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_ILA_CFG3      = %08X\r\n", Xil_In32(ADR_JESD(FMC1, REG_JESD_CTRL_TX_ILA_CFG3 ) ));
-   (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_ILA_CFG4      = %08X\r\n", Xil_In32(ADR_JESD(FMC1, REG_JESD_CTRL_TX_ILA_CFG4 ) ));
-   (void)xil_printf("\r\n");
+        (void)xil_printf ("ADR_JESD_FMC0_JESD_STAT_STATUS           = %08X\r\n", Xil_In32(ADR_JESD(FMC0, REG_JESD_STAT_STATUS      ) ));
+        (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_IRQ              = %08X\r\n", Xil_In32(ADR_JESD(FMC0, REG_JESD_CTRL_IRQ         ) ));
+        (void)xil_printf ("ADR_JESD_FMC0_JESD_STAT_IRQ              = %08X\r\n", Xil_In32(ADR_JESD(FMC0, REG_JESD_STAT_IRQ         ) ));
 
-   (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_ILA_LID   0   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC1, LANE0, REG_JESD_CTRL_TX_ILA_LID) ));
-   (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_GT        0   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC1, LANE0, REG_JESD_CTRL_TX_GT ) ));
-   (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_ILA_LID   1   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC1, LANE1, REG_JESD_CTRL_TX_ILA_LID) ));
-   (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_GT        1   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC1, LANE1, REG_JESD_CTRL_TX_GT ) ));
-   (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_ILA_LID   2   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC1, LANE2, REG_JESD_CTRL_TX_ILA_LID) ));
-   (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_GT        2   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC1, LANE2, REG_JESD_CTRL_TX_GT ) ));
-   (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_ILA_LID   3   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC1, LANE3, REG_JESD_CTRL_TX_ILA_LID) ));
-   (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_GT        3   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC1, LANE3, REG_JESD_CTRL_TX_GT ) ));
-   (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_ILA_LID   4   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC1, LANE4, REG_JESD_CTRL_TX_ILA_LID) ));
-   (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_GT        4   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC1, LANE4, REG_JESD_CTRL_TX_GT ) ));
-   (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_ILA_LID   5   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC1, LANE5, REG_JESD_CTRL_TX_ILA_LID) ));
-   (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_GT        5   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC1, LANE5, REG_JESD_CTRL_TX_GT ) ));
-   (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_ILA_LID   6   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC1, LANE6, REG_JESD_CTRL_TX_ILA_LID) ));
-   (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_GT        6   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC1, LANE6, REG_JESD_CTRL_TX_GT ) ));
-   (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_ILA_LID   7   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC1, LANE7, REG_JESD_CTRL_TX_ILA_LID) ));
-   (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_GT        7   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC1, LANE7, REG_JESD_CTRL_TX_GT ) ));
+
+        //----------------------------------------------------------------
+        // Config0
+        //----------------------------------------------------------------
+        nRdata = Xil_In32(ADR_JESD(FMC0, REG_JESD_CTRL_TX_ILA_CFG0));
+        (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_ILA_CFG0      = %08X\r\n", nRdata);
+        (void)xil_printf ("                   [11:8]  Bank ID           = 0x%01X\r\n", (nRdata & 0x00000F00) >>  8);
+        (void)xil_printf ("                   [ 7:0]  Device ID         = 0x%02X\r\n", (nRdata & 0x000000FF)      );
+
+        //----------------------------------------------------------------
+        // Config1
+        //----------------------------------------------------------------
+        // 31:26 –   Reserved
+        // 25:24 0x0 CS (Control bits per Sample). Binary value.
+        // 23:21 –   Reserved
+        // 20:16 0x0 N' (Totals bits per Sample). Binary value minus 1.
+        // 15:13 –   Reserved
+        // 12:8 0x0  N (Converter Resolution). Binary value minus 1.
+        //  7:0 0x0  M (Converters per Device). Binary value minus 1.
+        nRdata = Xil_In32(ADR_JESD(FMC0, REG_JESD_CTRL_TX_ILA_CFG1));
+        (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_ILA_CFG1      = %08X\r\n", nRdata);
+        (void)xil_printf ("                   [25:24]  CS Bits/sample     = %d\r\n", ((nRdata & 0x03000000)>>24)    );
+        (void)xil_printf ("                   [20:16]  Bits/sample N'     = %d\r\n", ((nRdata & 0x001F0000)>>16)+1  );
+        (void)xil_printf ("                   [12: 8]  Conv resolution    = %d\r\n", ((nRdata & 0x0001FF00)>> 8)+1  );
+        (void)xil_printf ("                   [ 7: 0]  Conv per dev (M)   = %d\r\n", ((nRdata & 0x000000FF)    )+1  );
+
+        //----------------------------------------------------------------
+        // Config2
+        //----------------------------------------------------------------
+        // 28:24 0x0 CF (Control Words per Frame). Binary value.
+        // 16      0 HD (High Density format)
+        // 12:8  0x0  S (Samples per Converter per Frame). Binary value minus 1.
+        nRdata = Xil_In32(ADR_JESD(FMC0, REG_JESD_CTRL_TX_ILA_CFG2));
+        (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_ILA_CFG2      = %08X\r\n", nRdata);
+        (void)xil_printf ("                   [28:24] Ctrl Words/Frame  (S) = %d\r\n", ((nRdata & 0x1F000000)>>24)    );
+        (void)xil_printf ("                       16  HD format             = %d\r\n", ((nRdata & 0x00010000)>>16)    );
+        (void)xil_printf ("                   [12: 8] Sample/Conv/Frame (S) = %d\r\n", ((nRdata & 0x00001F00)>> 8)+1  );
+
+        //----------------------------------------------------------------
+        // Config3
+        // Only used in Subclass 2
+        //----------------------------------------------------------------
+        (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_ILA_CFG3      = %08X\r\n", Xil_In32(ADR_JESD(FMC0, REG_JESD_CTRL_TX_ILA_CFG3 ) ));
+
+        //----------------------------------------------------------------
+        // Config4
+        // RES2, RES1 are always zero
+        //----------------------------------------------------------------
+        (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_ILA_CFG4      = %08X\r\n", Xil_In32(ADR_JESD(FMC0, REG_JESD_CTRL_TX_ILA_CFG4 ) ));
+        (void)xil_printf("\r\n");
+
+        //----------------------------------------------------------------
+        // REG_JESD_CTRL_TX_ILA_LID (per lane)
+        //----------------------------------------------------------------
+        // 31:21 – Reserved
+        // 20:16 L Number of lanes per link (binary value minus 1). The default value for all lanes is L (total number of lanes minus 1).
+        // These values should be programmed when:
+        // • Not all lanes in the generated IP core are enabled.
+        // • A single TX core is used to drive multiple DAC devices.
+        // • Multiple TX cores are combined to create links with more than eight lanes.
+        // 15:5 – Reserved
+        // 4:0 N ID of lane N. Value can be anywhere between 0 and 31. The default value N is set to the lane number.
+        // For interfaces using more than 8 lanes and hence multiple JESD204C cores, this register should be programmed to
+        // ensure each lane has the correct identifier.
+        nRdata = Xil_In32(ADR_JESD_LANE(FMC0, LANE0, REG_JESD_CTRL_TX_ILA_LID) );
+        (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_ILA_LID   0   = %08X\r\n", nRdata);
+        (void)xil_printf ("                   [20:16] L Number of lanes per link L-1 = %d\r\n", ((nRdata & 0x001F0000)>>20)+1    );
+        (void)xil_printf ("                   [ 4:0 ] ID for Lane                    = %d\r\n", ((nRdata & 0x0000001F))    );
+
+        (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_ILA_LID   1   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC0, LANE1, REG_JESD_CTRL_TX_ILA_LID) ));
+        (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_ILA_LID   2   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC0, LANE2, REG_JESD_CTRL_TX_ILA_LID) ));
+        (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_ILA_LID   3   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC0, LANE3, REG_JESD_CTRL_TX_ILA_LID) ));
+        (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_ILA_LID   4   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC0, LANE4, REG_JESD_CTRL_TX_ILA_LID) ));
+        (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_ILA_LID   5   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC0, LANE5, REG_JESD_CTRL_TX_ILA_LID) ));
+        (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_ILA_LID   6   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC0, LANE6, REG_JESD_CTRL_TX_ILA_LID) ));
+        (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_ILA_LID   7   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC0, LANE7, REG_JESD_CTRL_TX_ILA_LID) ));
+
+        //----------------------------------------------------------------
+        // REG_JESD_CTRL_TX_GT (per lane)
+        //----------------------------------------------------------------
+        //   4  0   TXINHIBIT   Set High to inhibit transmission of TX data
+        //   3  0   TXELECIDLE  Set High to force idle signal on transmitter output
+        // 2:1  0x0 TXPD        TX power down
+        //   0  0   TXPOLARITY  Set High to invert the polarity of the outgoing TX data
+        nRdata = Xil_In32(ADR_JESD_LANE(FMC0, LANE0, REG_JESD_CTRL_TX_GT ) );
+        (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_GT        0   = %08X\r\n", nRdata);
+        (void)xil_printf ("                   [4] TXINHIBIT             = %d\r\n", ((nRdata & 0x00000010)>>4)    );
+        (void)xil_printf ("                   [3] TXELECIDLE            = %d\r\n", ((nRdata & 0x00000008)>>3)    );
+        (void)xil_printf ("                 [2:1] TXPD                  = %d\r\n", ((nRdata & 0x00000006)>>1)    );
+        (void)xil_printf ("                   [0] TXPOLARITY            = %d\r\n", ((nRdata & 0x00000001))       );
+        (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_GT        1   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC0, LANE1, REG_JESD_CTRL_TX_GT ) ));
+        (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_GT        2   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC0, LANE2, REG_JESD_CTRL_TX_GT ) ));
+        (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_GT        3   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC0, LANE3, REG_JESD_CTRL_TX_GT ) ));
+        (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_GT        4   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC0, LANE4, REG_JESD_CTRL_TX_GT ) ));
+        (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_GT        5   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC0, LANE5, REG_JESD_CTRL_TX_GT ) ));
+        (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_GT        6   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC0, LANE6, REG_JESD_CTRL_TX_GT ) ));
+        (void)xil_printf ("ADR_JESD_FMC0_JESD_CTRL_TX_GT        7   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC0, LANE7, REG_JESD_CTRL_TX_GT ) ));
+        (void)xil_printf("\r\n");
+    }
+    else if (nValue == 1)  
+    {
+        (void)xil_printf ("Xilinx JESD_1 block (%d)\r\n", nValue);
+        (void)xil_printf ("ADR_JESD_FMC1_JESD_IP_VERSION      = %08X\r\n", Xil_In32(ADR_JESD(FMC1, REG_JESD_IP_VERSION) ));
+        (void)xil_printf ("ADR_JESD_FMC1_JESD_IP_CONFIG             = %08X\r\n", Xil_In32(ADR_JESD(FMC1, REG_JESD_IP_CONFIG        ) ));
+        (void)xil_printf ("ADR_JESD_FMC1_JESD_RESET                 = %08X\r\n", Xil_In32(ADR_JESD(FMC1, REG_JESD_RESET            ) ));
+        (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_SYNC          = %08X\r\n", Xil_In32(ADR_JESD(FMC1, REG_JESD_CTRL_TX_SYNC     ) ));
+        (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_SUB_CLASS        = %08X\r\n", Xil_In32(ADR_JESD(FMC1, REG_JESD_CTRL_SUB_CLASS   ) ));
+        (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_8B10B_CFG        = %08X\r\n", Xil_In32(ADR_JESD(FMC1, REG_JESD_CTRL_8B10B_CFG   ) ));
+        (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_LANE_ENA         = %08X\r\n", Xil_In32(ADR_JESD(FMC1, REG_JESD_CTRL_LANE_ENA    ) ));
+        (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TEST_MODE        = %08X\r\n", Xil_In32(ADR_JESD(FMC1, REG_JESD_CTRL_TEST_MODE   ) ));
+        (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_SYSREF           = %08X\r\n", Xil_In32(ADR_JESD(FMC1, REG_JESD_CTRL_SYSREF      ) ));
+        (void)xil_printf ("ADR_JESD_FMC1_JESD_STAT_STATUS           = %08X\r\n", Xil_In32(ADR_JESD(FMC1, REG_JESD_STAT_STATUS      ) ));
+        (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_IRQ              = %08X\r\n", Xil_In32(ADR_JESD(FMC1, REG_JESD_CTRL_IRQ         ) ));
+        (void)xil_printf ("ADR_JESD_FMC1_JESD_STAT_IRQ              = %08X\r\n", Xil_In32(ADR_JESD(FMC1, REG_JESD_STAT_IRQ         ) ));
+        (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_ILA_CFG0      = %08X\r\n", Xil_In32(ADR_JESD(FMC1, REG_JESD_CTRL_TX_ILA_CFG0 ) ));
+        (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_ILA_CFG1      = %08X\r\n", Xil_In32(ADR_JESD(FMC1, REG_JESD_CTRL_TX_ILA_CFG1 ) ));
+        (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_ILA_CFG2      = %08X\r\n", Xil_In32(ADR_JESD(FMC1, REG_JESD_CTRL_TX_ILA_CFG2 ) ));
+        (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_ILA_CFG3      = %08X\r\n", Xil_In32(ADR_JESD(FMC1, REG_JESD_CTRL_TX_ILA_CFG3 ) ));
+        (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_ILA_CFG4      = %08X\r\n", Xil_In32(ADR_JESD(FMC1, REG_JESD_CTRL_TX_ILA_CFG4 ) ));
+        (void)xil_printf("\r\n");
+
+        (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_ILA_LID   0   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC1, LANE0, REG_JESD_CTRL_TX_ILA_LID) ));
+        (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_GT        0   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC1, LANE0, REG_JESD_CTRL_TX_GT ) ));
+        (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_ILA_LID   1   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC1, LANE1, REG_JESD_CTRL_TX_ILA_LID) ));
+        (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_GT        1   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC1, LANE1, REG_JESD_CTRL_TX_GT ) ));
+        (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_ILA_LID   2   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC1, LANE2, REG_JESD_CTRL_TX_ILA_LID) ));
+        (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_GT        2   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC1, LANE2, REG_JESD_CTRL_TX_GT ) ));
+        (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_ILA_LID   3   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC1, LANE3, REG_JESD_CTRL_TX_ILA_LID) ));
+        (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_GT        3   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC1, LANE3, REG_JESD_CTRL_TX_GT ) ));
+        (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_ILA_LID   4   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC1, LANE4, REG_JESD_CTRL_TX_ILA_LID) ));
+        (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_GT        4   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC1, LANE4, REG_JESD_CTRL_TX_GT ) ));
+        (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_ILA_LID   5   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC1, LANE5, REG_JESD_CTRL_TX_ILA_LID) ));
+        (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_GT        5   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC1, LANE5, REG_JESD_CTRL_TX_GT ) ));
+        (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_ILA_LID   6   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC1, LANE6, REG_JESD_CTRL_TX_ILA_LID) ));
+        (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_GT        6   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC1, LANE6, REG_JESD_CTRL_TX_GT ) ));
+        (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_ILA_LID   7   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC1, LANE7, REG_JESD_CTRL_TX_ILA_LID) ));
+        (void)xil_printf ("ADR_JESD_FMC1_JESD_CTRL_TX_GT        7   = %08X\r\n", Xil_In32(ADR_JESD_LANE(FMC1, LANE7, REG_JESD_CTRL_TX_GT ) ));
+        (void)xil_printf("\r\n");
+    }
 }
 
 
 //---------------------------------------------------------
 //
 //---------------------------------------------------------
-void set_jesd_ip_subclass(nFMC, nSubClass)
+void set_jesd_ip_subclass(int nFMC, int nSubClass)
 {
-	int nAddr = (ADR_BASE_JESD + (nFMC * ADR_FMC_STEP) + REG_JESD_CTRL_SUB_CLASS);
-	Xil_Out32(nAddr, nSubClass);
+    int nAddr = (ADR_BASE_JESD + (nFMC * ADR_FMC_STEP) + REG_JESD_CTRL_SUB_CLASS);
+    Xil_Out32(nAddr, nSubClass);
 }
 
 //---------------------------------------------------------
@@ -527,54 +626,360 @@ void set_jesd_ip_subclass(nFMC, nSubClass)
 //---------------------------------------------------------
 void set_jesd_ip_8B10B_cfg(int nFMC)
 {
-	int	ILA_Multiframes 		= 0;
-	int En_LinkErrCnts			= 0;
-	int Err_Rpt_Sync    		= 0;
-	int En_ILA          		= 0;
-	int En_Scrambling   		= 0;
-	int Frames_Per_MultiFrame   = 0;
-	int Octets_Per_Frame		= 0;
+    int ILA_Multiframes         = 0;
+    int En_LinkErrCnts          = 0;
+    int Err_Rpt_Sync            = 0;
+    int En_ILA                  = 0;
+    int En_Scrambling           = 0;
+    int Frames_Per_MultiFrame   = 0;
+    int Octets_Per_Frame        = 0;
 
-	int nWdata = (
+    int nWdata = (
 
-			(((ILA_Multiframes-1)		& 0xFF) << 24)
-		+	((En_LinkErrCnts  			& 0x01) << 19)
-		+	((Err_Rpt_Sync    			& 0x01) << 18)
-		+	((En_ILA          			& 0x01) << 17)
-		+	((En_Scrambling   			& 0x01) << 16)
-		+	(((Frames_Per_MultiFrame-1) & 0x1F) <<  8)
-		+	(((Octets_Per_Frame-1)	    & 0xFF)      )
-	);
+            (((ILA_Multiframes-1)       & 0xFF) << 24)
+        +   ((En_LinkErrCnts            & 0x01) << 19)
+        +   ((Err_Rpt_Sync              & 0x01) << 18)
+        +   ((En_ILA                    & 0x01) << 17)
+        +   ((En_Scrambling             & 0x01) << 16)
+        +   (((Frames_Per_MultiFrame-1) & 0x1F) <<  8)
+        +   (((Octets_Per_Frame-1)      & 0xFF)      )
+    );
 
-	int nAddr = (ADR_BASE_JESD + (nFMC * ADR_FMC_STEP) + REG_JESD_CTRL_8B10B_CFG);
-	Xil_Out32(nAddr, nWdata);
+    int nAddr = (ADR_BASE_JESD + (nFMC * ADR_FMC_STEP) + REG_JESD_CTRL_8B10B_CFG);
+    Xil_Out32(nAddr, nWdata);
+}
+
+//---------------------------------------------------------
+// REG_JESD_CTRL_LANE_ENA
+//---------------------------------------------------------
+void set_jesd_ip_lane_en     (int nFMC, int nEnables)
+{
+    int nWdata = nEnables;
+    int nAddr = (ADR_BASE_JESD + (nFMC * ADR_FMC_STEP) + REG_JESD_CTRL_LANE_ENA);
+ 
+    Xil_Out32(nAddr, nWdata);
 }
 
 
 //---------------------------------------------------------
-// Program Xilinx JESD IP block for Abaco FMC216 links
-// RESET
-// CTRL_TX_SYNC
-// CTRL_SUB_CLASS
-// CTRL_8B10B_CFG
-// CTRL_LANE_ENA
-// CTRL_TEST_MODE
-// CTRL_SYSREF
-// CTRL_TX_ILA_CFG0
-// CTRL_TX_ILA_CFG1
-// CTRL_TX_ILA_CFG2
-// CTRL_TX_ILA_CFG3
-// CTRL_TX_ILA_CFG4
-// CTRL_TX_ILA_LID 0-7
-// CTRL_TX_GT      0-7
+// REG_JESD_CTRL_TEST_MODE`
+//----------------------------------------------------------------
+// Test mode. Only bits 2:0 are used in TX 8B10B mode
+//----------------------------------------------------------------
+// Test mode select (8B10B mode):
+// 000 = Normal operation
+// 001 = Transmit receive /K28.5/ indefinitely
+// 010 = Synchronize as normal then transmit/receive repeated ILA sequences.
+// 101 = Transmit Modified Random Pattern RPAT (TX only)
+// 111 = Transmit Scrambled Jitter Pattern JSPAT (TX only)
 //---------------------------------------------------------
-void init_jesd_ip(int nFMC)
+void set_jesd_ip_test_mode   (int nFMC)  
 {
-    xil_printf ("init_jesd_ip(nFMC = %d)\r\n", nFMC);
+    int nWdata =  0x0;  // Normal operation
+    int nAddr  =  ADR_BASE_JESD + (nFMC * ADR_FMC_STEP) + REG_JESD_CTRL_TEST_MODE;
 
-    set_jesd_ip_subclass  (nFMC, SUBCLASS1);
-    set_jesd_ip_8B10B_cfg (nFMC);
-    set_jesd_ip_lane_en   (nFMC, 0xFF);
+    Xil_Out32(nAddr, nWdata);
+}
+
+
+//---------------------------------------------------------
+// REG_JESD_CTRL_SYSREF
+// #define     REG_JESD_CTRL_SYSREF  0x050    //    RW      RW      RW      RW
+//---------------------------------------------------------
+void set_jesd_ip_sysref      (int nFMC)  
+{
+    int nSysrefDly      = 0;
+    int nSysrefToler    = 0;
+    int nSysrefReqd     = 0;
+    int nSysrefAlways   = 0;
+
+    int nWdata = (  ((nSysrefDly    & 0xF) << 16)
+    		      + ((nSysrefToler  & 0x7) <<  8)
+                  + ((nSysrefReqd   & 0x1) <<  1)
+                  + ((nSysrefAlways & 0x1)      )
+    );
+    int nAddr = (ADR_BASE_JESD + (nFMC * ADR_FMC_STEP) + REG_JESD_CTRL_SYSREF);
+
+    Xil_Out32(nAddr, nWdata);
+}
+
+
+//---------------------------------------------------------
+// REG_JESD_CTRL_IRQ 
+// #define     REG_JESD_CTRL_IRQ           0x064    //    RW      RW      RW      RW
+//---------------------------------------------------------
+void set_jesd_ip_ctrl_irq (int nFMC)  
+{
+    int nWdata = 0x00000000;
+
+    int nAddr = (ADR_BASE_JESD + (nFMC * ADR_FMC_STEP) + REG_JESD_CTRL_IRQ);
+    Xil_Out32(nAddr, nWdata);
+}
+
+
+//---------------------------------------------------------
+// REG_JESD_CTRL_TX_ILA_CFG0   0x070    //    N/A     N/A     RW      N/A
+//      [11:8]  Bank ID   
+//      [ 7:0]  Device ID  
+//---------------------------------------------------------
+void set_jesd_ip_tx_ila_cfg0 (int nFMC)  
+{
+    int nBankID     = 0;
+    int nDeviceID   = 0;
+    int nWdata      = ( (nBankID & 0xF) << 8) + (nDeviceID & 0xFF);
+
+    int nAddr = (ADR_BASE_JESD + (nFMC * ADR_FMC_STEP) + REG_JESD_CTRL_TX_ILA_CFG0);
+    Xil_Out32(nAddr, nWdata);
+}
+
+
+//---------------------------------------------------------
+// REG_JESD_CTRL_TX_ILA_CFG1 
+// #define     REG_JESD_CTRL_TX_ILA_CFG1   0x074    // 
+// 31:26 –   Reserved
+// 25:24 0x0 CS (Control bits per Sample). Binary value.
+// 23:21 –   Reserved
+// 20:16 0x0 N' (Totals bits per Sample). Binary value minus 1.
+// 15:13 –   Reserved
+// 12:8 0x0  N (Converter Resolution). Binary value minus 1.
+//  7:0 0x0  M (Converters per Device). Binary value minus 1.
+//---------------------------------------------------------
+void set_jesd_ip_tx_ila_cfg1 (int nFMC)  
+{
+    int nCSbitsPerSample        =  0;
+    int nTotalBitsPerSample     = 16; // N'  Set to N-1
+    int nConverterResolution    = 16; // N   Set to N-1
+    int nConvertersPerDevice    =  4; // M   Set to N-1
+
+    int nWdata      = ( ((nCSbitsPerSample         & 0x03) << 24)
+                    +   (((nTotalBitsPerSample-1)  & 0x0F) << 16)
+                    +   (((nConverterResolution-1) & 0x0F) <<  8)
+                    +   (((nConvertersPerDevice-1) & 0x0F)      )
+    );
+    int nAddr = (ADR_BASE_JESD + (nFMC * ADR_FMC_STEP) + REG_JESD_CTRL_TX_ILA_CFG1);
+
+    Xil_Out32(nAddr, nWdata);
+}
+
+
+//---------------------------------------------------------
+// REG_JESD_CTRL_TX_ILA_CFG2
+// #define     REG_JESD_CTRL_TX_ILA_CFG2   0x078    //
+// 28:24 0x0 CF (Control Words per Frame). Binary value.
+// 16      0 HD (High Density format)
+// 12:8  0x0  S (Samples per Converter per Frame). Binary value minus 1.
+//---------------------------------------------------------
+void set_jesd_ip_tx_ila_cfg2 (int nFMC)  
+{
+    int nCF     = 0;  // Control Words Per Frame
+    int nHD     = 0;  // High Density Format
+    int nS      = 2;  // Samples Per Converter Per Frame
+
+    int nWdata  = ( ((nCF    & 0x1F) << 24)
+                +   ((nHD    & 0x01) << 16)
+                +   (((nS-1) & 0x1F) <<  8)
+    );
+
+    int nAddr = (ADR_BASE_JESD + (nFMC * ADR_FMC_STEP) + REG_JESD_CTRL_TX_ILA_CFG2);
+    Xil_Out32(nAddr, nWdata);
+}
+
+
+//---------------------------------------------------------
+// REG_JESD_CTRL_TX_ILA_CFG3
+// #define     REG_JESD_CTRL_TX_ILA_CFG3   0x07C    //  
+//
+// ADJDIR, PHADJ and ADJCNT are only valid for Subclass 2
+//---------------------------------------------------------
+void set_jesd_ip_tx_ila_cfg3 (int nFMC)  
+{
+    int nAdjDir = 0;
+    int nPhAdj  = 0;
+    int nAdjCnt = 0;
+    int nWdata  = ( ((nAdjDir & 0x01) << 16)
+                +   ((nPhAdj  & 0x0F) <<  4)
+                +   ((nAdjCnt & 0x0F)      )
+    );
+
+    int nAddr = (ADR_BASE_JESD + (nFMC * ADR_FMC_STEP) + REG_JESD_CTRL_TX_ILA_CFG3);
+    Xil_Out32(nAddr, nWdata);
+}
+
+
+//---------------------------------------------------------
+// REG_JESD_CTRL_TX_ILA_CFG4 
+// #define     REG_JESD_CTRL_TX_ILA_CFG4   0x080    //
+// RES1 and RES2 reserved. Must be zero.
+//---------------------------------------------------------
+void set_jesd_ip_tx_ila_cfg4 (int nFMC)  
+{
+    int nRES2   = 0;
+    int nRES1   = 0;
+    int nWdata  = ( ((nRES2 & 0xFF) << 8)
+                +   ((nRES1 & 0xFF)     )
+    );
+
+    int nAddr = (ADR_BASE_JESD + (nFMC * ADR_FMC_STEP) + REG_JESD_CTRL_TX_ILA_CFG4);
+    Xil_Out32(nAddr, nWdata);
+}
+
+
+//---------------------------------------------------------
+// REG_JESD_CTRL_TX_ILA_LID 
+//---------------------------------------------------------
+void set_jesd_ip_tx_ila_lid  (int nFMC)   
+{
+    int nLanesPerLink   = 2;
+    int nLaneId         = 0;
+    int nAddr           = 0;
+    int nWdata          = 0;
+
+    // Write to the LID register for each lane
+    for (int nLane = 0 ; nLane < 8 ; nLane++)
+    {
+        // ID of lane N. Value can be anywhere between 0 and 31. The default value
+        // N is set to the lane number. For interfaces using more than 8 lanes and
+        // hence multiple JESD204C cores, this register should be programmed to
+        // ensure each lane has the correct identifier.
+        nLaneId = (16*nFMC) + nLane;     
+
+        nAddr   = (ADR_BASE_JESD + (nFMC * ADR_FMC_STEP) + (nLane * ADR_LANE_STEP) + REG_JESD_CTRL_TX_ILA_LID);
+
+        nWdata  = ( (((nLanesPerLink-1) & 0x1F) << 16)  // L
+                  + (( nLaneId          & 0x1F)      )
+        );
+
+        Xil_Out32(nAddr, nWdata);
+    }
+}
+
+
+//---------------------------------------------------------
+// REG_JESD_CTRL_TX_GT 
+//   4  0   TXINHIBIT   Set High to inhibit transmission of TX data
+//   3  0   TXELECIDLE  Set High to force idle signal on transmitter output
+// 2:1  0x0 TXPD        TX power down
+//   0  0   TXPOLARITY  Set High to invert the polarity of the outgoing TX data
+//---------------------------------------------------------
+void set_jesd_ip_tx_gt       (int nFMC)  
+{
+    int nTxInhibit      = 0;
+    int nTxElecIdle     = 0;
+    int nTxPowerDown    = 0;    // Versal only?
+    int nTxPolarity     = 0;
+
+    int nAddr           = 0;
+    int nWdata = (  ((nTxInhibit   & 0x1) << 4)
+                  + ((nTxElecIdle  & 0x1) << 3)
+                  + ((nTxPowerDown & 0x3) << 1)
+                  + ((nTxPolarity  & 0x1)     )
+    );
+
+    for (int nLane = 0 ; nLane < 8 ; nLane++)
+    {
+        nAddr = (ADR_BASE_JESD + (nFMC * ADR_FMC_STEP) + REG_JESD_CTRL_TX_GT);
+        Xil_Out32(nAddr, nWdata);
+    }
+}
+
+
+
+//---------------------------------------------------------
+// Program Xilinx JESD IP block for Abaco FMC216 links
+//---------------------------------------------------------
+void xil_jesd_ip_init(int nFMC)
+{
+    xil_printf ("xil_jesd_ip_init(nFMC = %d)\r\n", nFMC);
+
+    set_jesd_ip_subclass    (nFMC, SUBCLASS1);
+    set_jesd_ip_8B10B_cfg   (nFMC);
+    set_jesd_ip_lane_en     (nFMC, 0xFF);   // Enable all
+    set_jesd_ip_test_mode   (nFMC);         // Normal
+    set_jesd_ip_sysref      (nFMC);         // 
+    set_jesd_ip_tx_ila_cfg0 (nFMC);         // 
+    set_jesd_ip_tx_ila_cfg1 (nFMC);         // 
+    set_jesd_ip_tx_ila_cfg2 (nFMC);         // 
+    set_jesd_ip_tx_ila_cfg3 (nFMC);         // 
+    set_jesd_ip_tx_ila_cfg4 (nFMC);         // 
+    set_jesd_ip_tx_ila_lid  (nFMC);         // All 0-7 
+    set_jesd_ip_tx_gt       (nFMC);         // All 0-7
+    xil_printf ("xil_jesd_ip_init(nFMC = %d) done\r\n", nFMC);
+}
+
+
+
+
+//---------------------------------------------------------
+// Program FMC216 clock chip to 100 MHz output for all device clocks
+//---------------------------------------------------------
+void fmc216_clks_init(int nFMC)
+{
+    xil_printf ("fmc216_clks_init(%d)\r\n", nFMC);
+
+
+    xil_printf ("f** EMPTY **\r\n");
+
+    // List of registers and default values that we need goes here.
+    //set_fmc_clks_xx    (nFMC, );
+
+    xil_printf ("fmc216_clks_init(%d) done\r\n", nFMC);
+}
+
+//---------------------------------------------------------
+// Program FMC216 DAC chip registers
+//---------------------------------------------------------
+void fmc216_dac_init(int nFMC, int nDAC)
+{
+    xil_printf ("fmc216_dac_init(%d)\r\n", nFMC);
+
+    xil_printf ("f** EMPTY **\r\n");
+    // List of registers and default values that we need goes here.
+    //set_fmc_dac_xx    (nFMC, nDAC );
+
+    xil_printf ("fmc216_dac_init(%d) done\r\n", nFMC);
+}
+
+
+//---------------------------------------------------------
+// Program any connected FMC216 boards
+//---------------------------------------------------------
+void fmc216_boards_init()
+{
+    xil_printf ("fmc216_boards_init()\r\n");
+
+    int nFmc0_detected  = is_present_fmc(FMC_BOARD_0);
+    int nFmc1_detected  = is_present_fmc(FMC_BOARD_1);
+
+    if (nFmc0_detected == 1)
+    {
+        iic_enable_fmc      (FMC0);
+        fmc216_clks_init    (FMC0);
+        fmc216_dac_init     (FMC0, 0);
+        fmc216_dac_init     (FMC0, 1);
+        fmc216_dac_init     (FMC0, 2);
+        fmc216_dac_init     (FMC0, 3);
+
+        xil_printf ("FMC0 initialized\r\n");
+    }
+
+    if (nFmc1_detected == 1)
+    {
+        iic_enable_fmc      (FMC1);
+        fmc216_clks_init    (FMC1);
+        fmc216_dac_init     (FMC1, 0);
+        fmc216_dac_init     (FMC1, 1);
+        fmc216_dac_init     (FMC1, 2);
+        fmc216_dac_init     (FMC1, 3);
+        xil_printf ("FMC1 initialized\r\n");
+    }
+
+    // No boards present
+    if ((nFmc0_detected == 0) && (nFmc1_detected == 0))
+    {
+        xil_printf ("**** NO FMC boards in the system ****\r\n");
+    }
+
+    xil_printf ("fmc216_boards_init() done\r\n");
 }
 
 
@@ -582,12 +987,12 @@ void init_jesd_ip(int nFMC)
 // Load 16-bit pulse waveform table with a data value 
 // that ramps up from 0.
 //---------------------------------------------------------
-void load_pulse_wave(int nChannel, int nAddrStart, int nSize)
+void pulse_wave_load(int nChannel, int nAddrStart, int nSize)
 {
-    xil_printf ("load_pulse_table(nChannel = %d, nAddrStart = 0x%04X, nSize = %d)\r\n", nChannel, nAddrStart, nSize);
+    xil_printf ("pulse_wave_load(nChannel = %d, nAddrStart = 0x%04X, nSize = %d)\r\n", nChannel, nAddrStart, nSize);
 
     // Enable access to one selected channel
-    set_pulse_chsel(1 << nChannel); 
+    pulse_chsel_set(1 << nChannel); 
     
     // A loop to load a ramp
     int nWaddr;
@@ -612,30 +1017,31 @@ void load_pulse_wave(int nChannel, int nAddrStart, int nSize)
 //                  doutb[31:16]  : address scale factor 
 // Entry word 3 :   doutb[16: 0]  : pulse flat top length in clock cycles 
 //---------------------------------------------------------
-void entry_pulse_defn(int nEntry, int nStartTime, int nWaveAddr, int nWaveLen, int nScaleGain, int nScaleAddr, int nFlattop)
+void pulse_defn_entry_set(int nEntry, int nStartTime, int nWaveAddr, int nWaveLen, int nScaleGain, int nScaleAddr, int nFlattop)
 {
     int nWdata;
     int nWaddr;
 
-    xil_printf ("entry_pulse_defn(%d)\r\n", nEntry);
+    xil_printf ("pulse_defn_entry_set(%d)\r\n", nEntry);
 
+    // Check parameter range
     if (nStartTime > 0x00FFFFFF)
-        xil_printf ("entry_pulse_defn(%d): Start time 0x%06X > 0x00FFFFFF\r\n", nEntry, nStartTime);
+        xil_printf ("pulse_defn_entry_set(%d): Start time 0x%06X > 0x00FFFFFF\r\n", nEntry, nStartTime);
 
     if (nWaveAddr > 0x0FFF)
-        xil_printf ("entry_pulse_defn(%d): Wave addr 0x%04X > 0x0FFF\r\n", nEntry, nWaveAddr);
+        xil_printf ("pulse_defn_entry_set(%d): Wave addr 0x%04X > 0x0FFF\r\n", nEntry, nWaveAddr);
 
     if (nWaveLen > 0x0FFF)
-        xil_printf ("entry_pulse_defn(%d): Wave len 0x%04X > 0x0FFF\r\n", nEntry, nWaveLen);
+        xil_printf ("pulse_defn_entry_set(%d): Wave len 0x%04X > 0x0FFF\r\n", nEntry, nWaveLen);
 
     if (nScaleGain > 0xFFFF)
-        xil_printf ("entry_pulse_defn(%d): Scale Gain 0x%04X > 0xFFFF\r\n", nEntry, nScaleGain);
+        xil_printf ("pulse_defn_entry_set(%d): Scale Gain 0x%04X > 0xFFFF\r\n", nEntry, nScaleGain);
 
     if (nScaleAddr > 0xFFFF)
-        xil_printf ("entry_pulse_defn(%d): Scale addr 0x%04X > 0xFFFF\r\n", nEntry, nScaleAddr);
+        xil_printf ("pulse_defn_entry_set(%d): Scale addr 0x%04X > 0xFFFF\r\n", nEntry, nScaleAddr);
 
     if (nFlattop > 0x0001FFFF)
-        xil_printf ("entry_pulse_defn(%d): Scale addr 0x%08X > 0x0001FFFF\r\n", nEntry, nFlattop);
+        xil_printf ("pulse_defn_entry_set(%d): Scale addr 0x%08X > 0x0001FFFF\r\n", nEntry, nFlattop);
 
     nWdata = nStartTime & 0x00FFFFFF;
     nWaddr = ADR_BASE_PULSE_DEFN + 4*nEntry;
@@ -672,7 +1078,7 @@ void entry_pulse_defn(int nEntry, int nStartTime, int nWaveAddr, int nWaveLen, i
 //                  doutb[31:16]  : address scale factor 
 // Entry word 3 :   doutb[16: 0]  : pulse flat top length in clock cycles 
 //--------------------------------------------------------------
-void load_pulse_defn(int nChannel)
+void pulse_defn_load(int nChannel)
 {
     int nStartTime      = 200 + (10*nChannel);
   //int nStartTimeIncr  = 200;
@@ -685,15 +1091,15 @@ void load_pulse_defn(int nChannel)
 
     int nEntry;
 
-    xil_printf ("load_pulse_defn(nChannel = %d)\r\n", nChannel);
+    xil_printf ("pulse_defn_load(nChannel = %d)\r\n", nChannel);
 
     // Enable access to one selected channel
-    set_pulse_chsel(1 << nChannel); 
+    pulse_chsel_set(1 << nChannel); 
 
     // Write all entries in RAM
     for (nEntry = 0 ; nEntry < PDEF_NUM_ENTRY ; nEntry++)
     {
-        entry_pulse_defn(nEntry, nStartTime, nWaveAddr, nWaveLen, nScaleGain, nScaleAddr, nFlattop);
+        pulse_defn_entry_set(nEntry, nStartTime, nWaveAddr, nWaveLen, nScaleGain, nScaleAddr, nFlattop);
 
         // Make next start time after end of current pulse
         nStartTime = nStartTime + (nWaveLen + nFlattop + nWaveLen);
@@ -708,9 +1114,9 @@ void load_pulse_defn(int nChannel)
 //---------------------------------------------------------
 // Set channel select reg
 //---------------------------------------------------------
-void set_pulse_chsel(int nValue)
+void pulse_chsel_set(int nValue)
 {
-    //xil_printf ("Set channel select reg to 0x%08X\r\n", nValue);
+    xil_printf ("Set channel select reg to 0x%08X\r\n", nValue);
     Xil_Out32(ADR_PULSE_REG_CHSEL, nValue);
 }
 
@@ -718,7 +1124,7 @@ void set_pulse_chsel(int nValue)
 //---------------------------------------------------------
 // Read channel select reg
 //---------------------------------------------------------
-int get_pulse_chsel()
+int pulse_chsel_get()
 {
     int nRdata = 0;
 
@@ -728,12 +1134,215 @@ int get_pulse_chsel()
     return (nRdata);
 }
 
+//---------------------------------------------------------
+// Set the ramp rate for a single channel in the test (ramp)
+// version of the pulse generator
+//---------------------------------------------------------
+void pulse_ramp_set(int nChannel, int nRampRate)
+{
+    int nWdata = 0x1 << nChannel;
+
+    xil_printf ("Set channel select reg to 0x%08X\r\n", nWdata);
+    Xil_Out32(ADR_PULSE_REG_CHSEL, nWdata);
+
+    xil_printf ("Set channel %d ramp rate to %d\r\n", nChannel, (nRampRate & 0xFFFF));
+    Xil_Out32(ADR_PULSE_RAMP_RATE, (nRampRate & 0xFFFF));
+}
+
+//---------------------------------------------------------
+// Set the ramp rate for a all channels in the test (ramp)
+// version of the pulse generator
+//---------------------------------------------------------
+void pulse_ramp_all_set()   
+{
+    int nChannel    = 0;
+    int nRampRate   = 0;
+
+    xil_printf ("set_pulse_ramp_all()\r\n");
+    for (nChannel = 0 ; nChannel < 32 ; nChannel++)
+    {
+        nRampRate = 16 * (nChannel + 1);
+        pulse_ramp_set(nChannel, nRampRate);
+    }
+}
+
+//---------------------------------------------------------
+// Select the pulse channel 0-31 source for a DAC 0-31 
+// and set the invert and zero flags.
+// ADR_SW_MUX7_0         8, 4-bit mux selects channels 0 to 7 to FMC0 0-15 
+// ADR_SW_MUX15_8       
+// ADR_SW_MUX23_16      
+// ADR_SW_MUX31_24      
+// ADR_SW_INV            Invert chN if bit N is set
+// ADR_SW_ZERO           Zero chN if bit N is set
+//---------------------------------------------------------
+void switch_jesd_set(int nDac, int nPulseChannel, int nInvert, int nZero)
+{
+    int nWdata  = 0;
+    int nRdata  = 0;
+    int nMask   = 0;
+    int nMuxInput = (nPulseChannel & 0x0F); // DACs 16-31 only use pulse channels 16-31 so the mux values are 0-15
+    int nDacField = (nDac & 0x07);          // 8 DACfields per register
+
+    xil_printf ("switch_jesd_set : Pulse Channel %2d -> DAC %2d,  invert=%d, zero=%d\r\n", nPulseChannel, nDac, nInvert, nZero);
+
+    if ((nDac < 16) && (nPulseChannel > 16))
+    {
+        xil_printf ("*** DACs 0-15 use Pulse Channels 0-15 only ***\r\n");
+        return;
+    }
+    else if ((nDac > 15) && (nPulseChannel < 16))
+    {
+        xil_printf ("*** DACs 16-31 use Pulse Channels 16-31 only ***\r\n");
+        return;
+    }
+
+
+    // If DAC is 0-7 then set mux in ADR_SW_MUX7_0
+    if (nDac < 8)
+    {
+        nRdata  = Xil_In32(ADR_SW_MUX7_0);
+        nMask   = 0xF << (4 * nDacField);
+        nWdata  = nRdata & ~nMask;              		    	// Clear the DAC field
+        nWdata  = nWdata | (nMuxInput << (4 * nDacField));      // Set the mux field for a DAC to the pulse channel number
+        Xil_Out32(ADR_SW_MUX7_0, nWdata);
+        xil_printf ("ADR_SW_MUX7_0   (0x%08X -> 0x%08X)\r\n", nRdata, nWdata);
+    }
+    // If DAC is 8-15 then set mux in ADR_SW_MUX15_8
+    else if (nDac < 16)
+    {
+        nRdata  = Xil_In32(ADR_SW_MUX15_8);
+        nMask   = 0xF << (4 * nDacField);
+        nWdata  = nRdata & ~nMask;
+        nWdata  = nWdata | (nDac << (4 * nDacField));
+        Xil_Out32(ADR_SW_MUX15_8, nWdata);
+        xil_printf ("ADR_SW_MUX15_8  (0x%08X -> 0x%08X)\r\n", nRdata, nWdata);
+    }
+    // If DAC is 16-23 then set mux in ADR_SW_MUX23_16
+    else if (nDac < 24)
+    {
+        nRdata  = Xil_In32(ADR_SW_MUX23_16);
+        nMask   = 0xF << (4 * nDacField);
+        nWdata  = nRdata & ~nMask;
+        nWdata  = nWdata | (nDac << (4 * nDacField));
+        Xil_Out32(ADR_SW_MUX23_16, nWdata);
+        xil_printf ("ADR_SW_MUX23_16 (0x%08X -> 0x%08X)\r\n", nRdata, nWdata);
+    }
+    // If DAC is 24-31 then set mux in ADR_SW_MUX31_24
+    else if (nDac < 32)
+    {
+        nRdata  = Xil_In32(ADR_SW_MUX31_24);
+        nMask   = 0xF << (4 * nDacField);
+        nWdata  = nRdata & ~nMask;              // Clear the mux field
+        nWdata  = nWdata | (nDac << (4 * nDacField));  // Set the mux field to the DAC number
+        Xil_Out32(ADR_SW_MUX31_24, nWdata);
+        xil_printf ("ADR_SW_MUX31_24 (0x%08X -> 0x%08X)\r\n", nRdata, nWdata);
+    }
+
+    //--------------------------------------------------------
+    // Set or clear the appropriate invert bit
+    //--------------------------------------------------------
+    nRdata  = Xil_In32(ADR_SW_INV);
+    nMask   = (0x1 << nDac);        // Set one bit
+
+    if (nInvert == 0) {             // Clear the bit
+        nWdata  = nRdata & ~nMask;  // ~nMask has one bit cleared  
+      //xil_printf ("Invert bit clearing (0x%08X -> 0x%08X)\r\n", nRdata, nWdata);
+        Xil_Out32(ADR_SW_INV, nWdata);
+    }
+    else if (nInvert == 1) {        // Set the bit
+        nWdata  = nRdata | nMask;    
+      //xil_printf ("Invert bit setting (0x%08X -> 0x%08X)\r\n", nRdata, nWdata);
+        Xil_Out32(ADR_SW_INV, nWdata);
+    }
+    else
+        xil_printf ("Invalid invert bit setting (%d)\r\n", nInvert);
+
+
+    //--------------------------------------------------------
+    // Set or clear the appropriate zero bit
+    //--------------------------------------------------------
+    nMask   = (0x1 << nDac);        // Set one bit
+    nRdata  = Xil_In32(ADR_SW_ZERO);
+
+    if (nZero == 0) {               // Clear the bit
+        nWdata  = nRdata & ~nMask;  // ~nMask has one bit cleared  
+      //xil_printf ("Zero bit clearing (0x%08X -> 0x%08X)\r\n", nRdata, nWdata);
+        Xil_Out32(ADR_SW_ZERO, nWdata);
+    }
+    else if (nZero == 1) {         // Set the bit
+        nWdata  = nRdata | nMask;    
+      //xil_printf ("Zero bit setting (0x%08X -> 0x%08X)\r\n", nRdata, nWdata);
+        Xil_Out32(ADR_SW_ZERO, nWdata);
+    }
+    else
+        xil_printf ("Invalid zero bit setting (%d)\r\n", nInvert);
+}
+
+
+//---------------------------------------------------------------------
+// Set a switch pattern
+//---------------------------------------------------------------------
+void switch_jesd_clear()
+{
+	for (int nDac = 0 ; nDac < 16 ; nDac++)
+	{
+		switch_jesd_set(nDac, 0, 0, 0);
+	}
+	for (int nDac = 16 ; nDac < 32 ; nDac++)
+	{
+		switch_jesd_set(nDac, 16, 0, 0);
+	}
+}
+
+
+//---------------------------------------------------------------------
+// Set a switch pattern
+// DAC N gets data from pulse channel N.
+// DACs 16-23 are inverted, DACs 24-31 are Zero'ed
+//---------------------------------------------------------------------
+void switch_jesd_init()
+{
+	switch_jesd_set( 0,  0, 0, 0);
+	switch_jesd_set( 1,  1, 0, 0);
+	switch_jesd_set( 2,  2, 0, 0);
+	switch_jesd_set( 3,  3, 0, 0);
+	switch_jesd_set( 4,  4, 0, 0);
+	switch_jesd_set( 5,  5, 0, 0);
+	switch_jesd_set( 6,  6, 0, 0);
+	switch_jesd_set( 7,  7, 0, 0);
+	switch_jesd_set( 8,  8, 0, 0);
+	switch_jesd_set( 9,  9, 0, 0);
+	switch_jesd_set(10, 10, 0, 0);
+	switch_jesd_set(11, 11, 0, 0);
+	switch_jesd_set(12, 12, 0, 0);
+	switch_jesd_set(13, 13, 0, 0);
+	switch_jesd_set(14, 14, 0, 0);
+	switch_jesd_set(15, 15, 0, 0);
+	switch_jesd_set(16, 16, 1, 0);
+	switch_jesd_set(17, 17, 1, 0);
+	switch_jesd_set(18, 18, 1, 0);
+	switch_jesd_set(19, 19, 1, 0);
+	switch_jesd_set(20, 20, 1, 0);
+	switch_jesd_set(21, 21, 1, 0);
+	switch_jesd_set(22, 22, 1, 0);
+	switch_jesd_set(23, 23, 1, 0);
+	switch_jesd_set(24, 24, 0, 1);
+	switch_jesd_set(25, 25, 0, 1);
+	switch_jesd_set(26, 26, 0, 1);
+	switch_jesd_set(27, 27, 0, 1);
+	switch_jesd_set(28, 28, 0, 1);
+	switch_jesd_set(29, 29, 0, 1);
+	switch_jesd_set(30, 30, 0, 1);
+	switch_jesd_set(31, 31, 0, 1);
+
+}
 
 //---------------------------------------------------------------------
 // Turn on access to all channels and write zeros to clear all RAMs
 // Verify all channels are zero
 //---------------------------------------------------------------------
-int clear_all_pulse_rams()
+int pulse_rams_all_clear()
 {
     u32 nEntry      = 0;
     u32 nWaddr      = 0;
@@ -744,7 +1353,7 @@ int clear_all_pulse_rams()
 
     // Enable access to all channels.
     // Each channel should be written with same data.
-    set_pulse_chsel(0xFFFFFFFF); 
+    pulse_chsel_set(0xFFFFFFFF); 
 
     //-----------------------------------------------------------------
     // Clear all RAMs
@@ -807,7 +1416,7 @@ int clear_all_pulse_rams()
 // Write each channel individually, then read back and check the data.
 // Then write all zeros to all channels simultaneously and check that too.
 //---------------------------------------------------------
-int test_pulse_channels(int nChanValid)
+int pulse_channels_rams_test(int nChanValid)
 {
     u32 nChannel    = 0;
     u32 nEntry      = 0;
@@ -818,7 +1427,7 @@ int test_pulse_channels(int nChanValid)
     u32 nRdata      = 0;
     u32 nErrors     = 0;
 
-   (void)xil_printf("test_pulse_channels(0x%08X)\r\n", nChanValid);
+   (void)xil_printf("pulse_channels_rams_test(0x%08X)\r\n", nChanValid);
 
     //---------------------------------------------------------------------
     // Write RAMS in each channel
@@ -826,7 +1435,7 @@ int test_pulse_channels(int nChanValid)
     for (nChannel = 0 ; nChannel < 32 ; nChannel++)
     {
        (void)xil_printf("Write channel %d\r\n", nChannel);
-        set_pulse_chsel(1 << nChannel); // Enable access to one channel only
+        pulse_chsel_set(1 << nChannel); // Enable access to one channel only
 
         // If channel is full, not empty, write and read back, the waveform RAM and the pulse definition RAM
         // Otherwise write the single test register.
@@ -876,7 +1485,7 @@ int test_pulse_channels(int nChanValid)
     for (nChannel = 0 ; nChannel < 32 ; nChannel++)
     {
        (void)xil_printf("Read channel %d\r\n", nChannel);
-        set_pulse_chsel(1 << nChannel); // Enable access to one channel only
+        pulse_chsel_set(1 << nChannel); // Enable access to one channel only
 
         // If channel is full, not empty, read back the waveform RAM and the pulse definition RAM
         // Otherwise read the single test register.
@@ -927,7 +1536,7 @@ int test_pulse_channels(int nChanValid)
         }
         // Done all read and checking
     }
-    nErrors = clear_all_pulse_rams();
+    nErrors = pulse_rams_all_clear();
 
     (void)xil_printf("Read test complete : ");
     if (nErrors != 0)
@@ -965,10 +1574,11 @@ int iic_enable_fmc(int nFMC)
     nStatusIic = XIicPs_MasterSendPolled(&IicPs1, &MsgWr[0], 1, IIC_ADDR_ZCU_BUS_MUX);
 
     if (nStatusIic != XST_SUCCESS) {
-        xil_printf("Fail config iZCU IIC mux for access to FMC %d\r\n", nFMC);
+        xil_printf("Fail config ZCU IIC mux for access to FMC %d\r\n", nFMC);
         return XST_FAILURE;
     } else {
         return XST_SUCCESS;
+        xil_printf("Selected FMC %d\r\n", nFMC);
     }
 }
 
@@ -1232,6 +1842,18 @@ int iic_write_cpld_reg(u8 nReg, u8 nData)
 
 
 //---------------------------------------------------------
+// Reset DACs and clock chip on the CURRENTLY SELECTED 
+// FMC216 board using the CPLD REG_CTRL bits.
+// Write the register to 0x08 then 0x07
+//---------------------------------------------------------
+void iic_fmc_reset_dacs_and_clk()
+{
+    iic_write_cpld_reg(IIC_CPLD_REG_CTRL, 0x08);
+    iic_write_cpld_reg(IIC_CPLD_REG_CTRL, 0x07);
+}
+
+
+//---------------------------------------------------------
 // Write 16-bit data to a FMC216 DAC register
 // 
 // The 32-bit SPI message is written into four registers on the CPLD
@@ -1302,7 +1924,7 @@ int iic_cpld_test()
 
     nReadData = iic_read_cpld_reg(IIC_CPLD_REG_VERSION);
     if (nReadData == nExpVersion)
-    	xil_printf("iic_cpld_test(0x05  VERSION)  0x%02X  PASS\r\n", nReadData);
+        xil_printf("iic_cpld_test(0x05  VERSION)  0x%02X  PASS\r\n", nReadData);
     else
         xil_printf("iic_cpld_test(0x05  VERSION)  0x%02X  FAIL****\r\n", nReadData);
         
@@ -1436,7 +2058,7 @@ int iic_write_clk_reg(int nReg, int nData)
 // followed by a 13 bit address and then 8 bits of dummy data
 // One CPLD register will contain the data that was read.
 //---------------------------------------------------------
-int iic_read_reg_clk(int nReg)
+int iic_read_clk_reg(int nReg)
 {
     int nReadData       = 0xCC;
     int nSpiAddr        = nReg & 0x1FFF;       // A12-A0 Register address
@@ -1523,15 +2145,15 @@ void iic_set_fmc_spi4()
 void iic_test_write_dacs_clk()
 {
     int nDac    = 0;
-    int nWdata  = 0x1234;
+    int nWdata  = 0x0;
 
     (void)xil_printf("iic_test_write_dacs_clk()\r\n");
 
     // Set all four DAC chips alarm reg config4
-    nWdata = 0x1234;
+    nWdata = 0x1230;
     for (nDac = 0; nDac < 4 ; nDac++) {
-        iic_write_dac_reg(nDac, ADR_CONFIG_4, nWdata);
-        (void)xil_printf("DAC%d config04 set to 0x1234\r\n", nDac);
+        iic_write_dac_reg(nDac, ADR_CONFIG_4, (nWdata + nDac));
+        (void)xil_printf("DAC%d config04 set to 0x123%d\r\n", nDac, nDac);
     }
 
     // Set reg 0x101 ADR_REG_LMK_DCLK0_DDLY to 0x44
@@ -1539,8 +2161,25 @@ void iic_test_write_dacs_clk()
     iic_write_clk_reg(ADR_REG_LMK_DCLK0_DDLY, nWdata);
     (void)xil_printf("Set LMK04821 ADR_REG_LMK_DCLK0_DDLY to 0x%02X\r\n", nWdata);
 
+    // Read back all four DAC chips alarm reg config4
+    nWdata = 0x1230;
+    for (nDac = 0; nDac < 4 ; nDac++) {
+        if (iic_read_reg_dac(nDac, ADR_CONFIG_4) == (nWdata + nDac))
+            (void)xil_printf("DAC%d config04 set to 0x123%d  PASS\r\n", nDac, nDac);
+        else
+            (void)xil_printf("DAC%d config04 set to 0x123%d  **** FAIL ****\r\n", nDac, nDac);
+    }
+
+    // Readback 0x101 ADR_REG_LMK_DCLK0_DDLY
+    nWdata = 0x0044;
+    if (iic_read_clk_reg(ADR_REG_LMK_DCLK0_DDLY) == nWdata)
+        (void)xil_printf("Set LMK04821 ADR_REG_LMK_DCLK0_DDLY to 0x%02X PASS\r\n", nWdata);
+    else
+        (void)xil_printf("Set LMK04821 ADR_REG_LMK_DCLK0_DDLY to 0x%02X  **** FAIL ****\r\n", nWdata);
+
     (void)xil_printf("\r\n");
 }
+
 
 //---------------------------------------------------------
 // Read default values from all FMC216 DAC registers
@@ -1555,7 +2194,6 @@ void test_regs_default_dac(u8 nDac)
 
     // Compare register values with defaults
     for (nReg = 0; nReg < NUM_REGS_DAC_39J84 ; nReg++) 
-    //for (nReg = 0; nReg < 16 ; nReg++)
     {
         nRdata = iic_read_reg_dac(nDac, nReg);
 
@@ -1581,10 +2219,9 @@ void test_regs_default_clk()
 
     // Compare register values with defaults
     for (nReg = 0; nReg < NUM_REGS_LMK04828 ; nReg++)
-    //for (nReg = 0; nReg < 16 ; nReg++)
     {
         nAddr  = arr_reg_addr_clk[nReg];
-        nRdata = iic_read_reg_clk(nAddr);
+        nRdata = iic_read_clk_reg(nAddr);
 
         (void)xil_printf("PLL[0x%03X] :  0x%02X", nAddr, nRdata);
         if (nRdata == arr_reg_default_clk[nReg])
@@ -1596,7 +2233,7 @@ void test_regs_default_clk()
 
 
 //---------------------------------------------------------
-// Print first 3 DAC regs
+// Print first 3 DAC regs from currently enabled FMC216 board.
 // Print the Clock chip ID regs
 //   0x003 ID_DEVICE_TYPE
 //   0x004 ID_PROD[15:8]
@@ -1635,48 +2272,48 @@ void dump_regs_fmc()
     //   0x006 ID_MASKREV
     //   0x00C ID_VNDR[15:8]
     //   0x00D ID_VNDR[7:0]
-   nRdata = iic_read_reg_clk(ADR_REG_LMK_RESET);
+   nRdata = iic_read_clk_reg(ADR_REG_LMK_RESET);
    (void)xil_printf("LMK04821[LMK_RESET]            :  0x%03X\r\n",  nRdata);
 
-   nRdata = iic_read_reg_clk(ADR_REG_LMK_PWR_DOWN);
+   nRdata = iic_read_clk_reg(ADR_REG_LMK_PWR_DOWN);
    (void)xil_printf("LMK04821[LMK_PWR_DOWN]         :  0x%03X\r\n",  nRdata);
 
-   nRdata = iic_read_reg_clk(ADR_REG_LMK_ID_DEVICE_TYPE);
+   nRdata = iic_read_clk_reg(ADR_REG_LMK_ID_DEVICE_TYPE);
    (void)xil_printf("LMK04821[LMK_ID_DEVICE_TYPE]   :  0x%03X",  nRdata);
    if (nRdata != DEF_LMK_ID_DEVICE_TYPE)
        (void)xil_printf("** FAIL **  expected 0x%03X\r\n",  DEF_LMK_ID_DEVICE_TYPE);
    else
        (void)xil_printf("\r\n");
 
-   nRdata = iic_read_reg_clk(ADR_REG_LMK_ID_PROD1);
+   nRdata = iic_read_clk_reg(ADR_REG_LMK_ID_PROD1);
    (void)xil_printf("LMK04821[LMK_ID_PROD1]         :  0x%03X",  nRdata);
    if (nRdata != DEF_LMK_ID_PROD1)
        (void)xil_printf("** FAIL **  expected 0x%03X\r\n",  DEF_LMK_ID_PROD1);
    else
        (void)xil_printf("\r\n");
 
-   nRdata = iic_read_reg_clk(ADR_REG_LMK_ID_PROD0);
+   nRdata = iic_read_clk_reg(ADR_REG_LMK_ID_PROD0);
    (void)xil_printf("LMK04821[LMK_ID_PROD0]         :  0x%03X",  nRdata);
    if (nRdata != DEF_LMK_ID_PROD0)
        (void)xil_printf("** FAIL **  expected 0x%03X\r\n",  DEF_LMK_ID_PROD0);
    else
        (void)xil_printf("\r\n");
 
-   nRdata = iic_read_reg_clk(ADR_REG_LMK_ID_MASKREV);
+   nRdata = iic_read_clk_reg(ADR_REG_LMK_ID_MASKREV);
    (void)xil_printf("LMK04821[LMK_ID_MASKREV]       :  0x%03X",  nRdata);
    if (nRdata != DEF_LMK_ID_MASKREV)
        (void)xil_printf("** FAIL **  expected 0x%03X\r\n",  DEF_LMK_ID_MASKREV);
    else
        (void)xil_printf("\r\n");
 
-   nRdata = iic_read_reg_clk(ADR_REG_LMK_ID_VNDR1);
+   nRdata = iic_read_clk_reg(ADR_REG_LMK_ID_VNDR1);
    (void)xil_printf("LMK04821[LMK_ID_VNDR1]         :  0x%03X",  nRdata);
    if (nRdata != DEF_LMK_ID_VNDR1)
        (void)xil_printf("** FAIL **  expected 0x%03X\r\n",  DEF_LMK_ID_VNDR1);
    else
        (void)xil_printf("\r\n");
 
-   nRdata = iic_read_reg_clk(ADR_REG_LMK_ID_VNDR0);
+   nRdata = iic_read_clk_reg(ADR_REG_LMK_ID_VNDR0);
    (void)xil_printf("LMK04821[LMK_ID_VNDR0]         :  0x%03X",  nRdata);
    if (nRdata != DEF_LMK_ID_VNDR0)
        (void)xil_printf("** FAIL **  expected 0x%03X\r\n",  DEF_LMK_ID_VNDR0);
@@ -1771,7 +2408,12 @@ int main()
     char    cUartRx;    // Data from UART
 
     u8      nDigit  = 0;
+
     int     nValue  = 0;
+    int 	nSwPulseChannel;
+	int 	nSwDac;
+	int 	nSwInvert;
+	int 	nSwZero;
 
     int     fmc0_detected = 0;
     int     fmc1_detected = 0;
@@ -1834,10 +2476,15 @@ int main()
     fmc1_detected = is_present_fmc(FMC_BOARD_1);
     (void)xil_printf("fmc1_detected = %d\r\n", fmc1_detected);
 
+    //-----------------------------------------------------
+    // Reset DACs and clock. (Required after power-up).
     // Set FMC DACs and Clock chip to 4-wire SPI mode so that they can be read
+    //-----------------------------------------------------
     if (fmc0_detected == 1) {
         iic_enable_fmc(0);
+        iic_fmc_reset_dacs_and_clk();
         iic_set_fmc_spi4();
+        dump_regs_fmc();
 
         // Lowest power dissipation
         iic_dacs_sleep(0xF0);
@@ -1847,7 +2494,9 @@ int main()
     }
     if (fmc1_detected == 1) {
         iic_enable_fmc(1);
+        iic_fmc_reset_dacs_and_clk();
         iic_set_fmc_spi4();
+        dump_regs_fmc();
 
         // Lowest power dissipation
         iic_dacs_sleep(0xF0);
@@ -1923,15 +2572,17 @@ int main()
                         // Reset stuff
                         //---------------------------------------------------------
                         case 'R':
-                        	// Reset DACs and clock chip using the CPLD REG_CTRL bits
-                        	// write 08 then 07
-                        	iic_write_cpld_reg(IIC_CPLD_REG_CTRL, 0x08);
-                        	iic_write_cpld_reg(IIC_CPLD_REG_CTRL, 0x07);
+                            // Reset DACs and clock chip using the CPLD REG_CTRL bits
+                            // write 08 then 07
+                            iic_fmc_reset_dacs_and_clk();
 
                             // Clear a DACs error count registers (config100-config109)
                             //for (int n = ADR_CONFIG_100 ; n < ADR_CONFIG_110 ; n++) {
                             //    iic_write_dac_reg(nValue, n , 0xFFFF);
                             //}
+                            switch_jesd_clear();
+                            pulse_ramp_all_set();
+
                         break;
 
 
@@ -1941,7 +2592,7 @@ int main()
                         case 'M':
                            // Load each channel and read back. Dummy channels have only a single register
                            int nPulseChannelsFull = 0x00000001;    // Set a bit for each channel that has full logic
-                           (void)test_pulse_channels(nPulseChannelsFull);
+                           (void)pulse_channels_rams_test(nPulseChannelsFull);
                         break;
 
 
@@ -1962,9 +2613,37 @@ int main()
                         //---------------------------------------------------------
                         case 'c':
                             if (nValue == 99)
-                                set_pulse_chsel(0xFFFFFFFF);
+                                pulse_chsel_set(0xFFFFFFFF);
                             else
-                                set_pulse_chsel(nValue);
+                                pulse_chsel_set(nValue);
+                        break;
+
+                        //---------------------------------------------------------
+                        // Set switch invert, zero and DAC bits
+                        // 'W' sets pulse generator channel for DAC 'D'
+                        //---------------------------------------------------------
+                        case 'I':
+                                nSwInvert   = nValue & 0x1;
+                                (void)xil_printf("nSwInvert = %d\r\n", nSwInvert);
+                        break;
+                        case 'Z':
+                                nSwZero     = nValue & 0x1;
+                                (void)xil_printf("nSwZero = %d\r\n", nSwZero);
+                        break;
+                        case 'D':
+                                nSwDac      = nValue & 0x1F;
+                                (void)xil_printf("nSwDac = %d\r\n", nSwDac);
+                        break;
+                        case 'W':
+                        		if (nValue == 99)
+                        			switch_jesd_init();
+                        		else
+                        		{
+                        			nSwPulseChannel	= (nValue & 0x1F);
+                                	(void)xil_printf("nSwPulseChannel = %d\r\n", nSwPulseChannel);
+
+                                	switch_jesd_set(nSwPulseChannel, nSwDac, nSwInvert, nSwZero);
+                        		}
                         break;
 
                         //---------------------------------------------------------
@@ -2051,6 +2730,7 @@ int main()
 
                         break;
 
+
                         //----------------------------------------------------------------------
                         // Read temp from FMC216 AD7291 voltage/temp monitor chip
                         //----------------------------------------------------------------------
@@ -2094,7 +2774,7 @@ int main()
                         //----------------------------------------------------------------------
                         // Set FMC DACs and Clock chip to 4-wire SPI mode so that they can be read
                         //----------------------------------------------------------------------
-                        case 'D':
+                        case 'k':
                             iic_set_fmc_spi4();
                         break;
 
@@ -2126,7 +2806,14 @@ int main()
                         // Test writes to a DAC reg and a clock reg
                         //----------------------------------------------------------------------
                         case 'y':
-                        	iic_test_write_dacs_clk();
+                            iic_test_write_dacs_clk();
+                        break;
+
+                        //----------------------------------------------------------------------
+                        // Initialize FMC216 board PLL and DACs
+                        //----------------------------------------------------------------------
+                        case 'F':
+                            fmc216_boards_init();
                         break;
                     }
                     nDigit = 0;
