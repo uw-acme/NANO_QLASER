@@ -37,6 +37,20 @@
 #define FMC_BOARD_0 0
 #define FMC_BOARD_1 1
 
+/*
+ * PS AXI GPIO (gpio_int) ties to ps_gpin / ps_gpout in qlaser_top_zcu102_fmc0_clkdebug.vhdl:
+ *   gpout[0] = pulse trigger, [1] = pulse enable, [4] = fmc0_tx_core_reset + fmc1_tx_core_reset (JESD PHY)
+ *   gpin[0] = fmc0_tx_reset_done, [1] = fmc1_tx_reset_done, [4] = fmc0_gt_powergood, [5] = fmc1_gt_powergood
+ * (qlaser_top_zcu102_fmc0_2links uses wider nibbles on gpin[3:0]/[7:4]/[11:8]/[15:12] instead — not this map.)
+ */
+#define BIT_GPIO_PULSE_TRIGGER_PS   0
+#define BIT_GPIO_PULSE_ENABLE_PS    1
+#define BIT_GPIO_FMC0_TX_CORE_RESET 4
+#define BIT_GPI_FMC0_TX_RESET_DONE  (1u << 0)
+#define BIT_GPI_FMC1_TX_RESET_DONE  (1u << 1)
+#define BIT_GPI_FMC0_GT_PGOOD       (1u << 4)
+#define BIT_GPI_FMC1_GT_PGOOD       (1u << 5)
+
 //----------------------------------------------------------------------------------------------------------------------
 // General purpose inputs to CPU GPIO reg 
 // Avnet carrier board has 8 LEDs, 4 buttons
