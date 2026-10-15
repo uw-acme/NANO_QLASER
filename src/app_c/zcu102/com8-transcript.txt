@@ -1,0 +1,43 @@
+---------------------------------------------------------------------
+ app_qlaser1 : version 1.0.h
+ FPGA version : C1020005
+---------------------------------------------------------------------
+ h   : Print this message
+ 0-9 : Enter a 'Value'
+ P   : Print registers
+ c   : Set current pulse channel to 'Value'.  (99 = all channels)
+ s   : Set pulse seq length to 'Value'.
+ M   : Test all Pulse Channels RAMs.
+ g   : (value=bit) toggle green LED bit
+ i   : Read port expander
+ m   : Set FMC mux
+ S   : DAC sleep
+ A   : DAC awaken
+ d   : Dump FMC registers
+ D   : Set FMC devices to 4-wire SPI
+
+d
+dump_regs_fmc()
+DAC0[0] :  0x1802
+DAC0[2] :  0x0300
+DAC0[2] :  0x8000
+
+DAC1[0] :  0xB712
+DAC1[2] :  0x0120
+DAC1[2] :  0x8000
+
+DAC2[0] :  0xD015
+DAC2[2] :  0x2223
+DAC2[2] :  0x8000
+
+DAC3[0] :  0x9884
+DAC3[2] :  0x4CA7
+DAC3[2] :  0x8000
+
+LMK04821[0] :  0x1000
+LMK04821[3] :  0x600
+LMK04821[4] :  0xD000
+LMK04821[5] :  0x5B00
+LMK04821[6] :  0x2000
+LMK04821[0xC] :  0x5100
+LMK04821[0xD] :  0x400
